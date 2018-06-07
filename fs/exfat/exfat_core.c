@@ -3733,6 +3733,8 @@ s32 fat_find_dir_entry(struct super_block *sb, CHAIN_T *p_dir, UNI_NAME_T *p_uni
 					if (ext_ep->order > 0x40) {
 						order = (s32)(ext_ep->order - 0x40);
 						uniname = p_uniname->name + 13 * (order-1);
+					} else if (uniname == NULL) {
+						return -2;
 					} else {
 						order = (s32) ext_ep->order;
 						uniname -= 13;
@@ -3861,6 +3863,8 @@ s32 exfat_find_dir_entry(struct super_block *sb, CHAIN_T *p_dir, UNI_NAME_T *p_u
 
 						if ((++order) == 2)
 							uniname = p_uniname->name;
+						else if (uniname == NULL)
+							return -2;
 						else
 							uniname += 15;
 
