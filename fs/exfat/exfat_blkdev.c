@@ -158,7 +158,7 @@ s32 bdev_sync_dirty_buffer(struct buffer_head *bh,
 		get_bh(bh);
 		bh->b_private = sb;
 		bh->b_end_io = exfat_end_buffer_write_sync;
-		ret = submit_bh(REQ_OP_WRITE, WRITE_SYNC, bh);
+		ret = submit_bh(REQ_OP_WRITE, REQ_SYNC, bh);
 		if (sync) {
 			wait_on_buffer(bh);
 			if (!ret && !buffer_uptodate(bh))
