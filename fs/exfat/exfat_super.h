@@ -37,6 +37,10 @@
 #include "exfat_nls.h"
 #include "exfat_api.h"
 #include "exfat_core.h"
+#if LINUX_VERSION_CODE  <  KERNEL_VERSION(4,14,0)
+#include <linux/vmalloc.h>
+#include <linux/slab.h>
+#endif
 
 #define EXFAT_ERRORS_CONT  1    /* ignore error and continue */
 #define EXFAT_ERRORS_PANIC 2    /* panic on error */
@@ -175,5 +179,17 @@ static inline void exfat_save_attr(struct inode *inode, u32 attr)
 	else
 		EXFAT_I(inode)->fid.attr = attr & (ATTR_RWMASK | ATTR_READONLY);
 }
+
+#if LINUX_VERSION_CODE  <  KERNEL_VERSION(4,14,0)
+static inline void *kvzalloc(size_t size, gfp_t flags)
+{
+	void *ret;
+
+	ret = kzalloc(size, flags);
+	if (!ret)
+		ret = vzalloc(size);
+	return ret;
+}
+#endif
 
 #endif /* _EXFAT_LINUX_H */
