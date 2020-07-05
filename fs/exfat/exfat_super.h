@@ -126,7 +126,14 @@ static inline struct exfat_inode_info *EXFAT_I(struct inode *inode)
 
 static inline bool exfat_readonly(struct super_block *sb)
 {
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,19,0)
 	return sb->s_flags & MS_RDONLY;
+#else
+	return sb->s_flags & SB_RDONLY;
+#endif
+
+
+
 }
 
 /*
