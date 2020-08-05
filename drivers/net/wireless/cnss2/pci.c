@@ -2917,6 +2917,9 @@ static int cnss_pci_suspend_noirq(struct device *dev)
 	if (!pci_priv)
 		goto out;
 
+	if (!cnss_is_device_powered_on(pci_priv->plat_priv))
+		goto out;
+
 	driver_ops = pci_priv->driver_ops;
 	if (driver_ops && driver_ops->suspend_noirq)
 		ret = driver_ops->suspend_noirq(pci_dev);
@@ -2937,6 +2940,9 @@ static int cnss_pci_resume_noirq(struct device *dev)
 	struct cnss_wlan_driver *driver_ops;
 
 	if (!pci_priv)
+		goto out;
+
+	if (!cnss_is_device_powered_on(pci_priv->plat_priv))
 		goto out;
 
 	driver_ops = pci_priv->driver_ops;
