@@ -133,8 +133,10 @@ void bdev_end_buffer_write(struct buffer_head *bh, int uptodate, int sync)
 
 	if (sync)
 		end_buffer_write_sync(bh, uptodate);
+	#ifdef CONFIG_QGKI
 	else
 		end_buffer_async_write(bh, uptodate);
+	#endif
 }
 
 static void exfat_end_buffer_write_sync(struct buffer_head *bh, int uptodate)
