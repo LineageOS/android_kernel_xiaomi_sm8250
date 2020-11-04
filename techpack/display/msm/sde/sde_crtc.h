@@ -36,22 +36,6 @@
 #define SDE_CRTC_FRAME_EVENT_SIZE	(4 * 2)
 
 /**
- * enum sde_session_type: session type
- * @SDE_SECURE_UI_SESSION:     secure UI usecase
- * @SDE_SECURE_CAMERA_SESSION: secure camera usecase
- * @SDE_SECURE_VIDEO_SESSION:  secure video usecase
- * @SDE_NON_SECURE_SESSION:    non secure usecase
- * @SDE_NULL_SESSION:          null commit usecase
- */
-enum sde_session_type {
-	SDE_SECURE_UI_SESSION,
-	SDE_SECURE_CAMERA_SESSION,
-	SDE_SECURE_VIDEO_SESSION,
-	SDE_NON_SECURE_SESSION,
-	SDE_NULL_SESSION,
-};
-
-/**
  * enum sde_crtc_client_type: crtc client type
  * @RT_CLIENT:	RealTime client like video/cmd mode display
  *              voting through apps rsc
