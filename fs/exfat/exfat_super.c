@@ -870,10 +870,34 @@ static struct dentry *exfat_lookup(struct inode *dir, struct dentry *dentry,
 	}
 
 	alias = d_find_alias(inode);
-	if (alias && !exfat_d_anon_disconn(alias)) {
-		CHECK_ERR(d_unhashed(alias));
-		if (!S_ISDIR(i_mode))
+	/*
+	 * Checking "alias->d_parent == dentry->d_parent" to make sure
+	 * FS is not corrupted (especially double linked dir).
+	 */
+	if (alias && alias->d_parent == dentry->d_parent &&
+			!exfat_d_anon_disconn(alias)) {
+		/*
+		 * Unhashed alias is able to exist because of revalidate()
+		 * called by lookup_fast. You can easily make this status
+		 * by calling create and lookup concurrently
+		 * In such case, we reuse an alias instead of dentry
+		 */
+		if (d_unhashed(alias)) {
+			WARN_ON(alias->d_name.hash_len !=
+				dentry->d_name.hash_len);
+			DPRINTK("rehashed a dentry(%p) in read lookup",alias);
+			d_drop(dentry);
+			d_rehash(alias);
+		} else if (!S_ISDIR(i_mode)) {
+			/*
+			 * This inode has non anonymous-DCACHE_DISCONNECTED
+			 * dentry. This means, the user did ->lookup() by an
+			 * another name (longname vs 8.3 alias of it) in past.
+			 *
+			 * Switch to new one for reason of locality if possible
+			 */
 			d_move(alias, dentry);
+		}
 		iput(inode);
 		__unlock_super(sb);
 		DPRINTK("exfat_lookup exited 1\n");
