@@ -171,6 +171,7 @@ static int32_t cam_cci_i2c_compare(struct cam_sensor_cci_client *client,
 		addr_type, data_type);
 	if (rc < 0)
 		return rc;
+	CAM_DBG(CAM_SENSOR, "addr %04x, %04x,compare data = %d", addr, reg_data, (int16_t)reg_data);
 
 	reg_data = reg_data & 0xFFFF;
 	if (data == (reg_data & ~data_mask))
