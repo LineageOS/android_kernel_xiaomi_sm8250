@@ -43,7 +43,11 @@ int wcd_request_irq(struct wcd_irq_info *irq_info, int irq, const char *name,
 		return irq;
 
 	return request_threaded_irq(irq, NULL, handler,
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+				    IRQF_ONESHOT | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+#else
 				    IRQF_ONESHOT | IRQF_TRIGGER_RISING,
+#endif
 				    name, data);
 }
 EXPORT_SYMBOL(wcd_request_irq);
