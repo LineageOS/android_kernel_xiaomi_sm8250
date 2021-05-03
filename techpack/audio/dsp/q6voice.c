@@ -24,7 +24,11 @@
 #include "adsp_err.h"
 #include <dsp/voice_mhi.h>
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+#define TIMEOUT_MS 1000
+#else
 #define TIMEOUT_MS 300
+#endif
 
 
 #define CMD_STATUS_SUCCESS 0

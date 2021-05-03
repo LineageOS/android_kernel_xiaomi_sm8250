@@ -153,7 +153,11 @@ static const struct reg_default wcd938x_defaults[] = {
 	{WCD938X_HPH_CNP_EN,                                   0x80},
 	{WCD938X_HPH_CNP_WG_CTL,                               0x9A},
 	{WCD938X_HPH_CNP_WG_TIME,                              0x14},
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	{WCD938X_HPH_OCP_CTL,                                  0x68},
+#else
 	{WCD938X_HPH_OCP_CTL,                                  0x28},
+#endif
 	{WCD938X_HPH_AUTO_CHOP,                                0x16},
 	{WCD938X_HPH_CHOP_CTL,                                 0x83},
 	{WCD938X_HPH_PA_CTL1,                                  0x46},
