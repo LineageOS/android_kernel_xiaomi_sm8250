@@ -127,7 +127,15 @@ int bolero_tx_mclk_enable(struct snd_soc_component *c, bool enable);
 int bolero_get_version(struct device *dev);
 int bolero_dmic_clk_enable(struct snd_soc_component *component,
 			   u32 dmic, u32 tx_mode, bool enable);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+void bolero_tx_macro_mute_hs(void);
+#endif
 #else
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+static inline void bolero_tx_macro_mute_hs(void)
+{
+}
+#endif
 static inline int bolero_register_res_clk(struct device *dev, rsc_clk_cb_t cb)
 {
 	return 0;

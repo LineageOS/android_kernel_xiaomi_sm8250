@@ -25,7 +25,11 @@
 #define BYTE_BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_BYTE))
 #define BIT_BYTE(nr)			((nr) / BITS_PER_BYTE)
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+#define WCD9XXX_SYSTEM_RESUME_TIMEOUT_MS 1200
+#else
 #define WCD9XXX_SYSTEM_RESUME_TIMEOUT_MS 100
+#endif
 
 #ifndef NO_IRQ
 #define NO_IRQ	(-1)

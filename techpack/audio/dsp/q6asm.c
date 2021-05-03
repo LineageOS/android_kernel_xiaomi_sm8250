@@ -11099,6 +11099,14 @@ static int q6asm_get_asm_topology_apptype(struct q6asm_cal_info *cal_info)
 	cal_info->app_type = ((struct audio_cal_info_asm_top *)
 		cal_block->cal_info)->app_type;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	if (0 == cal_info->topology_id) {
+		cal_info->topology_id = 0x10c68;;
+		pr_err("%s: Correct popp topology 0x%x app_type %d\n", __func__,
+			cal_info->topology_id, cal_info->app_type);
+	}
+#endif
+
 	cal_utils_mark_cal_used(cal_block);
 
 unlock:

@@ -234,6 +234,11 @@ ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= rouleur/
 	obj-y	+= wsa883x/
 	obj-y	+= sdm660_cdc/
+
+ifdef CONFIG_MACH_XIAOMI_SM8250
+	obj-y	+= cs35l41/
+	obj-y	+= tfa98xx/
+endif
 endif
 # Module information used by KBuild framework
 obj-$(CONFIG_WCD9XXX_CODEC_CORE) += wcd_core_dlkm.o
