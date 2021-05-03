@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2019, The Linux Foundation. All rights reserved.
  */
 
 
@@ -77,7 +77,6 @@ static struct cam_vfe_camif_ver3_reg_data vfe_480_camif_reg_data = {
 	.error_irq_mask0                 = 0x82000200,
 	.error_irq_mask2                 = 0x30301F80,
 	.subscribe_irq_mask1             = 0x00000007,
-	.frame_id_irq_mask               = 0x400,
 	.enable_diagnostic_hw            = 0x1,
 	.pp_camif_cfg_en_shift           = 0,
 	.pp_camif_cfg_ife_out_en_shift   = 8,
@@ -95,12 +94,6 @@ static struct cam_vfe_top_ver3_reg_offset_common vfe480_top_common_reg = {
 	.global_reset_cmd         = 0x0000001C,
 	.core_cfg_0               = 0x0000002C,
 	.core_cfg_1               = 0x00000030,
-	.irq_mask_0               = 0x0000003C,
-	.irq_mask_1               = 0x00000040,
-	.irq_mask_2               = 0x00000044,
-	.irq_status_0             = 0x00000054,
-	.irq_status_1             = 0x00000058,
-	.irq_status_2             = 0x0000005C,
 	.reg_update_cmd           = 0x00000034,
 	.violation_status         = 0x00000074,
 	.core_cgc_ovd_0           = 0x00000020,
@@ -108,7 +101,7 @@ static struct cam_vfe_top_ver3_reg_offset_common vfe480_top_common_reg = {
 	.ahb_cgc_ovd              = 0x00000024,
 	.noc_cgc_ovd              = 0x00000028,
 	.trigger_cdm_events       = 0x00000090,
-	.custom_frame_idx         = 0x00000110,
+	.sbi_frame_idx            = 0x00000110,
 	.dsp_status               = 0x0000007C,
 	.diag_config              = 0x00000064,
 	.diag_sensor_status_0     = 0x00000068,
@@ -1366,7 +1359,6 @@ static struct cam_vfe_bus_rd_ver1_hw_info vfe480_bus_rd_hw_info = {
 			.max_height    = -1,
 		},
 	},
-	.top_irq_shift = 8,
 };
 
 struct cam_vfe_hw_info cam_vfe480_hw_info = {
