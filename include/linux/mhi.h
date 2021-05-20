@@ -408,6 +408,10 @@ struct mhi_controller {
 	/* controller specific data */
 	const char *name;
 	bool power_down;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	bool need_force_m3;
+	bool force_m3_done;
+#endif
 	bool initiate_mhi_reset;
 	void *priv_data;
 	void *log_buf;
