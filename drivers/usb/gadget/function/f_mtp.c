@@ -160,9 +160,15 @@ static struct usb_interface_descriptor mtp_interface_desc = {
 	.bDescriptorType        = USB_DT_INTERFACE,
 	.bInterfaceNumber       = 0,
 	.bNumEndpoints          = 3,
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	.bInterfaceClass        = USB_CLASS_STILL_IMAGE,
+	.bInterfaceSubClass     = 1,
+	.bInterfaceProtocol     = 1,
+#else
 	.bInterfaceClass        = USB_CLASS_VENDOR_SPEC,
 	.bInterfaceSubClass     = USB_SUBCLASS_VENDOR_SPEC,
 	.bInterfaceProtocol     = 0,
+#endif
 };
 
 static struct usb_interface_descriptor ptp_interface_desc = {
@@ -617,6 +623,9 @@ static ssize_t mtp_read(struct file *fp, char __user *buf,
 		goto wait_err;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	cdev = dev->cdev;
+#endif
 	len = ALIGN(count, dev->ep_out->maxpacket);
 	if (len > mtp_rx_req_len)
 		return -EINVAL;
