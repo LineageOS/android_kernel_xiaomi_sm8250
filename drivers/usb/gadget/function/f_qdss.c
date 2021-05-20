@@ -938,6 +938,8 @@ close:
 	}
 	gadget = qdss->gadget;
 	ch->app_conn = 0;
+	ch->priv = NULL;
+	ch->notify = NULL;
 	spin_unlock_irqrestore(&channel_lock, flags);
 
 	status = uninit_data(qdss->port.data);
