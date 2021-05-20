@@ -334,11 +334,18 @@ int rpmh_write(const struct device *dev, enum rpmh_state state,
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	if (!oops_in_progress) {
+#endif
 	ret = wait_for_completion_timeout(&compl, RPMH_TIMEOUT_MS);
 	if (!ret) {
 		rpmh_rsc_debug(ctrlr_to_drv(ctrlr), &compl);
 		return -ETIMEDOUT;
 	}
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	} else
+		mdelay(100);
+#endif
 
 	return 0;
 }
@@ -470,6 +477,9 @@ int rpmh_write_batch(const struct device *dev, enum rpmh_state state,
 
 	time_left = RPMH_TIMEOUT_MS;
 	while (i--) {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+		if (!oops_in_progress) {
+#endif
 		time_left = wait_for_completion_timeout(&compls[i], time_left);
 		if (!time_left) {
 			/*
@@ -481,6 +491,10 @@ int rpmh_write_batch(const struct device *dev, enum rpmh_state state,
 			ret = -ETIMEDOUT;
 			goto exit;
 		}
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+		} else
+			mdelay(100);
+#endif
 	}
 
 exit:
