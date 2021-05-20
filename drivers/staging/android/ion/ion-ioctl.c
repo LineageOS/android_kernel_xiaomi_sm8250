@@ -75,6 +75,14 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		int fd;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+		if (data.allocation.unused > 0)
+			fd = ion_alloc_fd_with_caller_pid(
+				data.allocation.len,
+				data.allocation.heap_id_mask,
+				data.allocation.flags, data.allocation.unused);
+		else
+#endif
 		fd = ion_alloc_fd(data.allocation.len,
 				  data.allocation.heap_id_mask,
 				  data.allocation.flags);
