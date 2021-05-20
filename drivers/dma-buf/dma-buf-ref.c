@@ -74,7 +74,11 @@ void dma_buf_ref_mod(struct dma_buf *dmabuf, int nr)
 	    trace.entries[trace.nr_entries-1] == ULONG_MAX)
 		trace.nr_entries--;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	handle = depot_save_stack(&trace, GFP_KERNEL, current->pid);
+#else
 	handle = depot_save_stack(&trace, GFP_KERNEL);
+#endif
 	if (!handle)
 		return;
 
