@@ -29,6 +29,9 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/dma-mapping.h>
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+#include <trace/events/iommu.h>
+#endif
 
 #include <asm/barrier.h>
 
@@ -525,6 +528,9 @@ static int __arm_lpae_map(struct arm_lpae_io_pgtable *data, unsigned long iova,
 		pte = arm_lpae_install_table(cptep, ptep, 0, cfg, 0);
 		if (pte)
 			__arm_lpae_free_pages(cptep, tblsz, cfg, cookie);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+		trace_io_pgtable_install(cptep, ptep, *ptep, 0);
+#endif
 
 	} else if (!(cfg->quirks & IO_PGTABLE_QUIRK_NO_DMA) &&
 		   !(pte & ARM_LPAE_PTE_SW_SYNC)) {
@@ -790,6 +796,9 @@ static size_t arm_lpae_split_blk_unmap(struct arm_lpae_io_pgtable *data,
 	}
 
 	pte = arm_lpae_install_table(tablep, ptep, blk_pte, cfg, child_cnt);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	trace_io_pgtable_install(tablep, ptep, *ptep, 1);
+#endif
 	if (pte != blk_pte) {
 		__arm_lpae_free_pages(tablep, tablesz, cfg, cookie);
 		/*
@@ -827,11 +836,18 @@ static size_t __arm_lpae_unmap(struct arm_lpae_io_pgtable *data,
 
 	/* If the size matches this level, we're in the right place */
 	if (size == ARM_LPAE_BLOCK_SIZE(lvl, data)) {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+		arm_lpae_iopte *blk_table = ptep;
+#endif
 		__arm_lpae_set_pte(ptep, 0, &iop->cfg);
 
 		if (!iopte_leaf(pte, lvl)) {
 			/* Also flush any partial walks */
 			ptep = iopte_deref(pte, data);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+			trace_io_pgtable_free(ptep, blk_table, pte, iova, 1);
+			io_pgtable_tlb_flush_all(&data->iop);
+#endif
 			__arm_lpae_free_pgtable(data, lvl + 1, ptep);
 		}
 
@@ -864,7 +880,13 @@ static size_t __arm_lpae_unmap(struct arm_lpae_io_pgtable *data,
 		iopte_tblcnt_sub(ptep, entries);
 		if (!iopte_tblcnt(*ptep)) {
 			/* no valid mappings left under this table. free it. */
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+			trace_io_pgtable_free(table_base, ptep, *ptep, iova, 0);
+#endif
 			__arm_lpae_set_pte(ptep, 0, &iop->cfg);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+			io_pgtable_tlb_flush_all(&data->iop);
+#endif
 			__arm_lpae_free_pgtable(data, lvl + 1, table_base);
 		}
 
