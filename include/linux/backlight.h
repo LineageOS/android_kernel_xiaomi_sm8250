@@ -69,6 +69,10 @@ struct backlight_ops {
 struct backlight_properties {
 	/* Current User requested brightness (0 - max_brightness) */
 	int brightness;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	int brightness_clone;
+	int brightness_clone_backup;
+#endif
 	/* Maximal value for brightness (read-only) */
 	int max_brightness;
 	/* Current FB Power mode (0: full on, 1..3: power saving
@@ -111,6 +115,10 @@ struct backlight_device {
 	struct thermal_cooling_device *cdev;
 	/* Thermally limited max brightness */
 	int thermal_brightness_limit;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	/* Thermally limited max brightness clone for 8192 hbm*/
+	int thermal_brightness_clone_limit;
+#endif
 	/* User brightness request */
 	int usr_brightness_req;
 
