@@ -938,6 +938,10 @@ close:
 	}
 	gadget = qdss->gadget;
 	ch->app_conn = 0;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	ch->priv = NULL;
+	ch->notify = NULL;
+#endif
 	spin_unlock_irqrestore(&channel_lock, flags);
 
 	status = uninit_data(qdss->port.data);
