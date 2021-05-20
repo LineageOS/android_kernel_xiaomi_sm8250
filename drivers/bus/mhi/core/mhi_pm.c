@@ -676,6 +676,10 @@ static void mhi_pm_disable_transition(struct mhi_controller *mhi_cntrl,
 		sfr_info->buf_addr = NULL;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	mhi_cntrl->force_m3_done = false;
+#endif
+
 	mutex_lock(&mhi_cntrl->pm_mutex);
 
 	MHI_ASSERT(atomic_read(&mhi_cntrl->dev_wake), "dev_wake != 0");
