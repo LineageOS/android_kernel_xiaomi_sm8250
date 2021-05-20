@@ -1632,7 +1632,7 @@ static int gpiochip_match_name(struct gpio_chip *chip, void *data)
 	return !strcmp(chip->label, name);
 }
 
-static struct gpio_chip *find_chip_by_name(const char *name)
+struct gpio_chip *find_chip_by_name(const char *name)
 {
 	return gpiochip_find((void *)name, gpiochip_match_name);
 }
@@ -4437,14 +4437,20 @@ static int gpiolib_seq_show(struct seq_file *s, void *v)
 	struct device *parent;
 
 	if (!chip) {
-		seq_printf(s, "%s%s: (dangling chip)", (char *)s->private,
-			   dev_name(&gdev->dev));
+		if (s)
+			seq_printf(s, "%s%s: (dangling chip)", (char *)s->private,
+				dev_name(&gdev->dev));
+		else
+			seq_printf(s, "%s: (dangling chip)", dev_name(&gdev->dev));
 		return 0;
 	}
-
-	seq_printf(s, "%s%s: GPIOs %d-%d", (char *)s->private,
-		   dev_name(&gdev->dev),
-		   gdev->base, gdev->base + gdev->ngpio - 1);
+	if (s)
+		seq_printf(s, "%s%s: GPIOs %d-%d", (char *)s->private,
+			dev_name(&gdev->dev),
+			gdev->base, gdev->base + gdev->ngpio - 1);
+	else
+		seq_printf(s, "%s: GPIOs %d-%d", dev_name(&gdev->dev),
+			gdev->base, gdev->base + gdev->ngpio - 1);
 	parent = chip->parent;
 	if (parent)
 		seq_printf(s, ", parent: %s/%s",
