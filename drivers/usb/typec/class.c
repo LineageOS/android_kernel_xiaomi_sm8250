@@ -1381,6 +1381,11 @@ void typec_set_pwr_opmode(struct typec_port *port,
 	if (port->pwr_opmode == opmode)
 		return;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	if (opmode > TYPEC_PWR_MODE_PD)
+		return;
+#endif
+
 	port->pwr_opmode = opmode;
 	sysfs_notify(&port->dev.kobj, NULL, "power_operation_mode");
 	kobject_uevent(&port->dev.kobj, KOBJ_CHANGE);
