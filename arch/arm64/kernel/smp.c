@@ -835,10 +835,18 @@ DEFINE_PER_CPU(struct pt_regs, regs_before_stop);
 /*
  * ipi_cpu_stop - handle IPI from smp_send_stop()
  */
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+extern in_long_press;
+#endif
 static void ipi_cpu_stop(unsigned int cpu, struct pt_regs *regs)
 {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	if ((system_state == SYSTEM_BOOTING ||
+		system_state == SYSTEM_RUNNING) && (!in_long_press)) {
+#else
 	if (system_state == SYSTEM_BOOTING ||
 	    system_state == SYSTEM_RUNNING) {
+#endif
 		per_cpu(regs_before_stop, cpu) = *regs;
 		raw_spin_lock(&stop_lock);
 		pr_crit("CPU%u: stopping\n", cpu);

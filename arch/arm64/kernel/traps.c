@@ -119,6 +119,11 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 	if (!tsk)
 		tsk = current;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	if (tsk->state == TASK_DEAD)
+		return;
+#endif
+
 	if (!try_get_task_stack(tsk))
 		return;
 
@@ -158,6 +163,13 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 				tsk->comm);
 			break;
 		}
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+		/* do not dump_backtrace current task on other cpu, frame is the last info */
+		if (tsk != current && tsk->on_cpu == 1) {
+			printk("The task:%s is running on other cpu currently!\n", tsk->comm);
+			break;
+		}
+#endif
 		/* skip until specified stack frame */
 		if (!skip) {
 			dump_backtrace_entry(frame.pc);
