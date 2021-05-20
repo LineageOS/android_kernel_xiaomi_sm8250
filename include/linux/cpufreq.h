@@ -429,7 +429,11 @@ static inline void cpufreq_resume(void) {}
 /* Policy Notifiers  */
 #define CPUFREQ_ADJUST			(0)
 #define CPUFREQ_NOTIFY			(1)
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+#define CPUFREQ_THERMAL			(2)
+#else
 #define CPUFREQ_INCOMPATIBLE	(6)
+#endif
 
 #ifdef CONFIG_CPU_FREQ
 int cpufreq_register_notifier(struct notifier_block *nb, unsigned int list);
