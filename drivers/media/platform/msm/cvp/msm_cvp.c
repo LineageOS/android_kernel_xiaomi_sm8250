@@ -3,6 +3,10 @@
  * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
  */
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+#include <linux/workqueue.h>
+#endif
+
 #include "msm_cvp.h"
 #include "cvp_hfi.h"
 #include <synx_api.h>
@@ -14,6 +18,10 @@ struct cvp_power_level {
 	unsigned long op_core_sum;
 	unsigned long bw_sum;
 };
+
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+static struct workqueue_struct *fence_workqueue;
+#endif
 
 void print_internal_buffer(u32 tag, const char *str,
 		struct msm_cvp_inst *inst, struct msm_cvp_internal_buffer *cbuf)
@@ -994,7 +1002,11 @@ exit:
 }
 
 #define CVP_FENCE_RUN	0x100
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+static void msm_cvp_thread_fence_run(struct work_struct *data)
+#else
 static int msm_cvp_thread_fence_run(void *data)
+#endif
 {
 	int i, rc = 0;
 	unsigned long timeout_ms = 100;
@@ -1014,12 +1026,18 @@ static int msm_cvp_thread_fence_run(void *data)
 		do_exit(-EINVAL);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	fence_thread_data = container_of(data, struct msm_cvp_fence_thread_data, work);
+#else
 	fence_thread_data = data;
+#endif
 	inst = fence_thread_data->inst;
 	if (!inst) {
 		dprintk(CVP_ERR, "%s Wrong inst %pK\n", __func__, inst);
 		rc = -EINVAL;
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 		return rc;
+#endif
 	}
 	inst->cur_cmd_type = CVP_FENCE_RUN;
 	in_fence_pkt = (struct cvp_kmd_hfi_fence_packet *)
@@ -1156,6 +1174,9 @@ static int msm_cvp_thread_fence_run(void *data)
 				}
 				rc = synx_wait(synx_obj, timeout_ms);
 				if (rc) {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+					rc = synx_release(synx_obj);
+#endif
 					dprintk(CVP_ERR,
 						"%s: synx_wait failed\n",
 						__func__);
@@ -1208,6 +1229,9 @@ static int msm_cvp_thread_fence_run(void *data)
 		}
 		rc = synx_signal(synx_obj, synx_state);
 		if (rc) {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+			rc = synx_release(synx_obj);
+#endif
 			dprintk(CVP_ERR, "%s: synx_signal failed\n", __func__);
 			goto exit;
 		}
@@ -1236,6 +1260,9 @@ static int msm_cvp_thread_fence_run(void *data)
 				}
 				rc = synx_wait(synx_obj, timeout_ms);
 				if (rc) {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+					rc = synx_release(synx_obj);
+#endif
 					dprintk(CVP_ERR,
 						"%s: synx_wait %d failed\n",
 						__func__, i<<1);
@@ -1286,6 +1313,9 @@ static int msm_cvp_thread_fence_run(void *data)
 				}
 				rc = synx_signal(synx_obj, synx_state);
 				if (rc) {
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+					rc = synx_release(synx_obj);
+#endif
 					dprintk(CVP_ERR,
 						"%s: synx_signal %d failed\n",
 						__func__, i<<1);
@@ -1314,7 +1344,9 @@ exit:
 	kmem_cache_free(cvp_driver->fence_data_cache, fence_thread_data);
 	inst->cur_cmd_type = 0;
 	cvp_put_inst(inst);
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 	do_exit(rc);
+#endif
 }
 
 static int msm_cvp_session_process_hfi_fence(
@@ -1322,7 +1354,9 @@ static int msm_cvp_session_process_hfi_fence(
 	struct cvp_kmd_arg *arg)
 {
 	static int thread_num;
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 	struct task_struct *thread;
+#endif
 	int rc = 0;
 	char thread_fence_name[32];
 	int pkt_idx;
@@ -1389,6 +1423,12 @@ static int msm_cvp_session_process_hfi_fence(
 	if (rc)
 		goto free_and_exit;
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	if (fence_workqueue == NULL) {
+		fence_workqueue = alloc_workqueue("cvp_fence_workqueue", __WQ_LEGACY | WQ_MEM_RECLAIM | WQ_UNBOUND | WQ_HIGHPRI, 1);
+	}
+#endif
+
 	thread_num = thread_num + 1;
 	fence_thread_data->inst = inst;
 	fence_thread_data->device_id = (unsigned int)inst->core->id;
@@ -1397,6 +1437,7 @@ static int msm_cvp_session_process_hfi_fence(
 	fence_thread_data->arg_type = arg->type;
 	snprintf(thread_fence_name, sizeof(thread_fence_name),
 				"thread_fence_%d", thread_num);
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 	thread = kthread_run(msm_cvp_thread_fence_run,
 			fence_thread_data, thread_fence_name);
 	if (!thread) {
@@ -1404,6 +1445,10 @@ static int msm_cvp_session_process_hfi_fence(
 		rc = -ECHILD;
 		goto free_and_exit;
 	}
+#else
+	INIT_WORK(&fence_thread_data->work, msm_cvp_thread_fence_run);
+	queue_work(fence_workqueue, &fence_thread_data->work);
+#endif
 
 	return 0;
 
