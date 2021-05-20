@@ -516,6 +516,9 @@ struct usb_composite_dev {
 	struct usb_composite_driver	*driver;
 	u8				next_string_id;
 	char				*def_manufacturer;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	bool                    isMSOS;
+#endif
 
 	/* the gadget driver won't enable the data pullup
 	 * while the deactivation count is nonzero.
