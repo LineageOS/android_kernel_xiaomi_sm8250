@@ -57,6 +57,9 @@ static ssize_t brightness_store(struct device *dev,
 	if (state == LED_OFF && !(led_cdev->flags & LED_KEEP_TRIGGER))
 		led_trigger_remove(led_cdev);
 	led_set_brightness(led_cdev, state);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	led_cdev->usr_brightness_req = state;
+#endif
 
 	ret = size;
 unlock:
@@ -72,7 +75,30 @@ static ssize_t max_brightness_show(struct device *dev,
 
 	return sprintf(buf, "%u\n", led_cdev->max_brightness);
 }
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 static DEVICE_ATTR_RO(max_brightness);
+#else
+static ssize_t max_brightness_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	unsigned long state;
+	ssize_t ret = -EINVAL;
+
+	ret = kstrtoul(buf, 10, &state);
+	if (ret)
+		return ret;
+
+	if (state <= LED_FULL) {
+		led_cdev->max_brightness = state;
+		if (led_cdev->usr_brightness_req > 0)
+			led_set_brightness(led_cdev, led_cdev->usr_brightness_req);
+	}
+
+	return size;
+}
+static DEVICE_ATTR_RW(max_brightness);
+#endif
 
 #ifdef CONFIG_LEDS_TRIGGERS
 static DEVICE_ATTR(trigger, 0644, led_trigger_show, led_trigger_store);
