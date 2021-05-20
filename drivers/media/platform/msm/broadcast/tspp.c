@@ -3080,7 +3080,9 @@ static int msm_tspp_probe(struct platform_device *pdev)
 	for (i = 0; i < TSPP_TSIF_INSTANCES; i++)
 		tsif_debugfs_init(&device->tsif[i], i);
 
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 	wakeup_source_init(&device->ws, dev_name(&pdev->dev));
+#endif
 
 	/* set up pointers to ram-based 'registers' */
 	device->filters[0] = device->base + TSPP_PID_FILTER_TABLE0;
@@ -3192,7 +3194,9 @@ static int msm_tspp_remove(struct platform_device *pdev)
 	if (device->tsif_bus_client)
 		msm_bus_scale_unregister_client(device->tsif_bus_client);
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
 	wakeup_source_trash(&device->ws);
+#endif
 	if (device->req_irqs)
 		msm_tspp_free_irqs(device);
 

@@ -344,6 +344,9 @@ struct msm_cvp_fence_thread_data {
 	unsigned int device_id;
 	struct cvp_kmd_hfi_fence_packet in_fence_pkt;
 	unsigned int arg_type;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	struct work_struct work;
+#endif
 };
 
 extern struct msm_cvp_drv *cvp_driver;
