@@ -77,6 +77,9 @@ struct pl_data {
 	struct power_supply	*dc_psy;
 	struct power_supply	*cp_master_psy;
 	struct power_supply	*cp_slave_psy;
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	struct power_supply	*wireless_psy;
+#endif
 	int			charge_type;
 	int			total_settled_ua;
 	int			pl_settled_ua;
@@ -1206,6 +1209,19 @@ static bool is_batt_available(struct pl_data *chip)
 	return true;
 }
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+static bool is_wireless_available(struct pl_data *chip)
+{
+	if (!chip->wireless_psy)
+		chip->wireless_psy = power_supply_get_by_name("wireless");
+
+	if (!chip->wireless_psy)
+		return false;
+
+	return true;
+}
+#endif
+
 #define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 50000
 static int pl_fv_vote_callback(struct votable *votable, void *data,
 			int fv_uv, const char *client)
@@ -1258,6 +1274,21 @@ static int pl_fv_vote_callback(struct votable *votable, void *data,
 				if (rc < 0)
 					pr_err("Couldn't set force recharge rc=%d\n",
 							rc);
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+			} else if (is_wireless_available(chip)) {
+				rc = power_supply_get_property(chip->wireless_psy,
+				POWER_SUPPLY_PROP_WIRELESS_POWER_GOOD_EN,
+				&pval);
+				if (pval.intval) {
+					pr_err("wireless re-triggering charging\n");
+					rc = power_supply_set_property(chip->batt_psy,
+						POWER_SUPPLY_PROP_FORCE_RECHARGE,
+						&pval);
+					if (rc < 0)
+						pr_err("Couldn't set force recharge rc=%d\n",
+								rc);
+				}
+#endif
 			}
 		}
 	}
