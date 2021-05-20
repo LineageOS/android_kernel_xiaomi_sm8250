@@ -64,6 +64,8 @@ int qpnp_pon_wd_config(bool enable);
 int qpnp_pon_set_restart_reason(enum pon_restart_reason reason);
 bool qpnp_pon_check_hard_reset_stored(void);
 int qpnp_pon_modem_pwr_off(enum pon_power_off_type type);
+int qpnp_pon_is_lpk(void);
+int qpnp_pon_is_ps_hold_reset(void);
 
 #else
 
@@ -103,6 +105,22 @@ static inline int qpnp_pon_modem_pwr_off(enum pon_power_off_type type)
 	return -ENODEV;
 }
 
+static inline int qpnp_pon_is_lpk(void)
+{
+	return -ENODEV;
+}
+
+static inline int qpnp_pon_is_ps_hold_reset(void)
+{
+	return -ENODEV;
+}
+
+#endif
+
+#ifdef CONFIG_MTD_BLOCK2MTD
+extern struct Scsi_Host *g_shost;
+extern void ufs_enter_h8_disable(struct Scsi_Host *shost);
+extern void machine_restart(char *cmd);
 #endif
 
 #endif
