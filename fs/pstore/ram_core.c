@@ -38,6 +38,10 @@ struct persistent_ram_buffer {
 
 #define PERSISTENT_RAM_SIG (0x43474244) /* DBGC */
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+struct pmsg_start_t pmsg_start;
+#endif
+
 static inline size_t buffer_size(struct persistent_ram_zone *prz)
 {
 	return atomic_read(&prz->buffer->size);
@@ -357,6 +361,12 @@ int notrace persistent_ram_write_user(struct persistent_ram_zone *prz,
 	buffer_size_add(prz, c);
 
 	start = buffer_start_add(prz, c);
+
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	spin_lock(&pmsg_start.lock);
+	pmsg_start.start = start;
+	spin_unlock(&pmsg_start.lock);
+#endif
 
 	rem = prz->buffer_size - start;
 	if (unlikely(rem < c)) {
