@@ -24,6 +24,10 @@
 #define BCL_DRIVER_NAME       "bcl_pmic5"
 #define BCL_MONITOR_EN        0x46
 #define BCL_IRQ_STATUS        0x08
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+#define BCL_IADC_BF_DGL_CTL   0x59
+#define BCL_IADC_BF_DGL_16MS  0x0E
+#endif
 
 #define BCL_IBAT_HIGH         0x4B
 #define BCL_IBAT_TOO_HIGH     0x4C
@@ -595,9 +599,27 @@ static void bcl_probe_lvls(struct platform_device *pdev,
 	bcl_lvl_init(pdev, BCL_LVL2, BCL_IRQ_L2, bcl_perph);
 }
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+static void bcl_iadc_bf_degl_set(struct bcl_device *bcl_perph, int time)
+{
+	int ret;
+	int data = 0;
+	ret = bcl_read_register(bcl_perph, BCL_IADC_BF_DGL_CTL, &data);
+	if (ret)
+		return;
+	data = (data & 0xF0) | time;
+	ret = bcl_write_register(bcl_perph, BCL_IADC_BF_DGL_CTL, data);
+	if (ret)
+		return;
+}
+#endif
+
 static void bcl_configure_bcl_peripheral(struct bcl_device *bcl_perph)
 {
 	bcl_write_register(bcl_perph, BCL_MONITOR_EN, BIT(7));
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+	bcl_iadc_bf_degl_set(bcl_perph, BCL_IADC_BF_DGL_16MS);
+#endif
 }
 
 static int bcl_remove(struct platform_device *pdev)
