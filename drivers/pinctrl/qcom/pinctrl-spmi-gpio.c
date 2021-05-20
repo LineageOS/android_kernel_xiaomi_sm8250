@@ -738,6 +738,15 @@ static int pmic_gpio_get(struct gpio_chip *chip, unsigned pin)
 	return !!pad->out_value;
 }
 
+#ifdef CONFIG_MACH_XIAOMI_SM8250
+int pmic_gpio_get_external(const char* chip_name, unsigned pin)
+{
+	struct gpio_chip *chip;
+	chip = find_chip_by_name(chip_name);
+	return pmic_gpio_get(chip, pin);
+}
+#endif
+
 static void pmic_gpio_set(struct gpio_chip *chip, unsigned pin, int value)
 {
 	struct pmic_gpio_state *state = gpiochip_get_data(chip);
