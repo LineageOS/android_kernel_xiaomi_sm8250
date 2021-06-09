@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "406421ba_1d35b5f2",
+        "filename": "drivers/md/dm-verity-target.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 581,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:28:18Z",
+      "side": 1,
+      "message": "Swap guarging logic to try to avoid line edited",
+      "range": {
+        "startLine": 581,
+        "startChar": 0,
+        "endLine": 581,
+        "endChar": 55
+      },
+      "revId": "e5bba9455f1eb734fe8d3c879a3b9ca4ebbd3143",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
