@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0edbe6ae_de7c5b5d",
+        "filename": "arch/arm64/kernel/smp.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 845,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:16:56Z",
+      "side": 1,
+      "message": "Indentation doesn\u0027t match original code",
+      "range": {
+        "startLine": 845,
+        "startChar": 1,
+        "endLine": 845,
+        "endChar": 2
+      },
+      "revId": "b1c4a599d8789899dc9fff9498649e3ae035446b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dbae124b_1bd398d6",
+        "filename": "arch/arm64/kernel/traps.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:16:56Z",
+      "side": 1,
+      "message": "Is it needed?",
+      "range": {
+        "startLine": 122,
+        "startChar": 0,
+        "endLine": 126,
+        "endChar": 0
+      },
+      "revId": "b1c4a599d8789899dc9fff9498649e3ae035446b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d23d8f80_e1843dec",
+        "filename": "arch/arm64/kernel/traps.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:16:56Z",
+      "side": 1,
+      "message": "ditto",
+      "range": {
+        "startLine": 166,
+        "startChar": 0,
+        "endLine": 172,
+        "endChar": 6
+      },
+      "revId": "b1c4a599d8789899dc9fff9498649e3ae035446b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
