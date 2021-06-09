@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5489ea7b_24d7a98e",
+        "filename": "include/linux/spmi.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:34:17Z",
+      "side": 1,
+      "message": "Guarding",
+      "range": {
+        "startLine": 189,
+        "startChar": 0,
+        "endLine": 189,
+        "endChar": 64
+      },
+      "revId": "6682cb411016927bc56652f41b1c384f4a91e7f1",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
