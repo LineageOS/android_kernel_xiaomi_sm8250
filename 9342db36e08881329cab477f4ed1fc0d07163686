@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d0a8f4a0_f269c9aa",
+        "filename": "include/linux/leds.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:27:21Z",
+      "side": 1,
+      "message": "Guarding",
+      "range": {
+        "startLine": 40,
+        "startChar": 0,
+        "endLine": 40,
+        "endChar": 41
+      },
+      "revId": "9342db36e08881329cab477f4ed1fc0d07163686",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
