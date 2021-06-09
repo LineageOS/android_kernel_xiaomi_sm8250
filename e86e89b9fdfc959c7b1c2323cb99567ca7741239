@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6a9da07c_f4a0b526",
+        "filename": "include/linux/backlight.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:40:08Z",
+      "side": 1,
+      "message": "Guarding",
+      "range": {
+        "startLine": 72,
+        "startChar": 0,
+        "endLine": 73,
+        "endChar": 29
+      },
+      "revId": "e86e89b9fdfc959c7b1c2323cb99567ca7741239",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
