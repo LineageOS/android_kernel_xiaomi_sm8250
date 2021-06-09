@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9bdbbeb3_042c1bb3",
+        "filename": "include/linux/of_fdt.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-06-09T10:33:09Z",
+      "side": 1,
+      "message": "Guarding",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 47,
+        "endChar": 71
+      },
+      "revId": "bd0171d026afac808a76ee1b6f00b5d6389ee59e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
