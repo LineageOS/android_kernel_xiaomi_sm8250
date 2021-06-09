@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5e21e930_fee4cc8d",
+        "filename": "drivers/platform/Kconfig",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2021-06-09T10:13:45Z",
+      "side": 1,
+      "message": "probably not needed given depends on ARCH_QCOM in MACH_XIAOMI",
+      "revId": "1f1b4047dd6ecef400750812db4dd46ec0bb5fab",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
