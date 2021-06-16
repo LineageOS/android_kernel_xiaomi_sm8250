@@ -150,6 +150,13 @@ config SMB1398_CHARGER
 	      wireless charger receiver and provide the input for downstream
 	      chargers.
 
+config RX1619_REMOVE
+	bool
+	prompt "J2S special modify."
+	depends on I2C
+	help
+	 J2S special modify
+
 config IDT_P9415
 	tristate "idtp9415 wireless Charger"
 	depends on I2C
@@ -159,6 +166,28 @@ config IDT_P9415
 	  The driver supports charger enable/disable.
 	  The driver reports the charger status via the power supply framework.
 	  The driver controls idtp9415 via I2C and
+	  supports device-tree interface.
+
+config RX1619_TRIM
+	tristate "RX1619 TRIM"
+	depends on I2C
+	help
+	  Say Y to include support for rx1619 wireless Charger.
+	  RX1619 is a wireless battery charger chip.
+	  The driver supports charger enable/disable.
+	  The driver reports the charger status via the power supply framework.
+	  The driver controls rx1619 via I2C and
+	  supports device-tree interface.
+
+config RX1619
+	tristate "RX1619 wireless Charger"
+	depends on I2C
+	help
+	  Say Y to include support for rx1619 wireless Charger.
+	  RX1619 is a wireless battery charger chip.
+	  The driver supports charger enable/disable.
+	  The driver reports the charger status via the power supply framework.
+	  The driver controls rx1619 via I2C and
 	  supports device-tree interface.
 
 config LN8282
