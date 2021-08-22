@@ -1,0 +1,464 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c4f013c5_74a1c522",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "If Xiaomi did it, fine, else do it in another commit",
+      "range": {
+        "startLine": 10,
+        "startChar": 2,
+        "endLine": 10,
+        "endChar": 49
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "95665223_d61f1f12",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "0xff \u003d 255",
+      "range": {
+        "startLine": 9,
+        "startChar": 35,
+        "endLine": 9,
+        "endChar": 38
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c7c2200_1c323533",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "It changes nothing, revert to previous value",
+      "range": {
+        "startLine": 25,
+        "startChar": 33,
+        "endLine": 25,
+        "endChar": 44
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b842ccc5_2d800e55",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "This will break screen size, Xiaomi divides this value by 10 in their hwcomposer",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 51
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e645ebcb_c947d089",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "0x2c \u003d 44",
+      "range": {
+        "startLine": 29,
+        "startChar": 32,
+        "endLine": 29,
+        "endChar": 34
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6616ce51_bc83e74e",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "0x3c \u003d 60",
+      "range": {
+        "startLine": 30,
+        "startChar": 35,
+        "endLine": 30,
+        "endChar": 37
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e4403ef7_f0133bb0",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Check commit message note",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 13
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8a4a8669_5a57e608",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "0x5 \u003d 5, 0x1 \u003d 1",
+      "range": {
+        "startLine": 63,
+        "startChar": 34,
+        "endLine": 63,
+        "endChar": 37
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b9614482_06244639",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Don\u0027t change stuff it it doesn\u0027t change the end result",
+      "range": {
+        "startLine": 138,
+        "startChar": 4,
+        "endLine": 142,
+        "endChar": 6
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7b6bc4f9_e3171344",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Match value format with first timing",
+      "range": {
+        "startLine": 200,
+        "startChar": 34,
+        "endLine": 200,
+        "endChar": 37
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e995e761_03b22612",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 336,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 336,
+        "startChar": 34,
+        "endLine": 336,
+        "endChar": 37
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "52968cf8_33d22d56",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 463,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "No, that number is the address of tlmm node, and 0x2002 is 8193\nRevert like before",
+      "range": {
+        "startLine": 463,
+        "startChar": 24,
+        "endLine": 463,
+        "endChar": 42
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "947ecf87_a2477d10",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 475,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Useless formatting",
+      "range": {
+        "startLine": 469,
+        "startChar": 0,
+        "endLine": 475,
+        "endChar": 5
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9165ffd0_0a49b758",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 538,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Restore comments",
+      "range": {
+        "startLine": 535,
+        "startChar": 0,
+        "endLine": 538,
+        "endChar": 30
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c65949ca_d8eaa304",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Useless formatting",
+      "range": {
+        "startLine": 545,
+        "startChar": 0,
+        "endLine": 551,
+        "endChar": 5
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a40dcbc5_6b15c34e",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 614,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 610,
+        "startChar": 0,
+        "endLine": 614,
+        "endChar": 30
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "121a0c3a_d25ddd87",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 628,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 619,
+        "startChar": 0,
+        "endLine": 628,
+        "endChar": 5
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bd9bcde6_0a8f153c",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 690,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 686,
+        "startChar": 0,
+        "endLine": 690,
+        "endChar": 12
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bf520dc3_4e1f66bd",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/kona-sde-display.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 1346,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "0xFF \u003d 255",
+      "range": {
+        "startLine": 1346,
+        "startChar": 31,
+        "endLine": 1346,
+        "endChar": 34
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4574be06_95082c04",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/kona-sde-display.dtsi",
+        "patchSetId": 3
+      },
+      "lineNbr": 1361,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-08-22T11:38:12Z",
+      "side": 1,
+      "message": "0x0 \u003d 0",
+      "range": {
+        "startLine": 1361,
+        "startChar": 34,
+        "endLine": 1361,
+        "endChar": 35
+      },
+      "revId": "1b6fceb9b7de75f2d3ad824c0e0e7a7ffe98c2fe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
