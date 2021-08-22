@@ -180,6 +180,7 @@
 			};
 
 			timing@1 {
+				qcom,mdss-dsi-cmd-mode;
 				qcom,mdss-dsi-panel-framerate = <90>;
 				qcom,mdss-dsi-panel-width = <1080>;
 				qcom,mdss-dsi-panel-height = <2400>;
@@ -273,9 +274,9 @@
 				];
 				qcom,mdss-dsi-off-command = [
 					05 01 00 00 14 00 02 28 00
-					/* Default Frequency Setting */
 					39 01 00 00 00 00 02 53 20
-					05 01 00 00 78 00 02 10 00];
+					05 01 00 00 78 00 02 10 00
+				];
 				qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
 				qcom,mdss-dsi-off-command-state = "dsi_lp_mode";
 
@@ -409,9 +410,9 @@
 				];
 				qcom,mdss-dsi-off-command = [
 					05 01 00 00 14 00 02 28 00
-					/* Default Frequency Setting */
 					39 01 00 00 00 00 02 53 20
-					05 01 00 00 78 00 02 10 00];
+					05 01 00 00 78 00 02 10 00
+				];
 				qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
 				qcom,mdss-dsi-off-command-state = "dsi_lp_mode";
 
@@ -459,7 +460,7 @@
 	mi,feature-enabled;
 	mi,mdss-dsi-panel-hbm-51-ctrl-flag;
 	mi,mdss-dsi-panel-hbm-off-51-index = <1>;
-	mi,esd-err-irq-gpio = <&tlmm 51 0x2002>;
+	mi,esd-err-irq-gpio = <0xffffffff 51 0x2001>;
 	mi,mdss-panel-on-dimming-delay = <120>;
 	mi,mdss-dsi-panel-hbm-brightness = <1>;
 	mi,mdss-dsi-panel-dc-threshold = <440>;
