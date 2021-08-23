@@ -70,6 +70,30 @@
       "revId": "fd99897d0bfa289dd34b5afbc5ad9b95d7a098bd",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "96b97295_a3ce341c",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 8
+      },
+      "lineNbr": 463,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2021-08-23T13:27:55Z",
+      "side": 1,
+      "message": "Okay. ignore this one.",
+      "parentUuid": "11044b69_2166a920",
+      "range": {
+        "startLine": 463,
+        "startChar": 24,
+        "endLine": 463,
+        "endChar": 34
+      },
+      "revId": "fd99897d0bfa289dd34b5afbc5ad9b95d7a098bd",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
     }
   ]
 }
