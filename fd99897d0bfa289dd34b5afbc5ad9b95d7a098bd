@@ -22,6 +22,30 @@
       "revId": "fd99897d0bfa289dd34b5afbc5ad9b95d7a098bd",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "77a30cb1_4e895056",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/dsi-panel-k11a-38-08-0a-dsc-cmd.dtsi",
+        "patchSetId": 8
+      },
+      "lineNbr": 463,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2021-08-23T13:18:12Z",
+      "side": 1,
+      "message": "Copied from extracted dtbo image https://pastebin.ubuntu.com/p/R9txFSBrfC/",
+      "parentUuid": "47013109_561b915e",
+      "range": {
+        "startLine": 463,
+        "startChar": 24,
+        "endLine": 463,
+        "endChar": 34
+      },
+      "revId": "fd99897d0bfa289dd34b5afbc5ad9b95d7a098bd",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
     }
   ]
 }
