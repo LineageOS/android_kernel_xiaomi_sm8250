@@ -1249,6 +1249,17 @@ static void irq_domain_free_irqs_hierarchy(struct irq_domain *domain,
 					   unsigned int irq_base,
 					   unsigned int nr_irqs)
 {
+	/*
+	 * To avoid kernel panic on modem crash,
+	 * we have ported @libxzr's workaround, which just does
+	 * soft-reset instead of kernel panic.
+	 * Then, such workaround requires the following code
+	 * to be kept unchanged.
+	 *
+	 * Original commits:
+	 * https://github.com/libxzr/android_kernel_oneplus_sm8250/commit/a90d5d9bffa03c1979f5efd726bb2821af85810f
+	 * https://github.com/libxzr/android_kernel_oneplus_sm8250/commit/578bed2765470821eea0b8ccfbcbfb3498415c7d
+	 */
 	if (domain->ops->free)
 		domain->ops->free(domain, irq_base, nr_irqs);
 }

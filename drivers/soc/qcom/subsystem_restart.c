@@ -1251,6 +1251,12 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		__subsystem_restart_dev(dev);
 		break;
 	case RESET_SOC:
+		if (strcmp(name, "esoc0") == 0) {
+			pr_err("%s crashed, do soft-reset only, not triggering kernel panic\n", name);
+			__subsystem_restart_dev(dev);
+			break;
+		}
+
 		__pm_stay_awake(dev->ssr_wlock);
 		schedule_work(&dev->device_restart_work);
 		return 0;
