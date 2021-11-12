@@ -87,6 +87,23 @@
       "parentUuid": "501f7d34_2de4ee10",
       "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c2be7986_8258a16f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2021-11-12T17:36:51Z",
+      "side": 1,
+      "message": "can use init instead of kernel?\n\nhttps://review.lineageos.org/c/LineageOS/android_device_bq_msm8953-common/+/304498",
+      "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
