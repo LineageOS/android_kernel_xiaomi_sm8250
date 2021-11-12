@@ -104,6 +104,24 @@
       "message": "can use init instead of kernel?\n\nhttps://review.lineageos.org/c/LineageOS/android_device_bq_msm8953-common/+/304498",
       "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fe1af402_02c0df74",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29876
+      },
+      "writtenOn": "2021-11-12T23:56:58Z",
+      "side": 1,
+      "message": "Oh sorry, shamefully I didn\u0027t even know that firmware (should be this: https://forum.xda-developers.com/t/firmware-poco-f3-xiaomi-mi-11x-redmi-k40-alioth-auto-updated.4253091/) is not part of LineageOS image... However I still don\u0027t know whether Android 12 firmware is compatible with Android 11 LOS?",
+      "parentUuid": "4efef638_2811b958",
+      "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
