@@ -16,6 +16,24 @@
       "message": "Tested on my alioth. Modem seemed to be working after soft-reset, without reboot.",
       "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d751500b_886be44e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2021-11-12T15:58:39Z",
+      "side": 1,
+      "message": "i haven\u0027t seen this issue in aliothin. its probably happening because of flashing wrong firmware.",
+      "parentUuid": "e7bff717_5f844752",
+      "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
