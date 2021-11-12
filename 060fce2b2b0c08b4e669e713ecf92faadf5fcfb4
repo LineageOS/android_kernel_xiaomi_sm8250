@@ -69,6 +69,24 @@
       "message": "Modem crash has been on Android 12 firmware by Xiaomi.",
       "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4efef638_2811b958",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29876
+      },
+      "writtenOn": "2021-11-12T17:11:38Z",
+      "side": 1,
+      "message": "Sorry, but did you mean \"Modem crash has been fixed on Android 12 firmware by Xiaomi\"?\n\nIf that\u0027s true, then I obviously wish such fix could be applied to LOS for alioth asap.\n\nHonestly I\u0027m currently on my self-built kernel to relieve the symptom.",
+      "parentUuid": "501f7d34_2de4ee10",
+      "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
