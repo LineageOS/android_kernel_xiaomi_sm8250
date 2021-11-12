@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e7bff717_5f844752",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29876
+      },
+      "writtenOn": "2021-11-12T14:55:04Z",
+      "side": 1,
+      "message": "Tested on my alioth. Modem seemed to be working after soft-reset, without reboot.",
+      "revId": "060fce2b2b0c08b4e669e713ecf92faadf5fcfb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
