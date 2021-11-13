@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2e13ef20_d742a658",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29876
+      },
+      "writtenOn": "2021-11-13T01:56:16Z",
+      "side": 1,
+      "message": "I think it\u0027s too noisy to emit a line into dmesg output on every touch input, especially while demsg --follow.",
+      "revId": "4edf0774e71964f035e560246ff6ff121f65e35d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
