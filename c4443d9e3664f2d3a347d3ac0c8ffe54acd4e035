@@ -16,6 +16,24 @@
       "message": "BBR (still) requires the fq (\"Fair Queue\") pacing packet scheduler (on this version of kernel).",
       "revId": "c4443d9e3664f2d3a347d3ac0c8ffe54acd4e035",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "46ee42cc_39a44d5b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29876
+      },
+      "writtenOn": "2021-11-16T16:32:30Z",
+      "side": 1,
+      "message": "In tcp_bbr.c it\u0027s commented that:\n\n\u003e NOTE: BBR might be used with the fq qdisc (\"man tc-fq\") with pacing enabled, otherwise TCP stack falls back to an internal pacing using one high resolution timer per TCP socket and may use more resources.\n\nTo my understanding according to the comment above fq is no longer a must-have - however I\u0027m still not capable to evaluate how much \"more resources\" it will consume.",
+      "parentUuid": "3867b751_66dc3495",
+      "revId": "c4443d9e3664f2d3a347d3ac0c8ffe54acd4e035",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
