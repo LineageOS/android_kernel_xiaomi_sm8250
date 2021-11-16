@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3867b751_66dc3495",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29876
+      },
+      "writtenOn": "2021-11-16T16:08:27Z",
+      "side": 1,
+      "message": "BBR (still) requires the fq (\"Fair Queue\") pacing packet scheduler (on this version of kernel).",
+      "revId": "c4443d9e3664f2d3a347d3ac0c8ffe54acd4e035",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
