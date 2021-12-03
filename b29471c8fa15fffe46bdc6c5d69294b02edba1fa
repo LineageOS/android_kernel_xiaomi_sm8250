@@ -16,6 +16,23 @@
       "message": "Highly unfortunate but needed to provide some user relief.  My daughter has been using this for three months and barely notices modem crashes anymore.\n\nSome more info:\nhttps://forum.xda-developers.com/t/random-reboots-while-using-lte-in-aosp-roms.4330991/post-85730829",
       "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "277a2d15_31ad7310",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-12-03T09:12:06Z",
+      "side": 1,
+      "message": "https://github.com/xiaomi-sm8250-devs/android_kernel_xiaomi_sm8250/commit/8658e6bfb93c7d1174045e7b969bdf10b81b89d4\nI would prefer this instead, so it handles only RESET_SOC with just a subsystem restart instead of all cases\nThe restart level being unknown must still panic the device because it\u0027s intended to do so",
+      "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
