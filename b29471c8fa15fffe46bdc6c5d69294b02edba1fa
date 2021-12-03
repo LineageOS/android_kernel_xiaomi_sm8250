@@ -50,6 +50,23 @@
       "message": "Can\u0027t you just set the restart_level to related? Like this: I32fc08c9ad36b9c8ebfc019fc87a19eece18f0b4",
       "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "16473e17_fe6372b8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3075
+      },
+      "writtenOn": "2021-12-03T19:05:33Z",
+      "side": 1,
+      "message": "Around the time I picked this, I was spending my spare time trying to solve the underlying crashes themselves (had no success and testing was hampered by needing to leave the house to trigger them).\n\nI\u0027m not planning to merge this, that\u0027s up to device maintainers.  If you want to do something different, please have at it.  (I won\u0027t be able to test personally but I bet there are plenty on xda who would run a test build.)",
+      "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
