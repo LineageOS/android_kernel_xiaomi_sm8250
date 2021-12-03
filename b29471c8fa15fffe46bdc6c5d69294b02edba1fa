@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ca40bbaa_557c25bf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3075
+      },
+      "writtenOn": "2021-12-03T08:57:01Z",
+      "side": 1,
+      "message": "Highly unfortunate but needed to provide some user relief.  My daughter has been using this for three months and barely notices modem crashes anymore.\n\nSome more info:\nhttps://forum.xda-developers.com/t/random-reboots-while-using-lte-in-aosp-roms.4330991/post-85730829",
+      "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
