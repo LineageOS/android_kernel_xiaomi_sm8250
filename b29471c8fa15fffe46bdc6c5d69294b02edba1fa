@@ -33,6 +33,23 @@
       "message": "https://github.com/xiaomi-sm8250-devs/android_kernel_xiaomi_sm8250/commit/8658e6bfb93c7d1174045e7b969bdf10b81b89d4\nI would prefer this instead, so it handles only RESET_SOC with just a subsystem restart instead of all cases\nThe restart level being unknown must still panic the device because it\u0027s intended to do so",
       "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a2567b80_6fcaefca",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 21290
+      },
+      "writtenOn": "2021-12-03T10:48:07Z",
+      "side": 1,
+      "message": "Can\u0027t you just set the restart_level to related? Like this: I32fc08c9ad36b9c8ebfc019fc87a19eece18f0b4",
+      "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
