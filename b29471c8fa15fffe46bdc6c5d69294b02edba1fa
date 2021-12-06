@@ -67,6 +67,24 @@
       "message": "Around the time I picked this, I was spending my spare time trying to solve the underlying crashes themselves (had no success and testing was hampered by needing to leave the house to trigger them).\n\nI\u0027m not planning to merge this, that\u0027s up to device maintainers.  If you want to do something different, please have at it.  (I won\u0027t be able to test personally but I bet there are plenty on xda who would run a test build.)",
       "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0941173c_5506436a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2021-12-06T16:44:02Z",
+      "side": 1,
+      "message": "Ack\nWe\u0027ll pick mine with mikona, for now let\u0027s fix this issue",
+      "parentUuid": "277a2d15_31ad7310",
+      "revId": "b29471c8fa15fffe46bdc6c5d69294b02edba1fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
