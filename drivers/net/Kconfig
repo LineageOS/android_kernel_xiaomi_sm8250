@@ -71,7 +71,8 @@ config DUMMY
 	  will be called dummy.
 
 config WIREGUARD
-	tristate "WireGuard secure network tunnel"
+	bool "WireGuard secure network tunnel"
+	default y
 	depends on NET && INET
 	depends on IPV6 || !IPV6
 	select NET_UDP_TUNNEL
