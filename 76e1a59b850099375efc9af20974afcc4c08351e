@@ -16,6 +16,23 @@
       "message": "322383 pull from here, last commit",
       "revId": "76e1a59b850099375efc9af20974afcc4c08351e",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5c1bbb36_a6555fd7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2022-01-28T17:35:44Z",
+      "side": 1,
+      "message": "Ok for me",
+      "revId": "76e1a59b850099375efc9af20974afcc4c08351e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
