@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "abaf5f8f_80a5ee78",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2022-01-31T09:33:29Z",
+      "side": 1,
+      "message": "I would like to follow what android-base.conf and android-recommended.conf sets and not diff that much from CAF",
+      "revId": "ddf760e2e7e1d3a2d1f8f833413de340cb8252ae",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
