@@ -215,7 +215,8 @@ ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 		scuba-iot-idp-usbc-overlay.dtbo \
 		scuba-iot-qrd-eldo-overlay.dtbo \
 		scuba-iot-qrd-non-eldo-overlay.dtbo \
-		scuba-iot-rb1-overlay.dtbo
+		scuba-iot-rb1-overlay.dtbo \
+		scubalite-iot-idp-overlay.dtbo
 
 scuba-rumi-overlay.dtbo-base := scuba.dtb scubap.dtb scuba-2gb.dtb
 scuba-idp-overlay.dtbo-base := scuba.dtb scubap.dtb scuba-2gb.dtb
@@ -227,6 +228,7 @@ scuba-iot-qrd-eldo-overlay.dtbo-base := scuba-iot.dtb scubap-iot.dtb scuba-iot-2
 scuba-iot-qrd-non-eldo-overlay.dtbo-base := scuba-iot.dtb scubap-iot.dtb scuba-iot-2gb.dtb
 scuba-iot-rb1-overlay.dtbo-base := scubap-iot-2gb.dtb
 scuba-iot-idp-usbc-overlay.dtbo-base := scuba-iot.dtb scubap-iot.dtb scuba-iot-2gb.dtb
+scubalite-iot-idp-overlay.dtbo-base := scuba-iot-2gb.dtb scubap-iot-2gb.dtb
 else
 dtb-$(CONFIG_ARCH_SCUBA) += scuba-rumi.dtb \
 	scuba-idp.dtb \
@@ -245,7 +247,9 @@ dtb-$(CONFIG_ARCH_SCUBA) += scuba-rumi.dtb \
 	scubap-iot-rb1-2gb.dtb \
 	scubap-iot-idp-2gb.dtb \
 	scuba-iot-idp-2gb.dtb \
-	scuba-iot-idp-usbc-2gb.dtb
+	scuba-iot-idp-usbc-2gb.dtb \
+	scubalite-iot-idp-2gb.dtb \
+	scubaplite-iot-idp-2gb.dtb
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
