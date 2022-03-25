@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f8ded445_19263c6a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2022-03-25T12:36:55Z",
+      "side": 1,
+      "message": "fyi we\u0027re not gonna ship this kernel but we can merge this for now",
+      "revId": "009f328fe04c2f7e919c7d5fb021bdc72acf1efe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
