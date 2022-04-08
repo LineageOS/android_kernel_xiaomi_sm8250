@@ -8,5 +8,5 @@
 	model = "Qualcomm Technologies, Inc. Scubap IOT RB1";
 	compatible = "qcom,scuba-qrd", "qcom,scuba-iot", "qcom,qrd";
 	qcom,msm-id = <474 0x10000>;
-	qcom,board-id = <0x1000B 3>;
+	qcom,board-id = <0x1000B 1>;
 };
