@@ -140,6 +140,7 @@ struct cam_fd_hw_errata_wa {
 	bool   single_irq_only;
 	bool   ro_mode_enable_always;
 	bool   ro_mode_results_invalid;
+    bool   skip_reset;
 };
 
 /**

@@ -854,7 +854,6 @@ static int cam_fd_mgr_util_submit_frame(void *priv, void *data)
 	trace_cam_submit_to_hw("FD", frame_req->request_id);
 
 	list_del_init(&frame_req->list);
-	mutex_unlock(&hw_mgr->frame_req_mutex);
 
 	if (hw_device->hw_intf->hw_ops.start) {
 		start_args.hw_ctx = hw_ctx;
@@ -870,11 +869,13 @@ static int cam_fd_mgr_util_submit_frame(void *priv, void *data)
 		if (rc) {
 			CAM_ERR(CAM_FD, "Failed in HW Start %d", rc);
 			mutex_unlock(&hw_device->lock);
+			mutex_unlock(&hw_mgr->frame_req_mutex);
 			goto put_req_into_free_list;
 		}
 	} else {
 		CAM_ERR(CAM_FD, "Invalid hw_ops.start");
 		mutex_unlock(&hw_device->lock);
+		mutex_unlock(&hw_mgr->frame_req_mutex);
 		rc = -EPERM;
 		goto put_req_into_free_list;
 	}
@@ -882,30 +883,13 @@ static int cam_fd_mgr_util_submit_frame(void *priv, void *data)
 	hw_device->ready_to_process = false;
 	hw_device->cur_hw_ctx = hw_ctx;
 	hw_device->req_id = frame_req->request_id;
-	mutex_unlock(&hw_device->lock);
+	list_add_tail(&frame_req->list, &hw_mgr->frame_processing_list);
 
-	rc = cam_fd_mgr_util_put_frame_req(
-		&hw_mgr->frame_processing_list, &frame_req);
-	if (rc) {
-		CAM_ERR(CAM_FD,
-			"Failed in putting frame req in processing list");
-		goto stop_unlock;
-	}
+	mutex_unlock(&hw_device->lock);
+	mutex_unlock(&hw_mgr->frame_req_mutex);
 
 	return rc;
 
-stop_unlock:
-	if (hw_device->hw_intf->hw_ops.stop) {
-		struct cam_fd_hw_stop_args stop_args;
-
-		stop_args.hw_ctx = hw_ctx;
-		stop_args.ctx_hw_private = hw_ctx->ctx_hw_private;
-		stop_args.hw_req_private = &frame_req->hw_req_private;
-		if (hw_device->hw_intf->hw_ops.stop(
-			hw_device->hw_intf->hw_priv, &stop_args,
-			sizeof(stop_args)))
-			CAM_ERR(CAM_FD, "Failed in HW Stop %d", rc);
-	}
 put_req_into_free_list:
 	cam_fd_mgr_util_put_frame_req(&hw_mgr->frame_free_list, &frame_req);
 
@@ -1244,6 +1228,8 @@ static int cam_fd_mgr_hw_start(void *hw_mgr_priv, void *mgr_start_args)
 	struct cam_fd_device *hw_device;
 	struct cam_fd_hw_init_args hw_init_args;
 
+    struct cam_hw_info *fd_hw;
+	struct cam_fd_core *fd_core;
 	if (!hw_mgr_priv || !hw_mgr_start_args) {
 		CAM_ERR(CAM_FD, "Invalid arguments %pK %pK",
 			hw_mgr_priv, hw_mgr_start_args);
@@ -1265,9 +1251,17 @@ static int cam_fd_mgr_hw_start(void *hw_mgr_priv, void *mgr_start_args)
 		return rc;
 	}
 
+	hw_device->ready_to_process = true;
+
+    fd_hw = (struct cam_hw_info *)hw_device->hw_intf->hw_priv;
+	fd_core = (struct cam_fd_core *)fd_hw->core_info;
 	if (hw_device->hw_intf->hw_ops.init) {
 		hw_init_args.hw_ctx = hw_ctx;
 		hw_init_args.ctx_hw_private = hw_ctx->ctx_hw_private;
+        if (fd_core->hw_static_info->enable_errata_wa.skip_reset)
+            hw_init_args.reset_required = false;
+        else
+            hw_init_args.reset_required = true;
 		rc = hw_device->hw_intf->hw_ops.init(
 			hw_device->hw_intf->hw_priv, &hw_init_args,
 			sizeof(hw_init_args));
@@ -1536,6 +1530,8 @@ static int cam_fd_mgr_hw_stop(void *hw_mgr_priv, void *mgr_stop_args)
 
 	CAM_DBG(CAM_FD, "FD Device ready_to_process = %d",
 		hw_device->ready_to_process);
+
+	hw_device->ready_to_process = true;
 
 	if (hw_device->hw_intf->hw_ops.deinit) {
 		hw_deinit_args.hw_ctx = hw_ctx;

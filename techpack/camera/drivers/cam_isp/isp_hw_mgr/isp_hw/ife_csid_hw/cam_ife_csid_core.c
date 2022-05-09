@@ -502,11 +502,11 @@ static int cam_ife_csid_global_reset(struct cam_ife_csid_hw *csid_hw)
 		cam_io_w_mb(0x2, soc_info->reg_map[0].mem_base +
 			csid_reg->rdi_reg[i]->csid_rdi_cfg0_addr);
 
-	/* reset HW regs first, then SW */
-	rc = cam_ife_csid_reset_regs(csid_hw, true);
+	/* reset SW regs first, then HW */
+	rc = cam_ife_csid_reset_regs(csid_hw, false);
 	if (rc < 0)
 		goto end;
-	rc = cam_ife_csid_reset_regs(csid_hw, false);
+	rc = cam_ife_csid_reset_regs(csid_hw, true);
 	if (rc < 0)
 		goto end;
 
@@ -792,10 +792,6 @@ int cam_ife_csid_cid_reserve(struct cam_ife_csid_hw *csid_hw,
 		/* current configure res type should match requested res type */
 		if (csid_hw->res_type != cid_reserv->in_port->res_type) {
 			rc = -EINVAL;
-            CAM_ERR(CAM_ISP, "[wrong res_type], CSID:%d, csid_hw->res_type:%d, cid_reserv->res_type:%d",
-                    csid_hw->hw_intf->hw_idx,
-                    csid_hw->res_type,
-                    cid_reserv->in_port->res_type);
             goto end;
 		}
 
@@ -807,12 +803,6 @@ int cam_ife_csid_cid_reserve(struct cam_ife_csid_hw *csid_hw,
 				csid_hw->csi2_rx_cfg.lane_num !=
 				cid_reserv->in_port->lane_num) {
 				rc = -EINVAL;
-                CAM_ERR(CAM_ISP,
-                        "[wrong lane configuration]: CSID:%d res_sel:0x%x Lane type:%d lane_num:%d",
-                        csid_hw->hw_intf->hw_idx,
-                        csid_hw->csi2_rx_cfg.lane_cfg,
-                        csid_hw->csi2_rx_cfg.lane_type,
-                        csid_hw->csi2_rx_cfg.lane_num);
                 goto end;
 				}
 		} else {
@@ -825,17 +815,6 @@ int cam_ife_csid_cid_reserve(struct cam_ife_csid_hw *csid_hw,
 				csid_hw->tpg_cfg.test_pattern !=
 				cid_reserv->in_port->test_pattern) {
 				rc = -EINVAL;
-                CAM_ERR(CAM_ISP,
-                        "[wrong tpg cfg]: CSID:%d hw_intf -> [in_format:%d width:%d height:%d test_pattern:%d] cid_reserv -> [in_format:%d width:%d height:%d test_pattern:%d]",
-                        csid_hw->hw_intf->hw_idx,
-                        csid_hw->tpg_cfg.in_format,
-                        csid_hw->tpg_cfg.width,
-                        csid_hw->tpg_cfg.height,
-                        csid_hw->tpg_cfg.test_pattern,
-                        cid_reserv->in_port->format,
-                        cid_reserv->in_port->left_width,
-                        cid_reserv->in_port->height,
-                        cid_reserv->in_port->test_pattern);
 				goto end;
 			}
 		}
@@ -1524,8 +1503,8 @@ static int cam_ife_csid_enable_csi2(
 
 	csid_reg = csid_hw->csid_info->csid_reg;
 	soc_info = &csid_hw->hw_info->soc_info;
-	CAM_DBG(CAM_ISP, "CSID:%d count:%d config csi2 rx  res_id:%d",
-		csid_hw->hw_intf->hw_idx, csid_hw->csi2_cfg_cnt, res->res_id);
+	CAM_DBG(CAM_ISP, "CSID:%d count:%d config csi2 rx",
+		csid_hw->hw_intf->hw_idx, csid_hw->csi2_cfg_cnt);
 
 	/* overflow check before increment */
 	if (csid_hw->csi2_cfg_cnt == UINT_MAX) {
@@ -1535,7 +1514,7 @@ static int cam_ife_csid_enable_csi2(
 	}
 
 	cid_data = (struct cam_ife_csid_cid_data *)res->res_priv;
-	cid_data->init_cnt++;
+
 	res->res_state  = CAM_ISP_RESOURCE_STATE_STREAMING;
 	csid_hw->csi2_cfg_cnt++;
 	if (csid_hw->csi2_cfg_cnt > 1)
@@ -1621,7 +1600,6 @@ static int cam_ife_csid_disable_csi2(
 {
 	const struct cam_ife_csid_reg_offset      *csid_reg;
 	struct cam_hw_soc_info                    *soc_info;
-	struct cam_ife_csid_cid_data              *cid_data;
 
 	if (res->res_id >= CAM_IFE_CSID_CID_MAX) {
 		CAM_ERR(CAM_ISP, "CSID:%d Invalid res id :%d",
@@ -1631,19 +1609,11 @@ static int cam_ife_csid_disable_csi2(
 
 	csid_reg = csid_hw->csid_info->csid_reg;
 	soc_info = &csid_hw->hw_info->soc_info;
-	cid_data = (struct cam_ife_csid_cid_data *)res->res_priv;
-	CAM_DBG(CAM_ISP, "CSID:%d cnt : %d Disable csi2 rx res->res_id:%d",
-		csid_hw->hw_intf->hw_idx, csid_hw->csi2_cfg_cnt, res->res_id);
-
-	if (cid_data->init_cnt)
-		cid_data->init_cnt--;
-	if (!cid_data->init_cnt)
-		res->res_state = CAM_ISP_RESOURCE_STATE_RESERVED;
+	CAM_DBG(CAM_ISP, "CSID:%d cnt : %d Disable csi2 rx",
+		csid_hw->hw_intf->hw_idx, csid_hw->csi2_cfg_cnt);
 
 	if (csid_hw->csi2_cfg_cnt)
 		csid_hw->csi2_cfg_cnt--;
-	CAM_DBG(CAM_ISP, "res_id %d res_state=%d",
-		res->res_id, res->res_state);
 
 	if (csid_hw->csi2_cfg_cnt)
 		return 0;

@@ -50,6 +50,7 @@ static struct cam_fd_hw_static_info cam_fd_wrapper200_core501_info = {
 		.single_irq_only         = true,
 		.ro_mode_enable_always   = true,
 		.ro_mode_results_invalid = true,
+        .skip_reset              = true,
 	},
 	.irq_mask = CAM_FD_IRQ_TO_MASK(CAM_FD_IRQ_FRAME_DONE) |
 		CAM_FD_IRQ_TO_MASK(CAM_FD_IRQ_HALT_DONE) |

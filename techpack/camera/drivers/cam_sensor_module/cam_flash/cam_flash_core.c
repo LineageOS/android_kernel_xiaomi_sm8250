@@ -1454,6 +1454,15 @@ int cam_flash_pmic_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg)
 					"Apply setting failed: %d",
 					rc);
 
+			//xiaomi add start
+			if(rc && CAM_FLASH_STATE_START == fctrl->flash_state)
+			{
+				CAM_ERR(CAM_FLASH, "cannot apply settings rc = %d for state %d",
+						rc, fctrl->flash_state);
+				return rc;
+			}
+			//xiaomi add end
+
 			fctrl->flash_state = CAM_FLASH_STATE_CONFIG;
 			break;
 		}
