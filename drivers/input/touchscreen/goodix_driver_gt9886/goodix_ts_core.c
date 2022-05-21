@@ -1041,6 +1041,43 @@ static void goodix_ts_sysfs_exit(struct goodix_ts_core *core_data)
 	sysfs_remove_group(&core_data->pdev->dev.kobj, &sysfs_group);
 }
 
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t fod_status_show(struct kobject *kobj,
+                               struct kobj_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", goodix_core_data->fod_status);
+}
+
+static ssize_t fod_status_store(struct kobject *kobj,
+                                struct kobj_attribute *attr, const char *buf,
+                                size_t count)
+{
+    int rc, val;
+
+    rc = kstrtoint(buf, 10, &val);
+    if (rc)
+    return -EINVAL;
+
+	// Copied from gtp_set_cur_value()
+	if (val >= 0) {
+		goodix_core_data->fod_status = val;
+		if (goodix_core_data->fod_status == -1 || goodix_core_data->fod_status == 100)
+			goodix_core_data->gesture_enabled = goodix_core_data->double_wakeup | goodix_core_data->aod_status;
+		else
+			goodix_core_data->gesture_enabled = goodix_core_data->double_wakeup |
+				goodix_core_data->fod_status | goodix_core_data->aod_status;
+	} else
+		return -EINVAL;
+
+    return count;
+}
+
+static struct tp_common_ops fod_status_ops = {
+    .show = fod_status_show,
+    .store = fod_status_store
+};
+#endif
+
 /* event notifier */
 static BLOCKING_NOTIFIER_HEAD(ts_notifier_list);
 /**
@@ -2348,6 +2385,7 @@ int goodix_ts_stage2_init(struct goodix_ts_core *core_data)
 
 #ifdef CONFIG_TOUCHSCREEN_COMMON
 	tp_common_set_double_tap_ops(&double_tap_ops);
+	tp_common_set_fod_status_ops(&fod_status_ops);
 #endif
 
 	/* esd protector */
