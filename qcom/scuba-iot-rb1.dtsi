@@ -31,6 +31,10 @@
 	};
 };
 
+&qupv3_se0_4uart {
+	status = "ok";
+};
+
 &pm2250_qg {
 	qcom,battery-data = <&scuba_batterydata>;
 	qcom,qg-iterm-ma = <150>;
