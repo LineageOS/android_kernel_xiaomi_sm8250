@@ -45,6 +45,7 @@
 #endif
 #include <linux/backlight.h>
 #include <linux/input/touch_common_info.h>
+#include <linux/input/tp_common.h>
 
 /*****************************************************************************
 * Private constant and macro definitions using #define
@@ -2284,6 +2285,33 @@ static ssize_t fts_fod_test_write(struct device *dev,
 }
 static DEVICE_ATTR(fod_test, 0644, NULL, fts_fod_test_write);
 
+static ssize_t fod_status_show(struct kobject *kobj,
+                               struct kobj_attribute *attr, char *buf)
+{
+	if (!fts_data)
+		return -EINVAL;
+
+	return sprintf(buf, "%d\n", fts_data->fod_status);
+}
+
+static ssize_t fod_status_store(struct kobject *kobj,
+                                struct kobj_attribute *attr, const char *buf,
+                                size_t count)
+{
+	int val;
+
+	if (!fts_data || kstrtoint(buf, 10, &val))
+		return -EINVAL;
+
+	fts_data->fod_status = !!val;
+	return count;
+}
+
+static struct tp_common_ops fod_status_ops = {
+	.show = fod_status_show,
+	.store = fod_status_store,
+};
+
 /*****************************************************************************
 *  Name: fts_ts_probe
 *  Brief:
@@ -2519,6 +2547,13 @@ static int fts_ts_probe(struct i2c_client *client,
 #endif
 	ts_data->power_supply_notifier.notifier_call = fts_power_supply_event;
 	power_supply_reg_notifier(&ts_data->power_supply_notifier);
+
+	ret = tp_common_set_fod_status_ops(&fod_status_ops);
+	if (ret < 0) {
+		FTS_ERROR("%s: Failed to create fod_status node err=%d\n",
+			  __func__, ret);
+	}
+
 	if (ts_data->fts_tp_class == NULL) {
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 		ts_data->fts_tp_class = get_xiaomi_touch_class();
