@@ -68,7 +68,10 @@ dtb-$(CONFIG_ARCH_KONA) += kona-rumi.dtb \
         qrb5165m-iot-rb5.dtb \
         qrb5165n-iot-rb5.dtb \
         qrb5165n-v2-iot-rb5.dtb \
-        kona-v2.1-iot-rb5.dtb
+        kona-v2.1-iot-rb5.dtb \
+        kona-7230-iot-rb5.dtb \
+        kona-7230m-iot-rb5.dtb
+
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
