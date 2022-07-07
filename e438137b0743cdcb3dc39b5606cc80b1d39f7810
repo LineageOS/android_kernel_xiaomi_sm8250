@@ -33,6 +33,23 @@
       "message": "fine on alioth",
       "revId": "e438137b0743cdcb3dc39b5606cc80b1d39f7810",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d872cbd6_ee271f46",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2022-07-07T10:23:48Z",
+      "side": 1,
+      "message": "Fine on lmi",
+      "revId": "e438137b0743cdcb3dc39b5606cc80b1d39f7810",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
