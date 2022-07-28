@@ -709,7 +709,6 @@ struct smb_charger {
 #endif
 	struct delayed_work	pr_swap_detach_work;
 #ifdef CONFIG_MACH_XIAOMI_SM8250
-	struct delayed_work	reg_work;
 	struct delayed_work	thermal_setting_work;
 #ifndef CONFIG_FUEL_GAUGE_BQ27Z561
 	struct delayed_work	reduce_fcc_work;

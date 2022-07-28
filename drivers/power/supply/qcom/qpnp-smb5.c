@@ -5283,9 +5283,7 @@ static int smb5_probe(struct platform_device *pdev)
 		goto free_irq;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_SM8250
-	schedule_delayed_work(&chg->reg_work, 30 * HZ);
-#else
+#ifndef CONFIG_MACH_XIAOMI_SM8250
 	device_init_wakeup(chg->dev, true);
 #endif
 
