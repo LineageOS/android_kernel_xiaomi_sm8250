@@ -664,7 +664,6 @@ struct smb_charger {
 	struct delayed_work	usbov_dbc_work;
 	struct delayed_work	six_pin_batt_step_chg_work;
 	struct delayed_work	pr_swap_detach_work;
-	struct delayed_work	reg_work;
 	struct delayed_work	thermal_setting_work;
 #ifndef CONFIG_FUEL_GAUGE_BQ28Z610
 	struct delayed_work	reduce_fcc_work;
