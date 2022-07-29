@@ -16,6 +16,23 @@
       "message": "I would like to follow what android-base.conf and android-recommended.conf sets and not diff that much from CAF",
       "revId": "ddf760e2e7e1d3a2d1f8f833413de340cb8252ae",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9742ca48_483c92c2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2022-07-29T17:50:21Z",
+      "side": 1,
+      "message": "For reference why this didn\u0027t get merged, check the help text in this link\nhttps://cateee.net/lkddb/web-lkddb/IP_NF_TARGET_TTL.html",
+      "revId": "ddf760e2e7e1d3a2d1f8f833413de340cb8252ae",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
