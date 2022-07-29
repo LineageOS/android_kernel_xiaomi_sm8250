@@ -1,13 +1,5 @@
 #include "kona-v2.1-iot-rb5.dtsi"
 
-&soc {
-	/delete-node/ qcom,csid-lite2@acdd600;
-	/delete-node/ qcom,ife-lite2@acdd400;
-	/delete-node/ qcom,csid-lite3@acdf800;
-	/delete-node/ qcom,ife-lite3@acdf600;
-	/delete-node/ qcom,csid-lite4@ace1a00;
-	/delete-node/ qcom,ife-lite4@ace1800;
-};
 
 &sde_dsi {
 	status = "disabled";
