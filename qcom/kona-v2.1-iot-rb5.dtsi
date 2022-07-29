@@ -401,6 +401,7 @@
 	redriver: redriver@1c {
 		compatible = "onnn,redriver";
 		reg = <0x1c>;
+		set-aux-enable;
 		extcon = <&pm8150b_pdphy>, <&pm8150b_pdphy>;
 		eq = /bits/ 8 <
 				/* Parameters for USB */
