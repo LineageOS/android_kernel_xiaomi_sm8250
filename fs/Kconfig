@@ -135,6 +135,7 @@ endif # BLOCK
 if BLOCK
 menu "DOS/FAT/NT Filesystems"
 
+source "fs/exfat/Kconfig"
 source "fs/fat/Kconfig"
 source "fs/ntfs/Kconfig"
 
