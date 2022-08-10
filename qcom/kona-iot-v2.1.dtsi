@@ -21,3 +21,7 @@
 	/delete-property/ qcom,dsi-pll-ssc-en;
 	/delete-property/ qcom,dsi-pll-ssc-mode;
 };
+
+&pcie2 {
+	qcom,boot-option = <0x0>;
+};
