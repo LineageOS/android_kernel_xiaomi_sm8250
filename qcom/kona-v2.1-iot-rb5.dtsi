@@ -472,3 +472,7 @@
 	qcom,max-vdisplay = <1080>;
 	qcom,max-pclk-frequency-khz = <187500>;
 };
+
+&pcie2 {
+	qcom,boot-option = <0x0>;
+};
