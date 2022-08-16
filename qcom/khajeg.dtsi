@@ -1,0 +1,9 @@
+/dts-v1/;
+
+#include "khaje.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. Khajeg SoC";
+	compatible = "qcom,khajeg";
+	qcom,msm-id = <585 0x10000>;
+};

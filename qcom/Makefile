@@ -286,7 +286,17 @@ ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 		khajeq-idp-nopmi-overlay.dtbo \
 		khajeq-idp-usbc-overlay.dtbo \
 		khajeq-idp-pm8010-overlay.dtbo \
-		khajeq-idps-display-90hz-overlay.dtbo
+		khajeq-idps-display-90hz-overlay.dtbo \
+		khajeg-atp-overlay.dtbo \
+		khajeg-qrd-overlay.dtbo \
+		khajeg-qrd-hvdcp3p5-overlay.dtbo \
+		khajeg-qrd-nowcd9375-overlay.dtbo \
+		khajeg-qrd-nopmi-overlay.dtbo \
+		khajeg-idp-overlay.dtbo \
+		khajeg-idp-nopmi-overlay.dtbo \
+		khajeg-idp-usbc-overlay.dtbo \
+		khajeg-idp-pm8010-overlay.dtbo \
+		khajeg-idps-display-90hz-overlay.dtbo
 
 khaje-atp-overlay.dtbo-base := khaje.dtb
 khaje-idp-overlay.dtbo-base := khaje.dtb
@@ -318,6 +328,16 @@ khajeq-idp-overlay.dtbo-base := khajeq.dtb
 khajeq-idp-nopmi-overlay.dtbo-base := khajeq.dtb
 khajeq-idp-pm8010-overlay.dtbo-base := khajeq.dtb
 khajeq-idp-usbc-overlay.dtbo-base := khajeq.dtb
+khajeg-atp-overlay.dtbo-base := khajeg.dtb
+khajeg-qrd-overlay.dtbo-base := khajeg.dtb
+khajeg-qrd-hvdcp3p5-overlay.dtbo-base := khajeg.dtb
+khajeg-qrd-nowcd9375-overlay.dtbo-base := khajeg.dtb
+khajeg-qrd-nopmi-overlay.dtbo-base := khajeg.dtb
+khajeg-idp-overlay.dtbo-base := khajeg.dtb
+khajeg-idp-nopmi-overlay.dtbo-base := khajeg.dtb
+khajeg-idp-pm8010-overlay.dtbo-base := khajeg.dtb
+khajeg-idp-usbc-overlay.dtbo-base := khajeg.dtb
+khajeg-idps-display-90hz-overlay.dtbo-base := khajeg.dtb
 else
 dtb-$(CONFIG_ARCH_KHAJE) += khaje-idp.dtb \
 		khaje-qrd.dtb \
@@ -346,7 +366,17 @@ dtb-$(CONFIG_ARCH_KHAJE) += khaje-idp.dtb \
 		khajeq-qrd.dtb \
 		khajeq-qrd-nowcd9375.dtb \
 		khajeq-qrd-hvdcp3p5.dtb \
-		khajeq-qrd-nopmi.dtb
+		khajeq-qrd-nopmi.dtb \
+		khajeg-atp.dtb \
+		khajeg-qrd.dtb \
+		khajeg-qrd-nowcd9375.dtb \
+		khajeg-qrd-hvdcp3p5.dtb \
+		khajeg-qrd-nopmi.dtb \
+		khajeg-idp.dtb \
+		khajeg-idp-nopmi.dtb \
+		khajeg-idp-usbc.dtb \
+		khajeg-idp-pm8010.dtb \
+		khajeg-idps-display-90hz.dtb
 endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
