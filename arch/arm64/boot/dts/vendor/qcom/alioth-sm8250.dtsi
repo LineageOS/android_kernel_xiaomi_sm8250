@@ -1042,7 +1042,7 @@ And public attribution of xiaomi platforms(like alioth and so and)
 		};
 	};
 
-	pa_therm1 {//place close to pa1
+	xo_therm {//place close to pa1
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
