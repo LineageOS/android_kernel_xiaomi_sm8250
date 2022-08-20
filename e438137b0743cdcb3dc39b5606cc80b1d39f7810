@@ -50,6 +50,24 @@
       "message": "Fine on lmi",
       "revId": "e438137b0743cdcb3dc39b5606cc80b1d39f7810",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "97bf6148_309ba3c1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 31548
+      },
+      "writtenOn": "2022-08-20T22:56:25Z",
+      "side": 1,
+      "message": "omg! Does this finally fix touchscreen issues I reported before?",
+      "parentUuid": "26a578e0_71bf76bd",
+      "revId": "e438137b0743cdcb3dc39b5606cc80b1d39f7810",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
