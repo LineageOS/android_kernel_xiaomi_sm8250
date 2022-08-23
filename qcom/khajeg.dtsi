@@ -104,4 +104,20 @@
 		status = "disabled";
 	};
 
+	qcom,msm_gsi {
+		status = "disabled";
+	};
+
+	qcom,rmnet-ipa {
+		status = "disabled";
+	};
+
+	qcom,ipa_fws {
+		status = "disabled";
+	};
+
+	ipa_hw: qcom,ipa@0x5800000 {
+		status = "disabled";
+	};
+
 };
