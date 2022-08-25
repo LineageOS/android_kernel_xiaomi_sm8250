@@ -21,7 +21,7 @@
 / {
 	model = "Qualcomm Technologies, Inc. Khaje SoC";
 	compatible = "qcom,khaje";
-	qcom,msm-id = <518 0x10000>;
+	qcom,msm-id = <518 0x10000>, <586 0x10000>;
 	interrupt-parent = <&wakegic>;
 
 	#address-cells = <2>;
