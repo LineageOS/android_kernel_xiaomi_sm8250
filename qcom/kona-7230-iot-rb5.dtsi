@@ -22,6 +22,7 @@
 	/delete-property/ qcom,max-hdisplay;
 	/delete-property/ qcom,max-vdisplay;
 	/delete-property/ qcom,max-pclk-frequency-khz;
+	qcom,no_tps4_support;
 };
 
 &mdss_mdp {
