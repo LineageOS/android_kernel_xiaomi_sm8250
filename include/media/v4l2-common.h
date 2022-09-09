@@ -384,4 +384,29 @@ int v4l2_g_parm_cap(struct video_device *vdev,
 int v4l2_s_parm_cap(struct video_device *vdev,
 		    struct v4l2_subdev *sd, struct v4l2_streamparm *a);
 
+/**
+ * v4l2_get_link_freq - Get link rate from transmitter
+ *
+ * @handler: The transmitter's control handler
+ * @mul: The multiplier between pixel rate and link frequency. Bits per pixel on
+ *	 D-PHY, samples per clock on parallel. 0 otherwise.
+ * @div: The divisor between pixel rate and link frequency. Number of data lanes
+ *	 times two on D-PHY, 1 on parallel. 0 otherwise.
+ *
+ * This function is intended for obtaining the link frequency from the
+ * transmitter sub-devices. It returns the link rate, either from the
+ * V4L2_CID_LINK_FREQ control implemented by the transmitter, or value
+ * calculated based on the V4L2_CID_PIXEL_RATE implemented by the transmitter.
+ *
+ * Returns link frequency on success, otherwise a negative error code:
+ *	-ENOENT: Link frequency or pixel rate control not found
+ *	-EINVAL: Invalid link frequency value
+ */
+s64 v4l2_get_link_freq(struct v4l2_ctrl_handler *handler, unsigned int mul,
+		       unsigned int div);
+
+void v4l2_simplify_fraction(u32 *numerator, u32 *denominator,
+		unsigned int n_terms, unsigned int threshold);
+u32 v4l2_fraction_to_interval(u32 numerator, u32 denominator);
+
 #endif /* V4L2_COMMON_H_ */
