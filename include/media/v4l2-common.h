@@ -358,30 +358,8 @@ __v4l2_find_nearest_size(const void *array, size_t array_size,
  */
 void v4l2_get_timestamp(struct timeval *tv);
 
-/**
- * v4l2_g_parm_cap - helper routine for vidioc_g_parm to fill this in by
- *      calling the g_frame_interval op of the given subdev. It only works
- *      for V4L2_BUF_TYPE_VIDEO_CAPTURE(_MPLANE), hence the _cap in the
- *      function name.
- *
- * @vdev: the struct video_device pointer. Used to determine the device caps.
- * @sd: the sub-device pointer.
- * @a: the VIDIOC_G_PARM argument.
- */
-int v4l2_g_parm_cap(struct video_device *vdev,
-		    struct v4l2_subdev *sd, struct v4l2_streamparm *a);
-
-/**
- * v4l2_s_parm_cap - helper routine for vidioc_s_parm to fill this in by
- *      calling the s_frame_interval op of the given subdev. It only works
- *      for V4L2_BUF_TYPE_VIDEO_CAPTURE(_MPLANE), hence the _cap in the
- *      function name.
- *
- * @vdev: the struct video_device pointer. Used to determine the device caps.
- * @sd: the sub-device pointer.
- * @a: the VIDIOC_S_PARM argument.
- */
-int v4l2_s_parm_cap(struct video_device *vdev,
-		    struct v4l2_subdev *sd, struct v4l2_streamparm *a);
+void v4l2_simplify_fraction(u32 *numerator, u32 *denominator,
+		unsigned int n_terms, unsigned int threshold);
+u32 v4l2_fraction_to_interval(u32 numerator, u32 denominator);
 
 #endif /* V4L2_COMMON_H_ */
