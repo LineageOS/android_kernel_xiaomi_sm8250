@@ -397,50 +397,84 @@ void v4l2_get_timestamp(struct timeval *tv)
 }
 EXPORT_SYMBOL_GPL(v4l2_get_timestamp);
 
-int v4l2_g_parm_cap(struct video_device *vdev,
-		    struct v4l2_subdev *sd, struct v4l2_streamparm *a)
+/* Simplify a fraction using a simple continued fraction decomposition. The
+ * idea here is to convert fractions such as 333333/10000000 to 1/30 using
+ * 32 bit arithmetic only. The algorithm is not perfect and relies upon two
+ * arbitrary parameters to remove non-significative terms from the simple
+ * continued fraction decomposition. Using 8 and 333 for n_terms and threshold
+ * respectively seems to give nice results.
+ */
+void v4l2_simplify_fraction(uint32_t *numerator, uint32_t *denominator,
+		unsigned int n_terms, unsigned int threshold)
 {
-	struct v4l2_subdev_frame_interval ival = { 0 };
-	int ret;
+	uint32_t *an;
+	uint32_t x, y, r;
+	unsigned int i, n;
 
-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE &&
-	    a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		return -EINVAL;
+	an = kmalloc(n_terms * sizeof *an, GFP_KERNEL);
+	if (an == NULL)
+		return;
 
-	if (vdev->device_caps & V4L2_CAP_READWRITE)
-		a->parm.capture.readbuffers = 2;
-	if (v4l2_subdev_has_op(sd, video, g_frame_interval))
-		a->parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
-	ret = v4l2_subdev_call(sd, video, g_frame_interval, &ival);
-	if (!ret)
-		a->parm.capture.timeperframe = ival.interval;
-	return ret;
+	/* Convert the fraction to a simple continued fraction. See
+	 * http://mathforum.org/dr.math/faq/faq.fractions.html
+	 * Stop if the current term is bigger than or equal to the given
+	 * threshold.
+	 */
+	x = *numerator;
+	y = *denominator;
+
+	for (n = 0; n < n_terms && y != 0; ++n) {
+		an[n] = x / y;
+		if (an[n] >= threshold) {
+			if (n < 2)
+				n++;
+			break;
+		}
+
+		r = x - an[n] * y;
+		x = y;
+		y = r;
+	}
+
+	/* Expand the simple continued fraction back to an integer fraction. */
+	x = 0;
+	y = 1;
+
+	for (i = n; i > 0; --i) {
+		r = y;
+		y = an[i-1] * y + x;
+		x = r;
+	}
+
+	*numerator = y;
+	*denominator = x;
+	kfree(an);
 }
-EXPORT_SYMBOL_GPL(v4l2_g_parm_cap);
+EXPORT_SYMBOL_GPL(v4l2_simplify_fraction);
 
-int v4l2_s_parm_cap(struct video_device *vdev,
-		    struct v4l2_subdev *sd, struct v4l2_streamparm *a)
+/* Convert a fraction to a frame interval in 100ns multiples. The idea here is
+ * to compute numerator / denominator * 10000000 using 32 bit fixed point
+ * arithmetic only.
+ */
+uint32_t v4l2_fraction_to_interval(uint32_t numerator, uint32_t denominator)
 {
-	struct v4l2_subdev_frame_interval ival = {
-		.interval = a->parm.capture.timeperframe
-	};
-	int ret;
+	uint32_t multiplier;
 
-	if (a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE &&
-	    a->type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		return -EINVAL;
+	/* Saturate the result if the operation would overflow. */
+	if (denominator == 0 ||
+	    numerator/denominator >= ((uint32_t)-1)/10000000)
+		return (uint32_t)-1;
 
-	memset(&a->parm, 0, sizeof(a->parm));
-	if (vdev->device_caps & V4L2_CAP_READWRITE)
-		a->parm.capture.readbuffers = 2;
-	else
-		a->parm.capture.readbuffers = 0;
+	/* Divide both the denominator and the multiplier by two until
+	 * numerator * multiplier doesn't overflow. If anyone knows a better
+	 * algorithm please let me know.
+	 */
+	multiplier = 10000000;
+	while (numerator > ((uint32_t)-1)/multiplier) {
+		multiplier /= 2;
+		denominator /= 2;
+	}
 
-	if (v4l2_subdev_has_op(sd, video, g_frame_interval))
-		a->parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
-	ret = v4l2_subdev_call(sd, video, s_frame_interval, &ival);
-	if (!ret)
-		a->parm.capture.timeperframe = ival.interval;
-	return ret;
+	return denominator ? numerator * multiplier / denominator : 0;
 }
-EXPORT_SYMBOL_GPL(v4l2_s_parm_cap);
+EXPORT_SYMBOL_GPL(v4l2_fraction_to_interval);
