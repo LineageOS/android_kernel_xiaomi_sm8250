@@ -596,6 +596,8 @@ static void fts_release_all_finger(void)
 	FTS_FUNC_ENTER();
 #ifdef CONFIG_TOUCHSCREEN_FTS_FOD
 	fts_data->finger_in_fod = false;
+	fts_data->fod_x = 0;
+	fts_data->fod_y = 0;
 	/* fts_data->overlap_area = 0; */
 	fod_overlap_aera = 0;
 #endif
@@ -771,6 +773,9 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 					}
 				}
 				data->finger_in_fod = true;
+				data->fod_x = x;
+				data->fod_y = y;
+				tp_common_notify_fp_state();
 				irq_num++;
 				if (data->suspended && data->fod_status == 0) {
 					if (irq_num == 1)
@@ -821,6 +826,9 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 				input_report_key(data->input_dev, BTN_INFO, 0);
 				input_sync(data->input_dev);
 				data->finger_in_fod = false;
+				data->fod_x = 0;
+				data->fod_y = 0;
+				tp_common_notify_fp_state();
 				data->fod_finger_skip = false;
 				data->old_point_id = 0xff;
 				data->point_id_changed = false;
@@ -2312,6 +2320,20 @@ static struct tp_common_ops fod_status_ops = {
 	.store = fod_status_store,
 };
 
+static ssize_t fp_state_show(struct kobject *kobj, struct kobj_attribute *attr,
+			     char *buf)
+{
+	if (!fts_data)
+		return -EINVAL;
+
+	return sprintf(buf, "%d,%d,%d\n", fts_data->fod_x, fts_data->fod_y,
+		       fts_data->finger_in_fod);
+}
+
+static struct tp_common_ops fp_state_ops = {
+	.show = fp_state_show,
+};
+
 /*****************************************************************************
 *  Name: fts_ts_probe
 *  Brief:
@@ -2552,6 +2574,11 @@ static int fts_ts_probe(struct i2c_client *client,
 	if (ret < 0) {
 		FTS_ERROR("%s: Failed to create fod_status node err=%d\n",
 			  __func__, ret);
+	}
+	ret = tp_common_set_fp_state_ops(&fp_state_ops);
+	if (ret < 0) {
+		FTS_ERROR("%s: Failed to create fp_state node err=%d\n",
+                          __func__, ret);
 	}
 
 	if (ts_data->fts_tp_class == NULL) {
