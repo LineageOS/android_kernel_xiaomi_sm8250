@@ -83,6 +83,8 @@ static void dsi_catalog_cmn_init(struct dsi_ctrl_hw *ctrl,
 		ctrl->ops.config_clk_gating = NULL;
 		ctrl->ops.map_mdp_regs = NULL;
 		ctrl->ops.log_line_count = NULL;
+		ctrl->ops.configure_cmddma_window = NULL;
+		ctrl->ops.reset_trig_ctrl = NULL;
 		break;
 	case DSI_CTRL_VERSION_2_0:
 		ctrl->ops.setup_lane_map = dsi_ctrl_hw_20_setup_lane_map;
@@ -100,6 +102,8 @@ static void dsi_catalog_cmn_init(struct dsi_ctrl_hw *ctrl,
 		ctrl->ops.config_clk_gating = NULL;
 		ctrl->ops.map_mdp_regs = NULL;
 		ctrl->ops.log_line_count = NULL;
+		ctrl->ops.configure_cmddma_window = NULL;
+		ctrl->ops.reset_trig_ctrl = NULL;
 		break;
 	case DSI_CTRL_VERSION_2_2:
 	case DSI_CTRL_VERSION_2_3:
@@ -122,6 +126,10 @@ static void dsi_catalog_cmn_init(struct dsi_ctrl_hw *ctrl,
 			dsi_ctrl_hw_kickoff_non_embedded_mode;
 		ctrl->ops.map_mdp_regs = dsi_ctrl_hw_22_map_mdp_regs;
 		ctrl->ops.log_line_count = dsi_ctrl_hw_22_log_line_count;
+		ctrl->ops.configure_cmddma_window =
+			dsi_ctrl_hw_22_configure_cmddma_window;
+		ctrl->ops.reset_trig_ctrl =
+			dsi_ctrl_hw_22_reset_trigger_controls;
 		break;
 	default:
 		break;

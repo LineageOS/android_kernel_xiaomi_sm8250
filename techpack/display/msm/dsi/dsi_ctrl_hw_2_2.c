@@ -12,6 +12,12 @@
 
 /* register to configure DMA scheduling */
 #define DSI_DMA_SCHEDULE_CTRL 0x100
+#define DSI_DMA_SCHEDULE_CTRL2 0x0104
+
+/* offset addresses of MDP INTF base register, to be mapped for debug feature */
+#define MDP_INTF_TEAR_OFFSET 0x280
+#define MDP_INTF_TEAR_LINE_COUNT_OFFSET 0x30
+#define MDP_INTF_LINE_COUNT_OFFSET 0xB0
 
 /* MDP INTF registers to be mapped*/
 #define MDP_INTF1_TEAR_LINE_COUNT 0xAE6BAB0
@@ -51,6 +57,7 @@ void dsi_ctrl_hw_22_schedule_dma_cmd(struct dsi_ctrl_hw *ctrl, int line_no)
 	reg |= (line_no & 0xffff);
 
 	DSI_W32(ctrl, DSI_DMA_SCHEDULE_CTRL, reg);
+	ctrl->reset_trig_ctrl = true;
 }
 
 /*
@@ -181,10 +188,85 @@ u32 dsi_ctrl_hw_22_log_line_count(struct dsi_ctrl_hw *ctrl, bool cmd_mode)
 
 	u32 reg = 0;
 
-	if (cmd_mode && ctrl->te_rd_ptr_reg)
-		reg = readl_relaxed(ctrl->te_rd_ptr_reg);
-	else if (ctrl->line_count_reg)
-		reg = readl_relaxed(ctrl->line_count_reg);
+	if (IS_ERR_OR_NULL(ctrl->mdp_intf_base))
+		return reg;
+
+	if (cmd_mode)
+		reg = readl_relaxed(ctrl->mdp_intf_base + MDP_INTF_TEAR_OFFSET
+					+ MDP_INTF_TEAR_LINE_COUNT_OFFSET);
+	else
+		reg = readl_relaxed(ctrl->mdp_intf_base
+					+ MDP_INTF_LINE_COUNT_OFFSET);
 
 	return reg;
+}
+
+/**
+ * dsi_ctrl_hw_22_configure_cmddma_window() - configure DMA window for CMD TX
+ * @ctrl:       Pointer to the controller host hardware.
+ * @cmd:        Pointer to the DSI DMA command info.
+ * @line_no:    Line number at which the CMD needs to be triggered.
+ * @window:     Width of the DMA CMD window.
+ */
+void dsi_ctrl_hw_22_configure_cmddma_window(struct dsi_ctrl_hw *ctrl,
+		struct dsi_ctrl_cmd_dma_info *cmd,
+		u32 line_no, u32 window)
+{
+	u32 reg = 0;
+
+	if (!window)
+		return;
+
+	if (cmd->en_broadcast) {
+		reg = DSI_R32(ctrl, DSI_TRIG_CTRL);
+		if (cmd->is_master) {
+			reg &= ~0xF;
+			reg |= 0xc;
+		} else {
+			reg &= ~0xF;
+			reg |= BIT(16);
+		}
+
+		DSI_W32(ctrl, DSI_TRIG_CTRL, reg);
+
+		if (cmd->is_master) {
+			reg = 0;
+			reg |= line_no;
+			reg |= window << 16;
+			DSI_W32(ctrl, DSI_DMA_SCHEDULE_CTRL2, reg);
+		}
+	} else {
+		reg = DSI_R32(ctrl, DSI_TRIG_CTRL);
+		reg &= ~0xF;
+		reg |= 0xc;
+		DSI_W32(ctrl, DSI_TRIG_CTRL, reg);
+
+		reg = 0;
+		reg |= line_no;
+		reg |= window << 16;
+		DSI_W32(ctrl, DSI_DMA_SCHEDULE_CTRL2, reg);
+	}
+	ctrl->reset_trig_ctrl = true;
+}
+
+/**
+ * dsi_ctrl_hw_22_reset_trigger_controls() - reset dsi trigger configurations
+ * @ctrl:		Pointer to the controller host hardware.
+ * @cfg:		DSI host configuration that is common to both video and
+ *			command modes.
+ */
+void dsi_ctrl_hw_22_reset_trigger_controls(struct dsi_ctrl_hw *ctrl,
+					struct dsi_host_common_cfg *cfg)
+{
+	u32 reg = 0;
+	const u8 trigger_map[DSI_TRIGGER_MAX] = {
+		0x0, 0x2, 0x1, 0x4, 0x5, 0x6 };
+
+	reg |= (cfg->te_mode == DSI_TE_ON_EXT_PIN) ? BIT(31) : 0;
+	reg |= (trigger_map[cfg->dma_cmd_trigger] & 0x7);
+	reg |= (trigger_map[cfg->mdp_cmd_trigger] & 0x7) << 4;
+	DSI_W32(ctrl, DSI_TRIG_CTRL, reg);
+	DSI_W32(ctrl, DSI_DMA_SCHEDULE_CTRL2, 0x0);
+	DSI_W32(ctrl, DSI_DMA_SCHEDULE_CTRL, 0x0);
+	ctrl->reset_trig_ctrl = false;
 }
