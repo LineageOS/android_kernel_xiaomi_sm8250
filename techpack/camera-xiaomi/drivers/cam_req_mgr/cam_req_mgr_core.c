@@ -46,6 +46,7 @@ void cam_req_mgr_core_link_reset(struct cam_req_mgr_core_link *link)
 	link->initial_skip = true;
 	link->sof_timestamp = 0;
 	link->prev_sof_timestamp = 0;
+	link->last_applied_jiffies = 0;
 }
 
 void cam_req_mgr_handle_core_shutdown(void)
@@ -517,11 +518,6 @@ static void __cam_req_mgr_validate_crm_wd_timer(
 	int idx = 0;
 	int next_frame_timeout = 0, current_frame_timeout = 0;
 	struct cam_req_mgr_req_queue *in_q = link->req.in_q;
-
-	if (!link->watchdog) {
-		CAM_ERR(CAM_CRM, "link %pK, watchdog %pK is NULL!", link, link->watchdog);
-		WARN_ON(1);
-	}
 
 	idx = in_q->rd_idx;
 	__cam_req_mgr_dec_idx(
@@ -1326,7 +1322,83 @@ static int __cam_req_mgr_check_sync_req_is_ready(
 
 	return 0;
 }
+ /**
+ * __cam_req_mgr_check_peer_req_is_applied()
+ *
+ * @brief    : Check whether peer req is applied
+ * @link     : pointer to link whose input queue and req tbl are
+ *             traversed through
+ * @idx      : slot idx
+ * @return   : true means the req is applied, others not applied
+ *
+ */
+static bool __cam_req_mgr_check_peer_req_is_applied(
+	struct cam_req_mgr_core_link *link,
+	int32_t idx)
+{
+	bool applied = true;
+	int64_t req_id;
+	int sync_slot_idx = 0;
+	struct cam_req_mgr_core_link *sync_link;
+	struct cam_req_mgr_slot *slot, *sync_slot;
+	struct cam_req_mgr_req_queue *in_q;
 
+	if (idx < 0)
+		return true;
+
+	slot = &link->req.in_q->slot[idx];
+	req_id = slot->req_id;
+	in_q = link->req.in_q;
+
+	CAM_DBG(CAM_REQ,
+		"Check Req[%lld] idx %d req_status %d link_hdl %x is applied in peer link",
+		req_id, idx, slot->status, link->link_hdl);
+
+	if (slot->sync_mode == CAM_REQ_MGR_SYNC_MODE_NO_SYNC) {
+		applied = true;
+		goto end;
+	}
+
+	sync_link = link->sync_link;
+
+	if (!sync_link)
+		applied &= true;
+
+	in_q = sync_link->req.in_q;
+	if (!in_q) {
+		CAM_DBG(CAM_CRM, "Link hdl %x in_q is NULL",
+			sync_link->link_hdl);
+		applied &= true;
+	}
+
+	sync_slot_idx = __cam_req_mgr_find_slot_for_req(
+		sync_link->req.in_q, req_id);
+
+	if ((sync_slot_idx < 0) ||
+		(sync_slot_idx >= MAX_REQ_SLOTS)) {
+		CAM_DBG(CAM_CRM,
+			"Can't find req:%lld from peer link, idx:%d",
+			req_id, sync_slot_idx);
+		applied &= true;
+	}
+
+	sync_slot = &in_q->slot[sync_slot_idx];
+
+	if (sync_slot->status == CRM_SLOT_STATUS_REQ_APPLIED)
+		applied &= true;
+	else
+		applied &= false;
+	CAM_DBG(CAM_CRM,
+		"link:%x idx:%d status:%d applied:%d",
+		sync_link->link_hdl, sync_slot_idx, sync_slot->status, applied);
+
+end:
+	CAM_DBG(CAM_REQ,
+		"Check Req[%lld] idx %d applied:%d",
+		req_id, idx, link->link_hdl, applied);
+
+	return applied;
+}
 /**
  * __cam_req_mgr_process_req()
  *
@@ -1342,11 +1414,13 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 {
 	int                                  rc = 0, idx;
 	int                                  reset_step = 0;
+	bool                                 check_retry_cnt = false;
 	uint32_t                             trigger = trigger_data->trigger;
 	struct cam_req_mgr_slot             *slot = NULL;
 	struct cam_req_mgr_req_queue        *in_q;
 	struct cam_req_mgr_core_session     *session;
 	struct cam_req_mgr_connected_device *dev;
+	uint32_t                             max_retry = 0;
 
 	in_q = link->req.in_q;
 	session = (struct cam_req_mgr_core_session *)link->parent;
@@ -1428,9 +1502,21 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 
 			rc = __cam_req_mgr_inject_delay(link->req.l_tbl,
 				slot->idx);
-			if (!rc)
-				rc = __cam_req_mgr_check_link_is_ready(link,
-					slot->idx, false);
+			if (!rc) {
+				if (in_q->slot[in_q->rd_idx].req_id != -1){
+					rc = __cam_req_mgr_check_peer_req_is_applied(
+						link, in_q->last_applied_idx);
+
+					if (rc)
+						rc = __cam_req_mgr_check_link_is_ready(
+							link, slot->idx, false);
+					else
+						rc = -EINVAL;
+				}
+				else
+					rc = __cam_req_mgr_check_link_is_ready(link,
+						slot->idx, false);
+			}
 		}
 
 		if (rc < 0) {
@@ -1463,14 +1549,24 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 		/* Apply req failed retry at next sof */
 		slot->status = CRM_SLOT_STATUS_REQ_PENDING;
 
-		link->retry_cnt++;
-		if (link->retry_cnt == MAXIMUM_RETRY_ATTEMPTS) {
-			CAM_DBG(CAM_CRM,
-				"Max retry attempts reached on link[0x%x] for req [%lld]",
-				link->link_hdl,
-				in_q->slot[in_q->rd_idx].req_id);
-			__cam_req_mgr_notify_error_on_link(link, dev);
-			link->retry_cnt = 0;
+		if (jiffies_to_msecs(jiffies - link->last_applied_jiffies) >
+			MINIMUM_WORKQUEUE_SCHED_TIME_IN_MS)
+			check_retry_cnt = true;
+
+		if ((in_q->last_applied_idx < in_q->rd_idx) &&
+			check_retry_cnt) {
+			link->retry_cnt++;
+			max_retry = MAXIMUM_RETRY_ATTEMPTS;
+			if (link->max_delay == 1)
+				max_retry++;
+			if (link->retry_cnt == max_retry) {
+				CAM_DBG(CAM_CRM,
+					"Max retry attempts (count: %d) reached on link[0x%x] for req [%lld]",
+					link->retry_cnt, link->link_hdl,
+					in_q->slot[in_q->rd_idx].req_id);
+				__cam_req_mgr_notify_error_on_link(link, dev);
+				link->retry_cnt = 0;
+			}
 		}
 	} else {
 		if (link->retry_cnt)
@@ -1520,6 +1616,15 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 		}
 	}
 
+	/*
+	 * Only update the jiffies of last applied request
+	 * for SOF trigger, since it is used to protect from
+	 * applying fails in ISP which is triggered at SOF.
+	 * And, also don't need to do update for error case
+	 * since error case doesn't check the retry count.
+	 */
+	if (trigger == CAM_TRIGGER_POINT_SOF)
+		link->last_applied_jiffies = jiffies;
 	mutex_unlock(&session->lock);
 	return rc;
 error:
@@ -2505,6 +2610,8 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 		if (idx >= 0) {
 			if (idx == in_q->last_applied_idx)
 				in_q->last_applied_idx = -1;
+			if (idx == in_q->rd_idx)
+				__cam_req_mgr_dec_idx(&idx, 1, in_q->num_slots);
 			__cam_req_mgr_reset_req_slot(link, idx);
 		}
 	}
@@ -2712,6 +2819,7 @@ static int cam_req_mgr_cb_notify_err(
 	notify_err->link_hdl = err_info->link_hdl;
 	notify_err->dev_hdl = err_info->dev_hdl;
 	notify_err->error = err_info->error;
+	notify_err->trigger = err_info->trigger;
 	task->process_cb = &cam_req_mgr_process_error;
 	rc = cam_req_mgr_workq_enqueue_task(task, link, CRM_TASK_PRIORITY_0);
 

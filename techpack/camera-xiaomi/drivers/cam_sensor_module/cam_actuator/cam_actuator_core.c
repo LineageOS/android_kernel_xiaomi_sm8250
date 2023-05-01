@@ -895,6 +895,15 @@ int32_t cam_actuator_driver_cmd(struct cam_actuator_ctrl_t *a_ctrl,
 			ACT_APPLY_SETTINGS_NOW) {
 			rc = cam_actuator_apply_settings(a_ctrl,
 				&a_ctrl->i2c_data.init_settings);
+			if ((rc == -EAGAIN) &&
+			(a_ctrl->io_master_info.master_type == CCI_MASTER)) {
+				CAM_WARN(CAM_ACTUATOR,
+					"CCI HW is in resetting mode:: Reapplying Init settings");
+				usleep_range(1000, 1010);
+				rc = cam_actuator_apply_settings(a_ctrl,
+					&a_ctrl->i2c_data.init_settings);
+			}
+
 			if (rc < 0)
 				CAM_ERR(CAM_ACTUATOR,
 					"Cannot apply Update settings");

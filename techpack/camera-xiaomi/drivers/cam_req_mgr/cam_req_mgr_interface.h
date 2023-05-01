@@ -240,6 +240,7 @@ struct cam_req_mgr_error_notify {
 	int32_t  link_hdl;
 	int32_t  dev_hdl;
 	uint64_t req_id;
+	uint32_t trigger;
 	enum cam_req_mgr_device_error error;
 };
 
