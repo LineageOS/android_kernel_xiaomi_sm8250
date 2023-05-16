@@ -1288,6 +1288,9 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 				    sizeof(struct afe_port_mod_evt_rsp_hdr));
 				uint32_t *dc_presence_flag = num_channels + 1;
 
+				if (*num_channels < 1 || *num_channels > 4)
+					return -EINVAL;
+
 				for (i = 0; i < *num_channels; i++) {
 					if (dc_presence_flag[i] == 1)
 						dc_detected = true;
