@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -474,6 +475,12 @@ static int32_t aprv2_core_fn_q(struct apr_client_data *data, void *priv)
 	case AVCS_CMD_RSP_LOAD_MODULES:
 		pr_debug("%s: Received AVCS_CMD_RSP_LOAD_MODULES\n",
 			 __func__);
+		if (data->payload_size != ((sizeof(struct avcs_load_unload_modules_sec_payload)
+			* rsp_payload->num_modules) + sizeof(uint32_t))) {
+			pr_err("%s: payload size greater than expected size %d\n",
+				__func__,data->payload_size);
+			return -EINVAL;
+		}
 		memcpy(rsp_payload, data->payload, data->payload_size);
 		q6core_lcl.avcs_module_resp_received = 1;
 		wake_up(&q6core_lcl.avcs_module_load_unload_wait);
@@ -1035,6 +1042,8 @@ int32_t q6core_avcs_load_unload_modules(struct avcs_load_unload_modules_payload
 		mutex_unlock(&(q6core_lcl.cmd_lock));
 		return -ENOMEM;
 	}
+
+	rsp_payload->num_modules = num_modules;
 
 	memcpy((uint8_t *)mod + sizeof(struct apr_hdr) +
 		sizeof(struct avcs_load_unload_modules_meminfo),
