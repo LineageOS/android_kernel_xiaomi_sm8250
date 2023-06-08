@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "15858d65_8865684b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2023-06-08T15:05:00Z",
+      "side": 1,
+      "message": "Not a proper revert, needs to be cleaned up from Xiaomi changes",
+      "revId": "54ef37bba69f55e13c24318c23c8d8abd3a6fd44",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
