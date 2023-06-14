@@ -2291,7 +2291,7 @@ static int32_t q6asm_callback(struct apr_client_data *data, void *priv)
 		config_debug_fs_read_cb();
 
 		if (data->payload_size != (READDONE_IDX_SEQ_ID + 1) * sizeof(uint32_t)) {
-			pr_err("%s:  payload size of %d is less than expected %d.\n",
+			pr_err("%s:  payload size of %d is less than expected %ld.\n",
 					__func__, data->payload_size,
 					((READDONE_IDX_SEQ_ID + 1) * sizeof(uint32_t)));
 			spin_unlock_irqrestore(
