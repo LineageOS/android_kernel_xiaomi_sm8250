@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "18976bae_79dca504",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11571
+      },
+      "writtenOn": "2023-06-24T06:53:00Z",
+      "side": 1,
+      "message": "Seems to have saved me from some reboots on alioth, already.",
+      "revId": "9b86b00bf4b8459c694d3775c34626da1f1c1637",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
