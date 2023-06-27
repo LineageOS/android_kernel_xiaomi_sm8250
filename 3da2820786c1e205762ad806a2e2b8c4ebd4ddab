@@ -16,6 +16,24 @@
       "message": "Push to qcom_sm8250 pls",
       "revId": "3da2820786c1e205762ad806a2e2b8c4ebd4ddab",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6156a58f_3e084392",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2023-06-27T18:54:32Z",
+      "side": 1,
+      "message": "If it isn\u0027t already, also push the idle_state sysfs commit for perfmgr to qcom_sm8250 while at it",
+      "parentUuid": "2627e499_60087616",
+      "revId": "3da2820786c1e205762ad806a2e2b8c4ebd4ddab",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
