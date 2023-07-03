@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -86,23 +86,31 @@ static int32_t cam_cci_validate_queue(struct cci_device *cci_dev,
 	struct cam_hw_soc_info *soc_info =
 		&cci_dev->soc_info;
 	void __iomem *base = soc_info->reg_map[0].mem_base;
+	struct cam_cci_i2c_queue_info *queue_info =
+		&cci_dev->cci_i2c_queue_info[master][queue];
 	unsigned long flags;
 
 	read_val = cam_io_r_mb(base +
 		CCI_I2C_M0_Q0_CUR_WORD_CNT_ADDR + reg_offset);
 	CAM_DBG(CAM_CCI, "CCI_I2C_M0_Q0_CUR_WORD_CNT_ADDR %d len %d max %d",
 		read_val, len,
-		cci_dev->cci_i2c_queue_info[master][queue].max_queue_size);
+		queue_info->max_queue_size);
 	if ((read_val + len + 1) >
-		cci_dev->cci_i2c_queue_info[master][queue].max_queue_size) {
+		queue_info->max_queue_size) {
 		uint32_t reg_val = 0;
-		uint32_t report_val = CCI_I2C_REPORT_CMD | (1 << 8);
+		uint32_t report_id = queue_info->report_id;
+		uint32_t report_val = CCI_I2C_REPORT_CMD | (1 << 8) |
+			(1 << 9) | (report_id << 4);
 
 		CAM_DBG(CAM_CCI, "CCI_I2C_REPORT_CMD");
 		cam_io_w_mb(report_val,
 			base + CCI_I2C_M0_Q0_LOAD_DATA_ADDR +
 			reg_offset);
 		read_val++;
+		queue_info->report_id++;
+		if (queue_info->report_id == REPORT_IDSIZE)
+			queue_info->report_id = 0;
+
 		CAM_DBG(CAM_CCI,
 			"CCI_I2C_M0_Q0_EXEC_WORD_CNT_ADDR %d, queue: %d",
 			read_val, queue);
@@ -287,13 +295,22 @@ static void cam_cci_load_report_cmd(struct cci_device *cci_dev,
 	uint32_t reg_offset = master * 0x200 + queue * 0x100;
 	uint32_t read_val = cam_io_r_mb(base +
 		CCI_I2C_M0_Q0_CUR_WORD_CNT_ADDR + reg_offset);
-	uint32_t report_val = CCI_I2C_REPORT_CMD | (1 << 8);
+	struct cam_cci_i2c_queue_info *queue_info =
+		&cci_dev->cci_i2c_queue_info[master][queue];
+	uint32_t report_id = queue_info->report_id;
+	uint32_t report_val = CCI_I2C_REPORT_CMD | (1 << 8) |
+		(1 << 9) | (report_id << 4);
 
-	CAM_DBG(CAM_CCI, "CCI_I2C_REPORT_CMD curr_w_cnt: %d", read_val);
+	CAM_DBG(CAM_CCI, "CCI_I2C_REPORT_CMD curr_w_cnt: %d report_id %d",
+		read_val, report_id);
 	cam_io_w_mb(report_val,
 		base + CCI_I2C_M0_Q0_LOAD_DATA_ADDR +
 		reg_offset);
 	read_val++;
+
+	queue_info->report_id++;
+	if (queue_info->report_id == REPORT_IDSIZE)
+		queue_info->report_id = 0;
 
 	CAM_DBG(CAM_CCI, "CCI_I2C_M0_Q0_EXEC_WORD_CNT_ADDR %d", read_val);
 	cam_io_w_mb(read_val, base +
