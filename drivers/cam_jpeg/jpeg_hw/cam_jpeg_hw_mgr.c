@@ -155,6 +155,7 @@ static int cam_jpeg_mgr_process_irq(void *priv, void *data)
 		CAM_ERR(CAM_JPEG, "Invalid offset: %u cmd buf len: %zu",
 			p_cfg_req->hw_cfg_args.hw_update_entries[
 			CAM_JPEG_PARAM].offset, cmd_buf_len);
+		cam_mem_put_cpu_buf(mem_hdl);
 		return -EINVAL;
 	}
 
@@ -181,6 +182,7 @@ static int cam_jpeg_mgr_process_irq(void *priv, void *data)
 	mutex_lock(&g_jpeg_hw_mgr.hw_mgr_mutex);
 	list_add_tail(&p_cfg_req->list, &hw_mgr->free_req_list);
 	mutex_unlock(&g_jpeg_hw_mgr.hw_mgr_mutex);
+	cam_mem_put_cpu_buf(mem_hdl);
 	return rc;
 }
 
