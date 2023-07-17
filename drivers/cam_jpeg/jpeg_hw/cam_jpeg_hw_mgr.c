@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/uaccess.h>
@@ -280,7 +281,11 @@ static int cam_jpeg_insert_cdm_change_base(
 
 	if (config_args->hw_update_entries[CAM_JPEG_CHBASE].offset >=
 		ch_base_len) {
-		CAM_ERR(CAM_JPEG, "Not enough buf");
+		CAM_ERR(CAM_JPEG, "Not enough buf offset %d len %d",
+			config_args->hw_update_entries[CAM_JPEG_CHBASE].offset,
+			ch_base_len);
+		cam_mem_put_cpu_buf(
+			config_args->hw_update_entries[CAM_JPEG_CHBASE].handle);
 		return -EINVAL;
 	}
 	CAM_DBG(CAM_JPEG, "iova %pK len %zu offset %d",
@@ -311,6 +316,9 @@ static int cam_jpeg_insert_cdm_change_base(
 	*ch_base_iova_addr = 0;
 	ch_base_iova_addr += size;
 	*ch_base_iova_addr = 0;
+
+	cam_mem_put_cpu_buf(
+		config_args->hw_update_entries[CAM_JPEG_CHBASE].handle);
 
 	return rc;
 }
@@ -1586,6 +1594,7 @@ hw_dump:
 		CAM_WARN(CAM_JPEG, "dump offset overshoot len %zu offset %zu",
 			jpeg_dump_args.buf_len, dump_args->offset);
 		mutex_unlock(&hw_mgr->hw_mgr_mutex);
+		cam_mem_put_cpu_buf(dump_args->buf_handle);
 		return -ENOSPC;
 	}
 
@@ -1596,6 +1605,7 @@ hw_dump:
 		CAM_WARN(CAM_JPEG, "dump buffer exhaust remain %zu min %u",
 			remain_len, min_len);
 		mutex_unlock(&hw_mgr->hw_mgr_mutex);
+		cam_mem_put_cpu_buf(dump_args->buf_handle);
 		return -ENOSPC;
 	}
 
@@ -1628,6 +1638,7 @@ hw_dump:
 	CAM_DBG(CAM_JPEG, "Offset before %u after %u",
 		dump_args->offset, jpeg_dump_args.offset);
 	dump_args->offset = jpeg_dump_args.offset;
+	cam_mem_put_cpu_buf(dump_args->buf_handle);
 	return rc;
 }
 
