@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2013-2020, Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/fs.h>
 #include <linux/mutex.h>
@@ -235,6 +236,11 @@ static int q6lsm_callback(struct apr_client_data *data, void *priv)
 			goto done;
 		}
 
+		if (!client->get_param_payload) {
+			pr_err("%s: invalid get_param_payload buffer ptr\n", __func__);
+			ret = -EINVAL;
+			goto done;
+		}
 		memcpy((u8 *)client->get_param_payload,
 			(u8 *)payload + payload_min_size_expected, param_size);
 done:
