@@ -8,6 +8,10 @@
 #include "cam_cci_core.h"
 #include "cam_cci_dev.h"
 
+static uint32_t cam_cci_retry(struct cci_device *cci_dev,
+	enum cci_i2c_master_t master,
+	enum cci_i2c_queue_t queue);
+
 static int32_t cam_cci_convert_type_to_num_bytes(
 	enum camera_sensor_i2c_type type)
 {
@@ -135,10 +139,13 @@ static int32_t cam_cci_validate_queue(struct cci_device *cci_dev,
 		if (rc <= 0) {
 			CAM_ERR(CAM_CCI, "Wait_for_completion_timeout: rc: %d",
 				rc);
-			if (rc == 0)
-				rc = -ETIMEDOUT;
-			cam_cci_flush_queue(cci_dev, master);
-			return rc;
+			rc = cam_cci_retry(cci_dev, master, queue);
+			if (!rc)
+				CAM_INFO(CAM_CCI,
+					"CCI%d_I2C_M%d_Q%d retry success",
+					soc_info->index, master, queue);
+			else
+				return rc;
 		}
 		rc = cci_dev->cci_master_info[master].status;
 		if (rc < 0) {
@@ -272,20 +279,104 @@ static void cam_cci_dump_registers(struct cci_device *cci_dev,
 }
 #endif
 
+static uint32_t cam_cci_retry(struct cci_device *cci_dev,
+	enum cci_i2c_master_t master,
+	enum cci_i2c_queue_t queue)
+{
+	int32_t rc = 0;
+	uint32_t retry = 50;
+	uint32_t read_val0 = 0, read_val1 = 0;
+	uint32_t reg_offset = master * 0x200 + queue * 0x100;
+	struct cam_cci_master_info *cci_master_info = NULL;
+	struct cam_hw_soc_info *soc_info = &cci_dev->soc_info;
+	void __iomem *base = soc_info->reg_map[0].mem_base;
+
+	cci_master_info = &cci_dev->cci_master_info[master];
+
+	while (retry && (cci_master_info->status == 0)) {
+		read_val0 = cam_io_r_mb(base +
+			CCI_I2C_M0_Q0_CUR_WORD_CNT_ADDR + reg_offset);
+		CAM_DBG(CAM_CCI,
+			"CCI%d_I2C_M%d_Q%d_CUR_WORD_CNT_ADDR %d",
+			soc_info->index, master, queue, read_val0);
+
+		if (read_val0) {
+			usleep_range(1000, 1010);
+			read_val1 = cam_io_r_mb(base +
+				CCI_I2C_M0_Q0_CUR_WORD_CNT_ADDR + reg_offset);
+			CAM_DBG(CAM_CCI,
+				"CCI%d_I2C_M%d_Q%d_CUR_WORD_CNT_ADDR %d",
+				soc_info->index, master, queue, read_val1);
+
+			if (read_val1 == 0)
+				/* No pending cmd in the CCI */
+				break;
+			else if (read_val0 == read_val1) {
+				/* queue is stable now */
+				CAM_DBG(CAM_CCI,
+					"CCI%d_I2C_M%d_Q%d_EXEC_WORD_CNT_ADDR %d",
+					soc_info->index, master,
+					queue, read_val0);
+				cam_io_w_mb(read_val0, base +
+					CCI_I2C_M0_Q0_EXEC_WORD_CNT_ADDR +
+					reg_offset);
+
+				cam_io_w_mb(1 << ((master * 2) + queue),
+					base + CCI_QUEUE_START_ADDR);
+
+				CAM_INFO(CAM_CCI,
+					"CCI%d_I2C_M%d_Q%d restart the queue",
+					soc_info->index, master, queue);
+
+				rc = wait_for_completion_timeout(
+					&cci_master_info->report_q[queue],
+					CCI_TIMEOUT);
+
+				if (rc <= 0) {
+					rc = -ETIMEDOUT;
+					cam_cci_flush_queue(cci_dev, master);
+					break;
+				}
+			} else {
+				retry--;
+				CAM_INFO(CAM_CCI,
+					"CCI%d_I2C_M%d_Q%d_CURR_WORD_CNT isn't stable retry:%d",
+					soc_info->index, master, queue, retry);
+				continue;
+			}
+		} else {
+			CAM_INFO(CAM_CCI,
+				"CCI%d_I2C_M%d_Q%d_CURR_WORD_CNT is 0, treat it as normal",
+				soc_info->index, master, queue);
+			break;
+		}
+	}
+
+	if (retry == 0) {
+		rc = -ETIMEDOUT;
+		cam_cci_flush_queue(cci_dev, master);
+	}
+
+	return rc;
+}
+
 static uint32_t cam_cci_wait(struct cci_device *cci_dev,
 	enum cci_i2c_master_t master,
 	enum cci_i2c_queue_t queue)
 {
 	int32_t rc = 0;
+	struct cam_hw_soc_info *soc_info = NULL;
 
 	if (!cci_dev) {
 		CAM_ERR(CAM_CCI, "failed");
 		return -EINVAL;
 	}
 
+	soc_info = &cci_dev->soc_info;
+
 	rc = wait_for_completion_timeout(
 		&cci_dev->cci_master_info[master].report_q[queue], CCI_TIMEOUT);
-	CAM_DBG(CAM_CCI, "wait DONE_for_completion_timeout");
+	CAM_DBG(CAM_CCI, "wait DONE_for_completion_timeout, rc=%d", rc);
 
 	if (rc <= 0) {
 #ifdef DUMP_CCI_REGISTERS
@@ -293,11 +384,16 @@ static uint32_t cam_cci_wait(struct cci_device *cci_dev,
 #endif
 		CAM_ERR(CAM_CCI, "wait for queue: %d", queue);
 		if (rc == 0) {
-			rc = -ETIMEDOUT;
-			cam_cci_flush_queue(cci_dev, master);
-			return rc;
+			rc = cam_cci_retry(cci_dev, master, queue);
+			if (!rc)
+				CAM_INFO(CAM_CCI,
+					"CCI%d_I2C_M%d_Q%d retry success",
+					soc_info->index, master, queue);
+			else
+				return rc;
 		}
 	}
+
 	rc = cci_dev->cci_master_info[master].status;
 	if (rc < 0) {
 		CAM_ERR(CAM_CCI, "failed rc %d", rc);
