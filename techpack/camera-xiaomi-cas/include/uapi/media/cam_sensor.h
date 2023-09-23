@@ -118,6 +118,7 @@ struct cam_ois_opcode {
 	uint32_t coeff;
 	uint32_t pheripheral;
 	uint32_t memory;
+        uint32_t ois_get_data; //Xiaomi add
 	uint8_t  fw_addr_type;
 	uint8_t  is_addr_increase;
 	uint8_t  is_addr_indata;
