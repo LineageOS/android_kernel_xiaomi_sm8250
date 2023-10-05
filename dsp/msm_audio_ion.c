@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
-<<<<<<< HEAD   (df9a24 dsp: q6lsm: Add check for payload buffer)
  * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
-=======
- * Copyright (c) 2013-2019, 2020, The Linux Foundation. All rights reserved.
- *
  * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
->>>>>>> CHANGE (b0c91b dsp: add lock in ion free to avoid use after free)
  */
 
 #include <linux/init.h>
