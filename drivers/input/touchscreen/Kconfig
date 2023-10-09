@@ -1381,6 +1381,7 @@ source "drivers/input/touchscreen/goodix_9916/Kconfig"
 source "drivers/input/touchscreen/goodix_driver_gt9886/Kconfig"
 source "drivers/input/touchscreen/hxchipset/Kconfig"
 source "drivers/input/touchscreen/nt36523/Kconfig"
+source "drivers/input/touchscreen/nt36532/Kconfig"
 source "drivers/input/touchscreen/nt36672c/Kconfig"
 source "drivers/input/touchscreen/xiaomi/Kconfig"
 
