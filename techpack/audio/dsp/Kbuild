@@ -258,6 +258,10 @@ ifeq (y, $(filter y,$(CONFIG_MACH_XIAOMI_DAGU) $(CONFIG_MACH_XIAOMI_MUNCH) $(CON
 CDEFINES += -DAUDIO_FORCE_RESTART_ADSP_TEMP
 endif
 
+ifeq ($(CONFIG_MACH_XIAOMI_PIPA), y)
+CDEFINES += -DCONFIG_SND_SOC_AW882XX_TDM
+endif
+
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile
