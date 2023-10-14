@@ -58,6 +58,9 @@
 #define BIN_BDF_FILE_NAME_GF		"bdwlang.bin"
 #define BIN_BDF_FILE_NAME_PREFIX	"bdwlan.b"
 #define BIN_BDF_FILE_NAME_GF_PREFIX	"bdwlang.b"
+#define ELF_BDF_FILE_NAME_M82            "bd_m82.elf"
+#define ELF_BDF_FILE_NAME_M82_GLOBAL     "bd_m82gl.elf"
+#define ELF_BDF_FILE_NAME_M82_INDIA      "bd_m82in.elf"
 #define REGDB_FILE_NAME			"regdb.bin"
 #define REGDB_FILE_NAME_J11		"regdb_j11.bin"
 #define DUMMY_BDF_FILE_NAME		"bdwlan.dmy"
@@ -634,6 +637,19 @@ static void cnss_get_xiaomi_bdf_elf_file_name(char *filename_tmp, u32 filename_l
 		break;
 	case HARDWARE_PLATFORM_ELISH:
 		snprintf(filename_tmp, filename_len, ELF_BDF_FILE_NAME_K81A);
+		break;
+	case HARDWARE_PLATFORM_PIPA:
+		switch (hw_country_ver) {
+		case (uint32_t)CountryGlobal:
+			snprintf(filename_tmp, filename_len, ELF_BDF_FILE_NAME_M82_GLOBAL);
+			break;
+		case (uint32_t)CountryIndia:
+			snprintf(filename_tmp, filename_len, ELF_BDF_FILE_NAME_M82_INDIA);
+			break;
+		default:
+			snprintf(filename_tmp, filename_len, ELF_BDF_FILE_NAME_M82);
+			break;
+		}
 		break;
 	case HARDWARE_PLATFORM_PSYCHE:
 		switch (hw_country_ver) {
