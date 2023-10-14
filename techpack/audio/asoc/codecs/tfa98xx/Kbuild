@@ -98,7 +98,6 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-D__linux__\
 		-DDEBUG
 
-
 ifeq ($(CONFIG_MACH_XIAOMI_LMI),y)
 	CDEFINES += -DTFA_NON_DSP_SOLUTION
 	CDEFINES += -DNXP_SPEAKERBOOST_V3
@@ -130,3 +129,6 @@ endif
 # Module information used by KBuild framework
 obj-$(CONFIG_SND_SOC_TFA9874)    += tfa98xx_dlkm.o
 tfa98xx_dlkm-y := $(TFA98XX_OBJS)
+
+# inject some build related information
+DEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
