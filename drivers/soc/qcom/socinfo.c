@@ -69,6 +69,7 @@ enum {
 	HW_PLATFORM_L3A = 48,
     HW_PLATFORM_L11R = 50,
 	HW_PLATFORM_L81A = 51,
+	HW_PLATFORM_M82 = 52,
 	HW_PLATFORM_INVALID
 };
 
@@ -103,6 +104,7 @@ const char *hw_platform[] = {
 	[HW_PLATFORM_L3A] = "PSYCHE",
     [HW_PLATFORM_L11R] = "MUNCH",
     [HW_PLATFORM_L81A] = "DAGU",
+    [HW_PLATFORM_M82] = "PIPA",
 };
 
 enum {
@@ -2124,6 +2126,8 @@ uint32_t get_hw_version_platform(void)
 		return HARDWARE_PLATFORM_MUNCH;
 	if (hw_type == HW_PLATFORM_L81A)
 		return HARDWARE_PLATFORM_DAGU;
+	if (hw_type == HW_PLATFORM_M82)
+		return HARDWARE_PLATFORM_PIPA;
 	else
 		return HARDWARE_PLATFORM_UNKNOWN;
 }
