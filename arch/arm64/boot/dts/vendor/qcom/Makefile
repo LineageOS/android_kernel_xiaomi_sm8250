@@ -12,6 +12,7 @@ ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
                 elish-sm8250-overlay.dtbo \
                 lmi-sm8250-overlay.dtbo \
                 munch-sm8250-overlay.dtbo \
+                pipa-sm8250-overlay.dtbo \
                 psyche-sm8250-overlay.dtbo \
                 thyme-sm8250-overlay.dtbo \
                 umi-sm8250-overlay.dtbo
@@ -25,6 +26,7 @@ enuma-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 elish-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 lmi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 munch-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+pipa-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 psyche-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 thyme-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 umi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
