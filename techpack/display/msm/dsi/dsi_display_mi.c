@@ -59,12 +59,6 @@ int dsi_display_set_disp_param(struct drm_connector *connector,
 	}
 
 	atomic64_set(&g_param, param_type);
-	if (sde_kms_is_suspend_blocked(display->drm_dev) &&
-		dsi_panel_is_need_tx_cmd(param_type)) {
-		pr_err("sde_kms is suspended, skip to set_disp_param\n");
-		return -EBUSY;
-	}
-
 	ret = dsi_panel_set_disp_param(display->panel, param_type);
 
 	return ret;
@@ -114,4 +108,31 @@ int dsi_display_esd_irq_ctrl(struct dsi_display *display,
 	mutex_unlock(&display->display_lock);
 
 	return rc;
+}
+
+ssize_t dsi_display_get_hw_vsync_info(struct drm_connector *connector,
+			char *buf)
+{
+	struct sde_connector *c_conn = NULL;
+	struct dsi_display *display = NULL;
+
+	if (!connector) {
+		pr_err("invalid argument\n");
+		return -EINVAL;
+	}
+
+	c_conn = to_sde_connector(connector);
+	if (!c_conn->display) {
+		pr_err("invalid connector display\n");
+		return -EINVAL;
+	}
+
+	if (c_conn->connector_type != DRM_MODE_CONNECTOR_DSI) {
+		pr_err("unsupported connector (%s)\n", connector->name);
+		return -EINVAL;
+	}
+
+	display = (struct dsi_display *)c_conn->display;
+
+	return calc_hw_vsync_info(display->panel, buf);
 }

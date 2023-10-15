@@ -4610,41 +4610,58 @@ static int dsi_display_get_dfps_timing(struct dsi_display *display,
 	}
 	/* TODO: Remove this direct reference to the dsi_ctrl */
 	timing = &per_ctrl_mode.timing;
+	DSI_INFO("VFP_old: %d, HFP_old:%d, fps_old: %d, fps_new: %d",adj_mode->timing.v_front_porch,adj_mode->timing.h_front_porch,curr_refresh_rate,timing->refresh_rate);
 
-	switch (dfps_caps.type) {
-	case DSI_DFPS_IMMEDIATE_VFP:
-		rc = dsi_display_dfps_calc_front_porch(
-				curr_refresh_rate,
-				timing->refresh_rate,
-				DSI_H_TOTAL_DSC(timing),
-				DSI_V_TOTAL(timing),
-				timing->v_front_porch,
-				&adj_mode->timing.v_front_porch);
-		SDE_EVT32(SDE_EVTLOG_FUNC_CASE1, DSI_DFPS_IMMEDIATE_VFP,
-			curr_refresh_rate, timing->refresh_rate,
-			timing->v_front_porch, adj_mode->timing.v_front_porch);
-		break;
+	if((timing->refresh_rate == 30) &&
+		((display->panel->mi_cfg.panel_id == 0x4D38324100360200) ||
+			(display->panel->mi_cfg.panel_id == 0x4D38324100420200))) {
+			adj_mode->timing.v_front_porch = 6270;
+			adj_mode->timing.h_front_porch = 249*2;
+	} else if ((timing->refresh_rate == 48) &&
+		((display->panel->mi_cfg.panel_id == 0x4D38324100360200) ||
+			(display->panel->mi_cfg.panel_id == 0x4D38324100420200))) {
+			adj_mode->timing.v_front_porch = 2758;
+			adj_mode->timing.h_front_porch = 249*2;
+	} else if ((timing->refresh_rate == 50) &&
+		((display->panel->mi_cfg.panel_id == 0x4D38324100360200) ||
+		(display->panel->mi_cfg.panel_id == 0x4D38324100420200))) {
+		adj_mode->timing.v_front_porch = 2524;
+		adj_mode->timing.h_front_porch = 249*2;
+	} else {
+		switch (dfps_caps.type) {
+		case DSI_DFPS_IMMEDIATE_VFP:
+			rc = dsi_display_dfps_calc_front_porch(
+					curr_refresh_rate,
+					timing->refresh_rate,
+					DSI_H_TOTAL_DSC(timing),
+					DSI_V_TOTAL(timing),
+					timing->v_front_porch,
+					&adj_mode->timing.v_front_porch);
+			SDE_EVT32(SDE_EVTLOG_FUNC_CASE1, DSI_DFPS_IMMEDIATE_VFP,
+				curr_refresh_rate, timing->refresh_rate,
+				timing->v_front_porch, adj_mode->timing.v_front_porch);
+			break;
 
-	case DSI_DFPS_IMMEDIATE_HFP:
-		rc = dsi_display_dfps_calc_front_porch(
-				curr_refresh_rate,
-				timing->refresh_rate,
-				DSI_V_TOTAL(timing),
-				DSI_H_TOTAL_DSC(timing),
-				timing->h_front_porch,
-				&adj_mode->timing.h_front_porch);
-		SDE_EVT32(SDE_EVTLOG_FUNC_CASE2, DSI_DFPS_IMMEDIATE_HFP,
-			curr_refresh_rate, timing->refresh_rate,
-			timing->h_front_porch, adj_mode->timing.h_front_porch);
-		if (!rc)
-			adj_mode->timing.h_front_porch *= display->ctrl_count;
-		break;
+		case DSI_DFPS_IMMEDIATE_HFP:
+			rc = dsi_display_dfps_calc_front_porch(
+					curr_refresh_rate,
+					timing->refresh_rate,
+					DSI_V_TOTAL(timing),
+					DSI_H_TOTAL_DSC(timing),
+					timing->h_front_porch,
+					&adj_mode->timing.h_front_porch);
+			SDE_EVT32(SDE_EVTLOG_FUNC_CASE2, DSI_DFPS_IMMEDIATE_HFP,
+				curr_refresh_rate, timing->refresh_rate,
+				timing->h_front_porch, adj_mode->timing.h_front_porch);
+			if (!rc)
+				adj_mode->timing.h_front_porch *= display->ctrl_count;
+			break;
 
-	default:
-		DSI_ERR("Unsupported DFPS mode %d\n", dfps_caps.type);
-		rc = -ENOTSUPP;
+		default:
+			DSI_ERR("Unsupported DFPS mode %d\n", dfps_caps.type);
+			rc = -ENOTSUPP;
+		}
 	}
-
 	return rc;
 }
 
@@ -6412,6 +6429,7 @@ int dsi_display_get_modes(struct dsi_display *display,
 	struct dsi_dfps_capabilities dfps_caps;
 	struct dsi_display_ctrl *ctrl;
 	struct dsi_host_common_cfg *host = &display->panel->host_config;
+	struct dsi_dfps_capabilities *fps_type = &display->panel->dfps_caps;
 	bool is_split_link, is_cmd_mode;
 	u32 num_dfps_rates, timing_mode_count, display_mode_count;
 	u32 sublinks_count, mode_idx, array_idx = 0;
@@ -6539,6 +6557,14 @@ int dsi_display_get_modes(struct dsi_display *display,
 			curr_refresh_rate = sub_mode->timing.refresh_rate;
 			sub_mode->timing.refresh_rate = dfps_caps.dfps_list[i];
 
+			if ((display->panel->mi_cfg.panel_id == 0x4D38324100360200) ||
+				(display->panel->mi_cfg.panel_id == 0x4D38324100420200)) {
+				if (sub_mode->timing.refresh_rate == 144 ||
+					sub_mode->timing.refresh_rate == 90)
+					fps_type->type= DSI_DFPS_IMMEDIATE_HFP;
+				else
+					fps_type->type = DSI_DFPS_IMMEDIATE_VFP;
+			}
 			dsi_display_get_dfps_timing(display, sub_mode,
 					curr_refresh_rate);
 		}
@@ -6903,6 +6929,8 @@ int dsi_display_set_mode(struct dsi_display *display,
 		}
 	}
 
+	display->panel->mi_cfg.last_fps = display->panel->cur_mode->timing.refresh_rate;
+
 	/*For dynamic DSI setting, use specified clock rate */
 	if (display->cached_clk_rate > 0)
 		adj_mode.priv_info->clk_rate_hz = display->cached_clk_rate;
@@ -6928,6 +6956,7 @@ int dsi_display_set_mode(struct dsi_display *display,
 	if (display->panel->cur_mode->timing.refresh_rate != timing.refresh_rate) {
 		if (display->drm_conn && display->drm_conn->kdev)
 			sysfs_notify(&display->drm_conn->kdev->kobj, NULL, "dynamic_fps");
+
 	}
 
 	memcpy(display->panel->cur_mode, &adj_mode, sizeof(adj_mode));
@@ -7846,6 +7875,12 @@ int dsi_display_enable(struct dsi_display *display)
 	}
 
 	if (mode->dsi_mode_flags & DSI_MODE_FLAG_DMS) {
+		if ((mode->timing.refresh_rate != 60)
+			&& ((display->panel->mi_cfg.panel_id >> 8) == 0x4C3341004202)
+				&& (display->panel->mi_cfg.dc_enable == true)) {
+			mi_dsi_panel_dc_switch(display->panel, false);
+		}
+
 		rc = dsi_panel_switch(display->panel);
 		if (rc) {
 			DSI_ERR("[%s] failed to switch DSI panel mode, rc=%d\n",
@@ -7853,7 +7888,8 @@ int dsi_display_enable(struct dsi_display *display)
 			goto error;
 		}
 
-		if ((display->panel->mi_cfg.panel_id >> 8) == 0x4A3153004202) {
+		if (((display->panel->mi_cfg.panel_id >> 8) == 0x4A3153004202)
+				|| ((display->panel->mi_cfg.panel_id >> 8) == 0x4C3341004202)) {
 
 			rc = dsi_panel_dc_switch(display->panel);
 			if (rc) {
@@ -8167,6 +8203,7 @@ static void __exit dsi_display_unregister(void)
 	dsi_ctrl_drv_unregister();
 	dsi_phy_drv_unregister();
 }
+
 module_param_string(dsi_display0, dsi_display_primary, MAX_CMDLINE_PARAM_LEN,
 								0600);
 MODULE_PARM_DESC(dsi_display0,

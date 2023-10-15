@@ -490,6 +490,8 @@ static void sde_encoder_phys_vid_vblank_irq(void *arg, int irq_idx)
 	if (!hw_ctl)
 		return;
 
+	sde_encoder_save_vsync_info(phys_enc);
+
 	SDE_ATRACE_BEGIN("vblank_irq");
 
 	/*
