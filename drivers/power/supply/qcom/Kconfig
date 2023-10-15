@@ -195,6 +195,16 @@ config QPNP_FG_GEN4
 	  reported through a BMS power supply property and also sends uevents
 	  when the capacity is updated.
 
+config QPNP_FG_GEN4_PIPA
+	tristate "QPNP GEN4 fuel gauge driver"
+	depends on MFD_SPMI_PMIC
+	help
+	  Say Y here to enable the GEN4 Fuel Gauge driver. This adds support
+	  for battery fuel gauging and state of charge of battery connected to
+	  the device that has QTI PMICs like PM8150B. The state of charge is
+	  reported through a BMS power supply property and also sends uevents
+	  when the capacity is updated.
+
 config QPNP_QG
 	bool "QPNP Qgauge driver"
 	depends on MFD_SPMI_PMIC
