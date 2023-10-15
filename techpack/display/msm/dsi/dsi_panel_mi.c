@@ -17,6 +17,7 @@
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
+#include <linux/rtc.h>
 #include <video/mipi_display.h>
 
 #include "sde_kms.h"
@@ -25,17 +26,20 @@
 #include "dsi_ctrl_hw.h"
 #include "dsi_parser.h"
 #include "dsi_mi_feature.h"
-#include "drm_mipi_dsi.h"
 #include "../../../../kernel/irq/internals.h"
-
 #include "mi_disp_nvt_alpha_data.h"
 #include "mi_disp_lhbm.h"
 
+
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
+
+extern ssize_t mipi_dsi_dcs_write(struct mipi_dsi_device *dsi, u8 cmd, const void *data, size_t len);
 
 static struct dsi_read_config g_dsi_read_cfg;
 struct dsi_panel *g_panel;
 static struct dsi_panel_cmd_set gamma_cmd_set[DSI_CMD_SET_MI_GAMMA_SWITCH_MAX];
+
+static struct calc_hw_vsync g_calc_hw_vsync[MAX_DSI_ACTIVE_DISPLAY];
 
 static void panelon_dimming_enable_delayed_work(struct work_struct *work)
 {
@@ -326,22 +330,56 @@ static int dsi_panel_parse_elvss_dimming_config(struct dsi_panel *panel,
 int dsi_panel_parse_esd_gpio_config(struct dsi_panel *panel)
 {
 	int rc = 0;
+	int rc2 = 0;
 	struct dsi_parser_utils *utils = &panel->utils;
 	struct dsi_panel_mi_cfg *mi_cfg = &panel->mi_cfg;
 
 	mi_cfg->esd_err_irq_gpio = of_get_named_gpio_flags(
 			utils->data, "mi,esd-err-irq-gpio",
 			0, (enum of_gpio_flags *)&(mi_cfg->esd_err_irq_flags));
-	if (gpio_is_valid(mi_cfg->esd_err_irq_gpio)) {
-		mi_cfg->esd_err_irq = gpio_to_irq(mi_cfg->esd_err_irq_gpio);
-		rc = gpio_request(mi_cfg->esd_err_irq_gpio, "esd_err_irq_gpio");
-		if (rc)
-			pr_err("Failed to request esd irq gpio %d, rc=%d\n",
-				mi_cfg->esd_err_irq_gpio, rc);
-		else
-			gpio_direction_input(mi_cfg->esd_err_irq_gpio);
+
+	if( !strcmp(panel->name,"xiaomi m82 36 02 0a video mode dual dsi dphy panel") || 
+		!strcmp(panel->name,"xiaomi m82 42 02 0b video mode dual dsi dphy panel"))
+	{
+		mi_cfg->esd_err_irq_gpio_sec = of_get_named_gpio_flags(
+			utils->data, "mi,esd-err-irq-gpio-sec",
+			0, (enum of_gpio_flags *)&(mi_cfg->esd_err_irq_gpio_flags_sec));
+
+		if (gpio_is_valid(mi_cfg->esd_err_irq_gpio) && gpio_is_valid(mi_cfg->esd_err_irq_gpio_sec)) {
+
+			pr_info("dsi_panel_parse_esd_gpio_config esd1:%d, esd2:%d\n", mi_cfg->esd_err_irq_gpio,mi_cfg->esd_err_irq_gpio_sec);
+
+			mi_cfg->esd_err_irq = gpio_to_irq(mi_cfg->esd_err_irq_gpio);
+			rc = gpio_request(mi_cfg->esd_err_irq_gpio, "esd_err_irq_gpio");
+
+			mi_cfg->esd_err_irq_sec = gpio_to_irq(mi_cfg->esd_err_irq_gpio_sec);
+			rc2 = gpio_request(mi_cfg->esd_err_irq_gpio_sec, "esd_err_irq_gpio_sec");
+
+			if (rc || rc2)
+				pr_err("Failed to request esd irq gpio %d, rc=%d\n",
+					mi_cfg->esd_err_irq_gpio, rc);
+			else {
+				gpio_direction_input(mi_cfg->esd_err_irq_gpio);
+				gpio_direction_input(mi_cfg->esd_err_irq_gpio_sec);
+			}
+
+		} else {
+			pr_info("dsi_panel_parse_esd_gpio_config esd failed!!!!\n");
+			rc = -EINVAL;
+		}
+		return (rc || rc2);
 	} else {
-		rc = -EINVAL;
+		if (gpio_is_valid(mi_cfg->esd_err_irq_gpio)) {
+			mi_cfg->esd_err_irq = gpio_to_irq(mi_cfg->esd_err_irq_gpio);
+			rc = gpio_request(mi_cfg->esd_err_irq_gpio, "esd_err_irq_gpio");
+			if (rc)
+				pr_err("Failed to request esd irq gpio %d, rc=%d\n",
+					mi_cfg->esd_err_irq_gpio, rc);
+			else
+				gpio_direction_input(mi_cfg->esd_err_irq_gpio);
+		} else {
+			rc = -EINVAL;
+		}
 	}
 
 	return rc;
@@ -857,7 +895,34 @@ int dsi_panel_esd_irq_ctrl_locked(struct dsi_panel *panel,
 	} else {
 		pr_info("%s panel esd irq gpio invalid\n", panel->type);
 	}
-
+	pr_info("dsi_panel_esd_irq_ctrl_locked 0x%llx\n", panel->mi_cfg.panel_id);
+	if((panel->mi_cfg.panel_id == 0x4D38324100360200) || (panel->mi_cfg.panel_id == 0x4D38324100420200))
+	{
+		if (gpio_is_valid(mi_cfg->esd_err_irq_gpio_sec)) {
+			if (mi_cfg->esd_err_irq_sec) {
+				if (enable) {
+					if (!mi_cfg->esd_err_sec_enabled) {
+						desc = irq_to_desc(mi_cfg->esd_err_irq_sec);
+						if (!irq_settings_is_level(desc))
+							desc->istate &= ~IRQS_PENDING;
+						enable_irq_wake(mi_cfg->esd_err_irq_sec);
+						enable_irq(mi_cfg->esd_err_irq_sec);
+						mi_cfg->esd_err_sec_enabled = true;
+						pr_info("%s panel esd2 irq is enable\n", panel->type);
+					}
+				} else {
+					if (mi_cfg->esd_err_sec_enabled) {
+						disable_irq_wake(mi_cfg->esd_err_irq_sec);
+						disable_irq_nosync(mi_cfg->esd_err_irq_sec);
+						mi_cfg->esd_err_sec_enabled = false;
+						pr_info("%s panel esd2 irq is disable\n", panel->type);
+					}
+				}
+			}
+		} else {
+			pr_info("%s panel esd2 irq gpio invalid\n", panel->type);
+		}
+	}
 	return 0;
 }
 
@@ -1281,17 +1346,24 @@ int dsi_panel_match_fps_pen_setting(struct dsi_panel *panel,
 		pr_debug("DSI_CMD_SET_DISP_PEN_120HZ not defined, return\n");
 		return 0;
 	}
-
-	/* match fps(120/60/30Hz) pen seeting cmd */
+	/* match fps(120/60/30/144/48/50Hz) pen seeting cmd */
 	if (adj_mode->timing.refresh_rate == 120)
 		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_120HZ);
 	else if (adj_mode->timing.refresh_rate == 60)
 		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_60HZ);
 	else if (adj_mode->timing.refresh_rate == 30)
 		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_30HZ);
+	else if (adj_mode->timing.refresh_rate == 90)
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_90HZ);
+	else if (adj_mode->timing.refresh_rate == 144)
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_144HZ);
+	else if (adj_mode->timing.refresh_rate == 50)
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_50HZ);
+	else if (adj_mode->timing.refresh_rate == 48)
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_PEN_48HZ);
 
 	if (rc) {
-		pr_err("Failed to send DSI_CMD_SET_DISP_PEN_120HZ command\n");
+		pr_err("Failed to send DSI_CMD_SET_DISP_PEN command\n");
 		retval = -EAGAIN;
 		goto error;
 	}else
@@ -2559,6 +2631,35 @@ int dsi_panel_update_dc_param(struct dsi_panel *panel)
 	return 0;
 }
 
+int mi_dsi_panel_dc_switch(struct dsi_panel *panel, bool enabled)
+{
+	int rc = 0;
+
+	if (!panel) {
+		DSI_ERR("Invalid params\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&panel->panel_lock);
+
+	if (enabled) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_DC_ON);
+		if (rc)
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_MI_DC_ON cmd, rc=%d\n",
+					panel->name, rc);
+	} else {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_DC_OFF);
+		if (rc)
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_MI_DC_OFF cmd, rc=%d\n",
+				panel->name, rc);
+	}
+	pr_debug("[%s] tx dc success, dc status %d",
+		panel->name, enabled);
+
+	mutex_unlock(&panel->panel_lock);
+	return rc;
+}
+
 int dsi_panel_switch_disp_rate_gpio(struct dsi_panel *panel)
 {
 	struct dsi_panel_mi_cfg *mi_cfg;
@@ -2949,49 +3050,6 @@ ssize_t dsi_panel_read_mipi_reg(struct dsi_panel *panel, char *buf)
 	return count;
 }
 
-ssize_t dsi_panel_read_wp_info(struct dsi_panel *panel, char *buf)
-{
-	int rc = 0;
-	int i = 0;
-	ssize_t count = 0;
-	struct dsi_read_config wp_read_config;
-	struct dsi_panel_cmd_set *cmd_set;
-	struct dsi_display_mode_priv_info *priv_info;
-
-	if (!panel || !panel->cur_mode || !panel->cur_mode->priv_info) {
-		pr_err("invalid params\n");
-		return -EAGAIN;
-	}
-
-	mutex_lock(&panel->panel_lock);
-
-	priv_info = panel->cur_mode->priv_info;
-	cmd_set = &priv_info->cmd_sets[DSI_CMD_SET_MI_WHITE_POINT_READ];
-	wp_read_config.read_cmd = *cmd_set;
-	wp_read_config.cmds_rlen = panel->mi_cfg.wp_reg_read_len;
-	wp_read_config.is_read = 1;
-
-	rc = dsi_panel_read_cmd_set(panel, &wp_read_config);
-	if (rc <= 0) {
-		pr_err("[%s]failed to read wp_info, rc=%d\n", panel->name, rc);
-		count = -EAGAIN;
-	} else {
-		for (i = 0; i < panel->mi_cfg.wp_info_len; i++) {
-			if (i == panel->mi_cfg.wp_info_len - 1) {
-				count += snprintf(buf + count, PAGE_SIZE - count, "%02x\n",
-					 wp_read_config.rbuf[panel->mi_cfg.wp_info_index + i]);
-			} else {
-				count += snprintf(buf + count, PAGE_SIZE - count, "%02x",
-					wp_read_config.rbuf[panel->mi_cfg.wp_info_index + i]);
-			}
-		}
-	}
-
-	mutex_unlock(&panel->panel_lock);
-
-	return count;
-}
-
 int dsi_panel_set_doze_brightness(struct dsi_panel *panel,
 			int doze_brightness, bool need_panel_lock)
 {
@@ -3137,6 +3195,9 @@ int dsi_panel_lockdowninfo_param_read(struct dsi_panel *panel)
 	if (cmd_sets->cmds) {
 		read_cmd_set.cmds = cmd_sets->cmds;
 		read_cmd_set.count = 1;
+		if (mi_cfg->panel_id == 0x4D38324100420200) {
+			read_cmd_set.count = 2;
+		}
 		read_cmd_set.state = cmd_sets->state;
 		rc = dsi_panel_write_cmd_set(panel, &read_cmd_set);
 		if (rc) {
@@ -3153,6 +3214,9 @@ int dsi_panel_lockdowninfo_param_read(struct dsi_panel *panel)
 			ld_read_config.cmds_rlen = 8;
 			ld_read_config.read_cmd = read_cmd_set;
 			ld_read_config.read_cmd.cmds = &read_cmd_set.cmds[1];
+			if (mi_cfg->panel_id == 0x4D38324100420200) {
+				ld_read_config.read_cmd.cmds = &read_cmd_set.cmds[2];
+			}
 			rc = dsi_panel_read_cmd_set(panel, &ld_read_config);
 			if (rc <= 0) {
 				pr_err("[%s] failed to read cmds, rc=%d\n", panel->name, rc);
@@ -3315,6 +3379,89 @@ int dsi_panel_power_turn_off(bool on)
 	return rc;
 }
 
+
+struct calc_hw_vsync *get_hw_calc_vsync_struct(int dsi_display_type)
+{
+	if (dsi_display_type == DSI_PRIMARY)
+		return &g_calc_hw_vsync[DSI_PRIMARY];
+	else if (dsi_display_type == DSI_SECONDARY)
+		return &g_calc_hw_vsync[DSI_SECONDARY];
+	else
+		return NULL;
+}
+
+ssize_t calc_hw_vsync_info(struct dsi_panel *panel, char *buf)
+{
+	struct calc_hw_vsync *calc_vsync;
+	ktime_t current_time;
+	u64 diff_us;
+	int i,index;
+	u32 fps;
+	u64 total_vsync_period_ns = 0;
+	u32 count = 0;
+	u64 valid_total_vsync_period_ns = 0;
+	u32 valid_count = 0;
+
+	if (!panel) {
+		pr_err("invalid params\n");
+		return -EINVAL;
+	}
+
+	if (!strcmp(panel->type, "primary"))
+		calc_vsync = &g_calc_hw_vsync[DSI_PRIMARY];
+	else
+		calc_vsync = &g_calc_hw_vsync[DSI_SECONDARY];
+
+	index = (calc_vsync->vsync_count == 0) ?
+			(MAX_VSYNC_COUNT - 1) : (calc_vsync->vsync_count -1);
+	fps = calc_vsync->vsyc_info[index].config_fps;
+
+	current_time = ktime_get();
+
+	for (i = 0; i < MAX_VSYNC_COUNT; i++) {
+		if (fps == calc_vsync->vsyc_info[index].config_fps) {
+			diff_us = (u64)ktime_us_delta(current_time,
+					calc_vsync->vsyc_info[index].timestamp);
+			if (diff_us <= USEC_PER_SEC) {
+				valid_total_vsync_period_ns +=
+					calc_vsync->vsyc_info[index].real_vsync_period_ns;
+				valid_count++;
+			}
+			total_vsync_period_ns +=
+					calc_vsync->vsyc_info[index].real_vsync_period_ns;
+			count++;
+		}
+		index = (index == 0) ? (MAX_VSYNC_COUNT - 1) : (index - 1);
+	}
+
+	if (valid_count && valid_count > fps / 4) {
+		calc_vsync->measured_vsync_period_ns =
+				valid_total_vsync_period_ns / valid_count;
+	} else {
+		calc_vsync->measured_vsync_period_ns =
+				total_vsync_period_ns / count;
+	}
+
+	/* Multiplying with 1000 to get fps in floating point */
+	calc_vsync->measured_fps_x1000 =
+			(u32)((NSEC_PER_SEC * 1000) / calc_vsync->measured_vsync_period_ns);
+	pr_info("[hw_vsync_info]fps: %d.%d, vsync_period_ns:%lld,"
+			" panel_mode:%s, panel_type:%s, average of %d statistics\n",
+			calc_vsync->measured_fps_x1000 / 1000,
+			calc_vsync->measured_fps_x1000 % 1000,
+			calc_vsync->measured_vsync_period_ns,
+			(panel->panel_mode == DSI_OP_VIDEO_MODE) ? "dsi_video" : "dsi_cmd",
+			panel->type, valid_count ? valid_count : count);
+
+	return scnprintf(buf, PAGE_SIZE, "fps: %d.%d vsync_period_ns:%lld"
+			" panel_mode:%s panel_type:%s\n",
+			calc_vsync->measured_fps_x1000 / 1000,
+			calc_vsync->measured_fps_x1000 % 1000,
+			calc_vsync->measured_vsync_period_ns,
+			(panel->panel_mode == DSI_OP_VIDEO_MODE) ? "dsi_video" : "dsi_cmd",
+			panel->type);
+}
+
 int mi_dsi_panel_set_fod_brightness(struct mipi_dsi_device *dsi, u16 brightness)
 {
 	u8 payload[2] = {(fpr_alpha_set[brightness] >> 8) & 0x0f, fpr_alpha_set[brightness] & 0xff};
@@ -3390,20 +3537,6 @@ static int mi_dsi_update_lhbm_cmd_87reg(struct dsi_panel *panel,
 	return rc;
 }
 
-bool dsi_panel_is_need_tx_cmd(u32 param)
-{
-	if ((param & 0x0F000000) != DISPPARAM_FOD_BACKLIGHT_ON
-		|| (param & 0x0F000000) != DISPPARAM_FOD_BACKLIGHT_OFF
-		|| param != DISPPARAM_FOD_UNLOCK_SUCCESS
-		|| param != DISPPARAM_SET_THERMAL_HBM_DISABLE
-		|| param != DISPPARAM_CLEAR_THERMAL_HBM_DISABLE
-		|| (param & 0x0000F000) != DISPPARAM_LOW_BRIGHTNESS_FOD
-		|| (param & 0x0000F000) != DISPPARAM_FP_STATUS) {
-		return false;
-	}else
-		return true;
-}
-
 int dsi_panel_set_disp_param(struct dsi_panel *panel, u32 param)
 {
 	int rc = 0;
@@ -3439,6 +3572,7 @@ int dsi_panel_set_disp_param(struct dsi_panel *panel, u32 param)
 		&& (param & 0x0F000000) != DISPPARAM_FOD_BACKLIGHT_ON
 		&& (param & 0x0F000000) != DISPPARAM_FOD_BACKLIGHT_OFF
 		&& param != DISPPARAM_FOD_UNLOCK_SUCCESS
+		&& param != DISPPARAM_FOD_UNLOCK_FAIL
 		&& param != DISPPARAM_SET_THERMAL_HBM_DISABLE
 		&& param != DISPPARAM_CLEAR_THERMAL_HBM_DISABLE
 		&& (param & 0x0000F000) != DISPPARAM_LOW_BRIGHTNESS_FOD
@@ -3636,7 +3770,6 @@ int dsi_panel_set_disp_param(struct dsi_panel *panel, u32 param)
 				pr_info("thermal clear hbm limit, restore previous hbm on\n");
 			}
 			mi_cfg->dimming_state = STATE_DIM_BLOCK;
-
 		}
 		break;
 	case DISPPARAM_HBM_OFF:
@@ -3678,7 +3811,6 @@ int dsi_panel_set_disp_param(struct dsi_panel *panel, u32 param)
 				pr_info("thermal set hbm limit, hbm off\n");
 			} else
 				mi_cfg->hbm_enabled = false;
-
 		}
 		break;
 	case DISPPARAM_HBM_HDR_ON:
@@ -3756,15 +3888,15 @@ int dsi_panel_set_disp_param(struct dsi_panel *panel, u32 param)
 				if (panel->power_mode == SDE_MODE_DPMS_LP1 ||panel->power_mode == SDE_MODE_DPMS_LP2){
 					switch (mi_cfg->doze_brightness_state) {
 						case DOZE_BRIGHTNESS_HBM:
-							mi_dsi_update_lhbm_cmd_87reg(panel, DSI_CMD_SET_MI_FOD_LHBM_WHITE_1000NIT, mi_cfg->doze_hbm_dbv_level);
-							pr_info("DSI_CMD_SET_MI_FOD_LHBM_WHITE_1000NIT in doze_hbm_dbv_level\n");
+							mi_dsi_update_lhbm_cmd_87reg(panel, DSI_CMD_SET_MI_FOD_LHBM_WHITE_110NIT, mi_cfg->doze_hbm_dbv_level);
+							pr_info("DSI_CMD_SET_MI_FOD_LHBM_WHITE_110NIT in doze_hbm_dbv_level\n");
 							break;
 						case DOZE_BRIGHTNESS_LBM:
-							mi_dsi_update_lhbm_cmd_87reg(panel, DSI_CMD_SET_MI_FOD_LHBM_WHITE_1000NIT, mi_cfg->doze_lbm_dbv_level);
-							pr_info("DSI_CMD_SET_MI_FOD_LHBM_WHITE_1000NIT in doze_lbm_dbv_level\n");
+							mi_dsi_update_lhbm_cmd_87reg(panel, DSI_CMD_SET_MI_FOD_LHBM_WHITE_110NIT, mi_cfg->doze_lbm_dbv_level);
+							pr_info("DSI_CMD_SET_MI_FOD_LHBM_WHITE_110NIT in doze_lbm_dbv_level\n");
 							break;
 						default:
-							pr_info("DSI_CMD_SET_MI_FOD_LHBM_WHITE_1000NIT defaults\n");
+							pr_info("DSI_CMD_SET_MI_FOD_LHBM_WHITE_110NIT defaults\n");
 							break;
 					}
 				}
@@ -3959,10 +4091,6 @@ int dsi_panel_set_disp_param(struct dsi_panel *panel, u32 param)
 		pr_info("Fod fingerprint unlock fail\n");
 		mi_cfg->sysfs_fod_unlock_success = false;
 		mi_cfg->into_aod_pending = false;
-		if(mi_cfg->local_hbm_enabled){
-			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_FOD_LHBM_OFF);
-			mi_cfg->local_hbm_cur_status = false;
-		}
 		if (panel->power_mode == SDE_MODE_DPMS_LP1 ||
 				panel->power_mode == SDE_MODE_DPMS_LP2) {
 			cancel_delayed_work(&mi_cfg->enter_aod_delayed_work);
@@ -4156,3 +4284,105 @@ exit:
 	return rc;
 }
 
+int mi_dsi_pwr_enable_vregs(struct dsi_regulator_info *regs, bool enable, int index)
+{
+	int rc = 0;
+	struct dsi_vreg *vreg;
+	int num_of_v = 0;
+	u32 pre_on_ms, post_on_ms;
+	u32 pre_off_ms, post_off_ms;
+	if (enable) {
+		vreg = &regs->vregs[index];
+		pre_on_ms = vreg->pre_on_sleep;
+		post_on_ms = vreg->post_on_sleep;
+		DSI_INFO("mi_dsi_pwr_enable_vregs for %s, enable:%d\n",vreg->vreg_name,enable);
+		if (vreg->pre_on_sleep)
+			usleep_range((pre_on_ms * 1000),
+					(pre_on_ms * 1000) + 10);
+
+		rc = regulator_set_load(vreg->vreg,
+					vreg->enable_load);
+		if (rc < 0) {
+			DSI_ERR("Setting optimum mode failed for %s\n",
+					vreg->vreg_name);
+			goto error;
+		}
+		num_of_v = regulator_count_voltages(vreg->vreg);
+		if (num_of_v > 0) {
+			rc = regulator_set_voltage(vreg->vreg,
+							vreg->min_voltage,
+							vreg->max_voltage);
+			if (rc) {
+				DSI_ERR("Set voltage(%s) fail, rc=%d\n",
+						vreg->vreg_name, rc);
+				goto error_disable_opt_mode;
+			}
+		}
+
+		rc = regulator_enable(vreg->vreg);
+		if (rc) {
+			DSI_ERR("enable failed for %s, rc=%d\n",
+					vreg->vreg_name, rc);
+			goto error_disable_voltage;
+		}
+
+		if (vreg->post_on_sleep)
+			usleep_range((post_on_ms * 1000),
+					(post_on_ms * 1000) + 10);
+	} else {
+		vreg = &regs->vregs[index];
+		pre_off_ms = vreg->pre_off_sleep;
+		post_off_ms = vreg->post_off_sleep;
+		DSI_ERR("mi_dsi_pwr_enable_vregs for %s, enable:%d\n",vreg->vreg_name,enable,index);
+		if (pre_off_ms)
+			usleep_range((pre_off_ms * 1000),
+					(pre_off_ms * 1000) + 10);
+
+		if (regs->vregs[index].off_min_voltage)
+			(void)regulator_set_voltage(regs->vregs[index].vreg,
+					regs->vregs[index].off_min_voltage,
+					regs->vregs[index].max_voltage);
+
+		(void)regulator_set_load(regs->vregs[index].vreg,
+					regs->vregs[index].disable_load);
+		(void)regulator_disable(regs->vregs[index].vreg);
+
+		if (post_off_ms)
+			usleep_range((post_off_ms * 1000),
+					(post_off_ms * 1000) + 10);
+	}
+
+	return 0;
+error_disable_opt_mode:
+	(void)regulator_set_load(regs->vregs[index].vreg,
+				 regs->vregs[index].disable_load);
+
+error_disable_voltage:
+	if (num_of_v > 0)
+		(void)regulator_set_voltage(regs->vregs[index].vreg,
+					    0, regs->vregs[index].max_voltage);
+error:
+	vreg = &regs->vregs[index];
+	pre_off_ms = vreg->pre_off_sleep;
+	post_off_ms = vreg->post_off_sleep;
+
+	if (pre_off_ms)
+		usleep_range((pre_off_ms * 1000),
+				(pre_off_ms * 1000) + 10);
+
+	(void)regulator_set_load(regs->vregs[index].vreg,
+					regs->vregs[index].disable_load);
+
+	num_of_v = regulator_count_voltages(regs->vregs[index].vreg);
+	if (num_of_v > 0)
+		(void)regulator_set_voltage(regs->vregs[index].vreg,
+					0, regs->vregs[index].max_voltage);
+
+	(void)regulator_disable(regs->vregs[index].vreg);
+
+	if (post_off_ms)
+		usleep_range((post_off_ms * 1000),
+				(post_off_ms * 1000) + 10);
+
+	return rc;
+}
