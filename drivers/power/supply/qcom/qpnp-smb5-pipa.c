@@ -446,27 +446,6 @@ static int get_valid_pullup(int pull_up)
 	}
 }
 
-static int battery_shipmode(struct notifier_block  *reboot_notifier,unsigned long mode, void *cmd)
-{
-	struct smb_charger * chg = container_of(reboot_notifier, struct smb_charger,
-		 reboot_notifier);
-        int rc;
-	u8 val = 0;
-	if(chg->fake_shipmode) {
-		pr_err("enter shipmode successfully");
-        rc = smblib_masked_write(chg, SHIP_MODE_REG, SHIP_MODE_EN_BIT,
-			SHIP_MODE_EN_BIT);
-	if (rc < 0)
-		dev_err(chg->dev, "Couldn't %s ship mode, rc=%d\n",
-				chg->fake_shipmode? "enable" : "disable", rc);
-	}
-	rc = smblib_read(chg,SHIP_MODE_REG,&val);
-	if (rc < 0)
-		dev_err(chg->dev, "Couldn't read Legacy status rc=%d\n", rc);
-	dev_err(chg->dev, "shipmode reg = %d", val);
-	return rc;
-}
-
 #define INTERNAL_PULL_UP_MASK	0x3
 static int smb5_configure_internal_pull(struct smb_charger *chg, int type,
 					int pull)
@@ -3069,7 +3048,6 @@ static enum power_supply_property smb5_batt_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_DONE,
 	POWER_SUPPLY_PROP_PARALLEL_DISABLE,
 	POWER_SUPPLY_PROP_SET_SHIP_MODE,
-	POWER_SUPPLY_PROP_SHIPMODE_COUNT_RESET,
 	POWER_SUPPLY_PROP_DIE_HEALTH,
 	POWER_SUPPLY_PROP_DC_THERMAL_LEVELS,
 	POWER_SUPPLY_PROP_RERUN_AICL,
@@ -3206,10 +3184,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_SET_SHIP_MODE:
 		/* Not in ship mode as long as device is active */
 		val->intval = 0;
-		break;
-	case POWER_SUPPLY_PROP_SHIPMODE_COUNT_RESET:
-		/* Not in ship mode as long as device is active */
-		val->intval = chg->fake_shipmode;
 		break;
 	case POWER_SUPPLY_PROP_DIE_HEALTH:
 		rc = smblib_get_die_health(chg, val);
@@ -3372,10 +3346,6 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 				POWER_SUPPLY_PROP_SET_SHIP_MODE, val);*/
 		rc = smblib_set_prop_ship_mode(chg, val);
 		break;
-	case POWER_SUPPLY_PROP_SHIPMODE_COUNT_RESET:
-		/* Not in ship mode as long as device is active */
-		chg->fake_shipmode =  val->intval;
-		break;
 	case POWER_SUPPLY_PROP_RERUN_AICL:
 		rc = smblib_run_aicl(chg, RERUN_AICL);
 		break;
@@ -3458,7 +3428,6 @@ static int smb5_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_RECHARGE_VBAT:
 	case POWER_SUPPLY_PROP_NIGHT_CHARGING:
 	case POWER_SUPPLY_PROP_SMART_BATTERY:
-	case POWER_SUPPLY_PROP_SHIPMODE_COUNT_RESET:
 	case POWER_SUPPLY_PROP_SET_SHIP_MODE:
 		return 1;
 	default:
@@ -5183,10 +5152,6 @@ static int smb5_probe(struct platform_device *pdev)
 		}
 	}
 
-    chg->reboot_notifier.notifier_call  =  battery_shipmode;
-    chg->reboot_notifier.priority = 255;
-    register_reboot_notifier(&chg->reboot_notifier);
-
 	switch (chg->chg_param.smb_version) {
 	case PM8150B_SUBTYPE:
 	case PM6150_SUBTYPE:
@@ -5299,7 +5264,6 @@ static int smb5_remove(struct platform_device *pdev)
 	smblib_deinit(chg);
 	sysfs_remove_groups(&chg->dev->kobj, smb5_groups);
 	platform_set_drvdata(pdev, NULL);
-    unregister_reboot_notifier(&chg->reboot_notifier);
 	return 0;
 }
 
