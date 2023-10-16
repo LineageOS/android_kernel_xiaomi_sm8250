@@ -757,5 +757,6 @@ config KEYBOARD_MTK_PMIC
 	  module will be called pmic-keys.
 
 source "drivers/input/keyboard/nanosic_driver/Kconfig"
+source "drivers/input/keyboard/nanosic_driver_v2/Kconfig"
 
 endif
