@@ -102,7 +102,6 @@ static void nvt_all_para_recovery(void);
 
 extern int dsi_panel_lockdown_info_read(unsigned char *plockdowninfo);
 extern void dsi_panel_doubleclick_enable(bool on);
-extern int dsi_panel_vendor_info_read(unsigned char *plockdowninfo);
 
 uint32_t ENG_RST_ADDR  = 0x7FFF80;
 uint32_t SPI_RD_FAST_ADDR = 0;	//read from dtsi
@@ -2776,7 +2775,7 @@ static void get_lockdown_info(struct work_struct *work)
 	NVT_LOG("lkdown_readed = %d", ts->lkdown_readed);
 
 	if (!ts->lkdown_readed) {
-		ret = dsi_panel_vendor_info_read(ts->lockdown_info);
+		ret = dsi_panel_lockdown_info_read(ts->lockdown_info);
 		if (ret < 0) {
 			NVT_ERR("can't get lockdown info");
 		} else {
