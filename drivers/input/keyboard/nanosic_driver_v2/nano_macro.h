@@ -242,6 +242,7 @@ static inline void rawdata_show(const char *descp, char *buf, size_t size)
 	dbgprint(INFO_LEVEL, "%s -> %s\n", descp, display);
 }
 
+extern bool Nanosonic_get_device_registered(void);
 extern int Nanosic_chardev_register(void);
 extern void Nanosic_chardev_release(void);
 extern int Nanosic_chardev_client_write(char *data, size_t datalen);
