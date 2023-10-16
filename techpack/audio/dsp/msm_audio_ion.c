@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019, 2020, The Linux Foundation. All rights reserved.
  *
  * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
@@ -335,6 +335,7 @@ static int msm_audio_ion_buf_map(struct dma_buf *dma_buf, dma_addr_t *paddr,
 		mutex_lock(&(msm_audio_ion_data.list_mutex));
 		msm_audio_dma_buf_unmap(dma_buf);
 		mutex_unlock(&(msm_audio_ion_data.list_mutex));
+
 		goto err;
 	}
 
