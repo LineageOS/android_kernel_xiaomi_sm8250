@@ -73,6 +73,17 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 		   object == FIELD_HOST) {
 		data += 4;
 		STREAM_TO_UINT8(gHallStatus, data);
+
+		// Check if any device is connected
+		bool keypad_conneted = (gHallStatus >> 0) & 0x1;
+
+		// If device is connected but not registered, register it
+		if (keypad_conneted && !Nanosonic_get_device_registered())
+			Nanosic_input_register();
+
+		// If device is no longer connected but device still do exist, release it
+		else if (!keypad_conneted && Nanosonic_get_device_registered())
+			Nanosic_input_release();
 	}
 
 	return false;
