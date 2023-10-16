@@ -320,6 +320,18 @@ _err1:
 	return -1;
 }
 
+// Check if any device is registered, if it is return true
+bool Nanosonic_get_device_registered(void)
+{
+	if (!IS_ERR_OR_NULL(gVirtualKeyboardDev) ||
+	    !IS_ERR_OR_NULL(gVirtualMouseDev) ||
+	    !IS_ERR_OR_NULL(gVirtualTouchDev) ||
+	    !IS_ERR_OR_NULL(gVirtualConsumerDev))
+		return true;
+
+	return false;
+}
+
 /** ************************************************************************/ /**
  *  @func Nanosic_input_release
  *
@@ -339,6 +351,11 @@ int Nanosic_input_release(void)
 
 	if (!IS_ERR_OR_NULL(gVirtualConsumerDev))
 		hid_destroy_device(gVirtualConsumerDev);
+
+	gVirtualKeyboardDev = NULL;
+	gVirtualMouseDev = NULL;
+	gVirtualTouchDev = NULL;
+	gVirtualConsumerDev = NULL;
 
 	dbgprint(DEBUG_LEVEL, "input release ok\n");
 
