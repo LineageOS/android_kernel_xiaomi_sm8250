@@ -2315,6 +2315,13 @@ static void nvt_init_touchmode_data(void)
 	xiaomi_touch_interfaces.touch_mode[Touch_Resist_RF][SET_CUR_VALUE] = 0;
 	xiaomi_touch_interfaces.touch_mode[Touch_Resist_RF][GET_CUR_VALUE] = 0;
 
+	/* Stylus */
+	xiaomi_touch_interfaces.touch_mode[Touch_Pen_ENABLE][GET_MAX_VALUE] = 18;
+	xiaomi_touch_interfaces.touch_mode[Touch_Pen_ENABLE][GET_MIN_VALUE] = -1;
+	xiaomi_touch_interfaces.touch_mode[Touch_Pen_ENABLE][GET_DEF_VALUE] = 0;
+	xiaomi_touch_interfaces.touch_mode[Touch_Pen_ENABLE][SET_CUR_VALUE] = 0;
+	xiaomi_touch_interfaces.touch_mode[Touch_Pen_ENABLE][GET_CUR_VALUE] = 0;
+
 	for (i = 0; i < Touch_Mode_NUM; i++) {
 		NVT_LOG("mode:%d, set cur:%d, get cur:%d, def:%d min:%d max:%d\n",
 			i,
