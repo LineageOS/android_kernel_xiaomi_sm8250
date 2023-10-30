@@ -288,6 +288,27 @@ err_I2c_client:
 	return ret;
 }
 
+int Nanosic_set_caps_led(bool enable)
+{
+	int i = 0, ret = 0;
+	struct nano_i2c_client *I2c_client = gI2c_client;
+	char cmd[I2C_DATA_LENGTH_WRITE] = { 0x32, 0x00,	      0x4E, 0x31,
+					    0x80, FIELD_176X, 0x26, 0x01, enable};
+
+	if (IS_ERR_OR_NULL(I2c_client)) {
+		goto err_I2c_client;
+	}
+
+	for (i = 2; i < 9; i++) {
+		cmd[9] += cmd[i];
+	} /*cal sum*/
+	rawdata_show("enable caps led", cmd, sizeof(cmd));
+	ret = Nanosic_i2c_write(I2c_client, cmd, sizeof(cmd));
+
+err_I2c_client:
+	return ret;
+}
+
 static void keyboard_resume_work(struct work_struct *work)
 {
 	int ret = 0;

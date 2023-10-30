@@ -79,9 +79,12 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 		bool keypad_power = (gHallStatus >> 1) & 0x1;
 
 		// If device is connected but not registered, register it
-		if (keypad_conneted && keypad_power && !Nanosonic_get_device_registered())
+		if (keypad_conneted && keypad_power && !Nanosonic_get_device_registered()){
+			// Keboard do keep caps lock led on if it was enabled before reboot/attach, so disable it
+			// Caps lock might be already enabled in system, but in suck case OS will handle it
+			Nanosic_set_caps_led(0);
 			Nanosic_input_register();
-
+        }
 		// If device is no longer connected but device still do exist, release it
 		else if (!keypad_conneted && Nanosonic_get_device_registered())
 			Nanosic_input_release();
