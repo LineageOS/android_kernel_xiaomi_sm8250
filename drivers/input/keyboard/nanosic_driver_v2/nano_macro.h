@@ -301,6 +301,8 @@ extern int gpio_hall_n_pin;
 extern int gpio_hall_s_pin;
 extern int g_wakeup_irqno;
 
+extern int Nanosic_set_caps_led(bool enable);
+
 #if 0
 extern void Nanosic_GPIO_set(bool status);
 #endif

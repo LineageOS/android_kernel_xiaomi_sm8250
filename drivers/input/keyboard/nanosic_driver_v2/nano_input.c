@@ -215,6 +215,11 @@ static int Nanosic_input_set_report(struct hid_device *hid, __u8 *buf,
 	}
 
 	rawdata_show("would not write i2c cmd", buf, size);
+
+	// Handle caps lock LED
+	if(buf[0] == 5)
+		Nanosic_set_caps_led(buf[1]);
+
 	return -EINVAL;
 
 	/*return Nanosic_i2c_write(gI2c_client,buf , size);*/
