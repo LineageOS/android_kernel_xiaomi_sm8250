@@ -427,7 +427,7 @@ static ssize_t Nanosic_chardev_fops_write(struct file *file,
 		if(Nanosonic_get_device_registered())
 			ret = Nanosic_input_release();
 	} else if (data[0] == 0x32 && data[1] == 0xFF && data[2] == 0x01) {
-		if(!Nanosonic_get_device_registered()){
+		if (!Nanosonic_get_device_registered() && gpio_get_value(gpio_hall_s_pin)) {
 			Nanosic_set_caps_led(0);
 			ret = Nanosic_input_register();
 		}
