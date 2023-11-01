@@ -411,7 +411,7 @@ static ssize_t Nanosic_chardev_fops_write(struct file *file,
 
 	rawdata_show("write cmd", data, copy);
 
-	if (copy != I2C_DATA_LENGTH_WRITE)
+	if (copy != I2C_DATA_LENGTH_WRITE && data[1] != 0xFF)
 		return copy;
 
 	if ((data[0] == 0x32) && (data[1] == 0x00) && (data[2] == 0x4F) &&
@@ -423,7 +423,15 @@ static ssize_t Nanosic_chardev_fops_write(struct file *file,
 		   (data[3] == 0x30) && (data[4] == 0x80) &&
 		   (data[5] == 0x18) && (data[6] == 0x1D)) {
 		ret = Nanosic_GPIO_recovery(gI2c_client, data, copy);
-	} else {
+	} else if (data[0] == 0x32 && data[1] == 0xFF && data[2] == 0x00) {
+		if(Nanosonic_get_device_registered())
+			ret = Nanosic_input_release();
+	} else if (data[0] == 0x32 && data[1] == 0xFF && data[2] == 0x01) {
+		if(!Nanosonic_get_device_registered()){
+			Nanosic_set_caps_led(0);
+			ret = Nanosic_input_register();
+		}
+	}else {
 		ret = Nanosic_i2c_write(gI2c_client, data, copy);
 	}
 
