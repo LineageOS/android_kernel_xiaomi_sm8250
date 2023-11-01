@@ -171,8 +171,6 @@ struct nvt_ts_data {
 	bool pen_charge_connect;
 	bool game_mode_enable;
 	struct device *dev;
-	int pen_count;
-	bool pen_shield_flag;
 #endif
 	struct mutex pen_switch_lock;
 	int ic_state;
