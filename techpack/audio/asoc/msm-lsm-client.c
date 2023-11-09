@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/init.h>
 #include <linux/err.h>
@@ -2430,6 +2431,15 @@ static int msm_lsm_ioctl(struct snd_pcm_substream *substream,
 			err = -EFAULT;
 			goto done;
 		}
+
+		if (temp_p_info.param_size > 0 &&
+			((INT_MAX - sizeof(temp_p_info)) <
+				temp_p_info.param_size)) {
+			pr_err("%s: Integer overflow\n", __func__);
+			err = -EINVAL;
+			goto done;
+		}
+
 		size = sizeof(temp_p_info) + temp_p_info.param_size;
 		p_info = kzalloc(size, GFP_KERNEL);
 
