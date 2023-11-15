@@ -252,6 +252,7 @@ struct nuvolta_1665_chg {
 	struct delayed_work reverse_sent_state_work;
 	struct delayed_work reverse_chg_work;
 	struct delayed_work probe_fw_download_work;
+	struct delayed_work pen_check_work;
 	// lock
 	struct mutex wireless_chg_int_lock;
 	struct mutex reverse_op_lock;
