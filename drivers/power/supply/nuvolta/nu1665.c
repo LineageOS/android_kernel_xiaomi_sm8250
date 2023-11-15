@@ -708,6 +708,8 @@ static int nuvolta_1665_set_reverse_chg_mode(struct nuvolta_1665_chg *chip,
 				&chip->reverse_dping_alarm,
 				ms_to_ktime(REVERSE_DPING_CHECK_DELAY_MS));
 		}
+		schedule_delayed_work(&chip->pen_check_work, msecs_to_jiffies(3000));
+
 	} else {
 		chip->is_boost_mode = 0;
 		nuvolta_info("disable reverse charging\n");
@@ -728,6 +730,7 @@ static int nuvolta_1665_set_reverse_chg_mode(struct nuvolta_1665_chg *chip,
 		cancel_delayed_work(&chip->reverse_chg_state_work);
 		cancel_delayed_work(&chip->reverse_dping_state_work);
 		cancel_delayed_work(&chip->reverse_chg_work);
+		cancel_delayed_work(&chip->pen_check_work);
 		/* reset pen mac addr */
 		memset(chip->pen_mac_data, 0x0, sizeof(chip->pen_mac_data));
 		nu1665_sent_pen_mac(chip);
@@ -2227,6 +2230,17 @@ static void reverse_dping_state_set_work(struct work_struct *work)
 	schedule_delayed_work(&chip->reverse_sent_state_work, 0);
 
 	return;
+}
+
+static void pen_check_worker(struct work_struct *work)
+{
+	struct nuvolta_1665_chg *chip = container_of(work,
+			struct nuvolta_1665_chg, pen_check_work.work);
+
+	bool enable = (chip->reverse_pen_soc >= 0 && chip->reverse_pen_soc <= 100);
+
+	if (!enable)
+		nuvolta_1665_set_reverse_chg_mode(chip, enable);
 }
 
 static enum alarmtimer_restart reverse_chg_alarm_cb(struct alarm *alarm,
@@ -5103,6 +5117,7 @@ static int nuvolta_1665_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&chip->reverse_chg_work, nu_reverse_chg_work);
 	INIT_DELAYED_WORK(&chip->probe_fw_download_work,
 			  nu1665_probe_fw_download_work);
+	INIT_DELAYED_WORK(&chip->pen_check_work, pen_check_worker);
 
 	ret = nuvolta_1665_parse_dt(chip);
 	if (ret < 0) {
