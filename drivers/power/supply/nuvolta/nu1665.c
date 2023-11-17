@@ -317,25 +317,16 @@ int pen_charge_state_notifier_unregister_client(struct notifier_block *nb)
 }
 EXPORT_SYMBOL(pen_charge_state_notifier_unregister_client);
 
-void pen_charge_state_notifier_call_chain(unsigned long val, void *v)
+void pen_charge_state_notifier_call_chain(unsigned long val)
 {
 	struct nuvolta_1665_chg *chip = container_of(
 		pen_notifier_work, struct nuvolta_1665_chg, pen_notifier_work);
+
+	chip->pen_v = NULL;
 	chip->pen_val = val;
-	chip->pen_v = v;
 	schedule_delayed_work(&chip->pen_notifier_work, msecs_to_jiffies(0));
 }
 EXPORT_SYMBOL(pen_charge_state_notifier_call_chain);
-
-static void pen_charge_state_notifier_call_chain_booting(unsigned long val,
-							 void *v)
-{
-	struct nuvolta_1665_chg *chip = container_of(
-		pen_notifier_work, struct nuvolta_1665_chg, pen_notifier_work);
-	chip->pen_val = val;
-	chip->pen_v = v;
-	schedule_delayed_work(&chip->pen_notifier_work, msecs_to_jiffies(2000));
-}
 
 static int rx1665_read(struct nuvolta_1665_chg *chip, u8 *val, u16 addr)
 {
@@ -708,7 +699,6 @@ static int nuvolta_1665_set_reverse_chg_mode(struct nuvolta_1665_chg *chip,
 				&chip->reverse_dping_alarm,
 				ms_to_ktime(REVERSE_DPING_CHECK_DELAY_MS));
 		}
-		schedule_delayed_work(&chip->pen_check_work, msecs_to_jiffies(3000));
 
 	} else {
 		chip->is_boost_mode = 0;
@@ -744,6 +734,8 @@ static int nuvolta_1665_set_reverse_chg_mode(struct nuvolta_1665_chg *chip,
 			nuvolta_err("Couldn't cancel reverse_chg_alarm\n");
 		pm_relax(chip->dev);
 	}
+
+	schedule_delayed_work(&chip->pen_check_work, msecs_to_jiffies(1500));
 
 out:
 	return 0;
@@ -2237,10 +2229,16 @@ static void pen_check_worker(struct work_struct *work)
 	struct nuvolta_1665_chg *chip = container_of(work,
 			struct nuvolta_1665_chg, pen_check_work.work);
 
+	static bool pen_charge_en = false;
 	bool enable = (chip->reverse_pen_soc >= 0 && chip->reverse_pen_soc <= 100);
 
-	if (!enable)
+	if (pen_charge_en != enable)
+		pen_charge_state_notifier_call_chain(enable);
+
+	if (chip->reverse_chg_en != enable)
 		nuvolta_1665_set_reverse_chg_mode(chip, enable);
+
+	pen_charge_en = enable;
 }
 
 static enum alarmtimer_restart reverse_chg_alarm_cb(struct alarm *alarm,
@@ -3387,11 +3385,9 @@ static irqreturn_t nuvolta_1665_hall3_irq_handler(int irq, void *dev_id)
 		if (gpio_get_value(chip->hall3_gpio)) {
 			nuvolta_err("hall3_irq_handler: pen detach\n");
 			chip->hall3_online = 0;
-			pen_charge_state_notifier_call_chain(0, NULL);
 			if (chip->hall4_online) {
 				nuvolta_err(
 					"hall3_irq_handler: hall4 online, return\n");
-				pen_charge_state_notifier_call_chain(1, NULL);
 				return IRQ_HANDLED;
 			}
 			schedule_delayed_work(&chip->hall3_irq_work,
@@ -3400,7 +3396,6 @@ static irqreturn_t nuvolta_1665_hall3_irq_handler(int irq, void *dev_id)
 		} else {
 			nuvolta_err("hall3_irq_handler: pen attach\n");
 			chip->hall3_online = 1;
-			pen_charge_state_notifier_call_chain(1, NULL);
 		}
 	}
 
@@ -3423,11 +3418,9 @@ static irqreturn_t nuvolta_1665_hall4_irq_handler(int irq, void *dev_id)
 		if (gpio_get_value(chip->hall4_gpio)) {
 			nuvolta_err("hall4_irq_handler: pen detach\n");
 			chip->hall4_online = 0;
-			pen_charge_state_notifier_call_chain(0, NULL);
 			if (chip->hall3_online) {
 				nuvolta_err(
 					"hall4_irq_handler: hall3 online, return\n");
-				pen_charge_state_notifier_call_chain(1, NULL);
 				return IRQ_HANDLED;
 			}
 			schedule_delayed_work(&chip->hall4_irq_work,
@@ -3436,7 +3429,6 @@ static irqreturn_t nuvolta_1665_hall4_irq_handler(int irq, void *dev_id)
 		} else {
 			nuvolta_err("hall4_irq_handler: pen attach\n");
 			chip->hall4_online = 1;
-			pen_charge_state_notifier_call_chain(1, NULL);
 		}
 	}
 
@@ -5203,7 +5195,6 @@ static int nuvolta_1665_probe(struct i2c_client *client,
 		if (!hall3_val) {
 			nuvolta_info("pen online, start reverse charge\n");
 			chip->hall3_online = 1;
-			pen_charge_state_notifier_call_chain_booting(1, NULL);
 			schedule_delayed_work(&chip->hall3_irq_work,
 					      msecs_to_jiffies(6000));
 		}
@@ -5215,7 +5206,6 @@ static int nuvolta_1665_probe(struct i2c_client *client,
 		if (!hall4_val) {
 			nuvolta_info("pen online, start reverse charge\n");
 			chip->hall4_online = 1;
-			pen_charge_state_notifier_call_chain_booting(1, NULL);
 			schedule_delayed_work(&chip->hall4_irq_work,
 					      msecs_to_jiffies(6000));
 		}
