@@ -239,19 +239,13 @@ static void disable_unprepare_rcg_srcs(struct clk *curr, struct clk *new)
 static unsigned long
 calc_rate(unsigned long rate, u32 m, u32 n, u32 mode, u32 hid_div)
 {
-	u64 tmp = rate;
+	if (hid_div)
+		rate = mult_frac(rate, 2, hid_div + 1);
 
-	if (hid_div) {
-		tmp *= 2;
-		do_div(tmp, hid_div + 1);
-	}
+	if (mode)
+		rate = mult_frac(rate, m, n);
 
-	if (mode) {
-		tmp *= m;
-		do_div(tmp, n);
-	}
-
-	return tmp;
+	return rate;
 }
 
 static unsigned long

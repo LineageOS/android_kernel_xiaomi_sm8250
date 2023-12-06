@@ -1044,7 +1044,11 @@ static int mmc_sdio_resume(struct mmc_host *host)
 	mmc_claim_host(host);
 	mmc_log_string(host, "Enter\n");
 
-	/* Restore power if needed */
+	/*
+	 * Restore power and reinitialize the card when needed. Note that a
+	 * removable card is checked from a detect work later on in the resume
+	 * process.
+	 */
 	if (!mmc_card_keep_power(host)) {
 		mmc_power_up(host, host->card->ocr);
 		/*
@@ -1058,13 +1062,14 @@ static int mmc_sdio_resume(struct mmc_host *host)
 			pm_runtime_set_active(&host->card->dev);
 			pm_runtime_enable(&host->card->dev);
 		}
-	}
-
-	/* No need to reinitialize powered-resumed nonremovable cards */
-	if (mmc_card_is_removable(host) || !mmc_card_keep_power(host)) {
-		err = mmc_sdio_reinit_card(host, mmc_card_keep_power(host));
-	} else if (mmc_card_keep_power(host) && mmc_card_wake_sdio_irq(host)) {
-		/* We may have switched to 1-bit mode during suspend */
+		err = mmc_sdio_reinit_card(host, 0);
+	} else if (mmc_card_wake_sdio_irq(host)) {
+		/*
+		 * We may have switched to 1-bit mode during suspend,
+		 * need to hold retuning, because tuning only supprt
+		 * 4-bit mode or 8 bit mode.
+		 */
+		mmc_retune_hold_now(host);
 		err = sdio_enable_4bit_bus(host->card);
 		if (err > 0) {
 			if (host->caps & MMC_CAP_8_BIT_DATA)
@@ -1073,6 +1078,7 @@ static int mmc_sdio_resume(struct mmc_host *host)
 				mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
 			err = 0;
 		}
+		mmc_retune_release(host);
 	}
 
 	if (err)
