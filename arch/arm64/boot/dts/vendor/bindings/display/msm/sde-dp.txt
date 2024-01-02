@@ -76,6 +76,7 @@ DP Controller: Required properties:
 - qcom,dp-aux-switch:		Phandle for the driver used to program the AUX switch for Display Port orientation.
 - qcom,dp-hpd-gpio:		HPD gpio for direct DP connector without USB PHY or AUX switch.
 - qcom,dp-gpio-aux-switch:      Gpio DP AUX switch chipset support.
+- qcom,no_tps4_support:		To restrict TPS4 pattern support in link training for Display port.
 - qcom,<type>-supply-entries:		A node that lists the elements of the supply used by the a particular "type" of DSI module. The module "types"
 					can be "core", "ctrl", and "phy". Within the same type,
 					there can be more than one instance of this binding,

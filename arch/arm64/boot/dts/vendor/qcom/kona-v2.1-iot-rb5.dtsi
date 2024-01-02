@@ -393,6 +393,37 @@
 	};
 
 	#include "smb1390.dtsi"
+
+	fsa4480: fsa4480@43 {
+		status = "disabled";
+	};
+
+	redriver: redriver@1c {
+		compatible = "onnn,redriver";
+		reg = <0x1c>;
+		set-aux-enable;
+		extcon = <&pm8150b_pdphy>, <&pm8150b_pdphy>;
+		eq = /bits/ 8 <
+				/* Parameters for USB */
+				0x4 0x4 0x4 0x4
+				/* Parameters for DP */
+				0x6 0x4 0x4 0x6>;
+		flat-gain = /bits/ 8 <
+				/* Parameters for USB */
+				0x3 0x1 0x1 0x3
+				/* Parameters for DP */
+				0x2 0x1 0x1 0x2>;
+		output-comp = /bits/ 8 <
+				/* Parameters for USB */
+				0x3 0x3 0x3 0x3
+				/* Parameters for DP */
+				0x3 0x3 0x3 0x3>;
+		loss-match = /bits/ 8 <
+				/* Parameters for USB */
+				0x1 0x3 0x3 0x1
+				/* Parameters for DP */
+				0x3 0x3 0x3 0x3>;
+	};
 };
 
 &qupv3_se4_i2c {
@@ -424,4 +455,24 @@
 		spi-cpha;
 		status = "okay";
 	};
+};
+
+&q6core {
+	kona_snd: sound {
+		/delete-property/ fsa4480-i2c-handle;
+	};
+};
+
+&sde_dp {
+	qcom,dp-aux-switch = <&redriver>;
+	qcom,aux-en-gpio = <&tlmm 69 0>;
+	qcom,aux-sel-gpio = <&tlmm 71 0>;
+
+	qcom,max-hdisplay = <1920>;
+	qcom,max-vdisplay = <1080>;
+	qcom,max-pclk-frequency-khz = <187500>;
+};
+
+&pcie2 {
+	qcom,boot-option = <0x0>;
 };
