@@ -3932,7 +3932,7 @@ static void hwsim_virtio_rx_work(struct work_struct *work)
 	}
 	vq = hwsim_vqs[HWSIM_VQ_RX];
 	sg_init_one(sg, skb->head, skb_end_offset(skb));
-	err = virtqueue_add_inbuf(vq, sg, 1, skb, GFP_KERNEL);
+	err = virtqueue_add_inbuf(vq, sg, 1, skb, GFP_ATOMIC);
 	if (WARN(err, "virtqueue_add_inbuf returned %d\n", err))
 		nlmsg_free(skb);
 	else
@@ -4017,6 +4017,8 @@ static int hwsim_virtio_probe(struct virtio_device *vdev)
 	err = init_vqs(vdev);
 	if (err)
 		return err;
+
+	virtio_device_ready(vdev);
 
 	err = fill_vq(hwsim_vqs[HWSIM_VQ_RX]);
 	if (err)
