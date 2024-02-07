@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ec95a993_0ea23eb5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2024-02-07T14:21:17Z",
+      "side": 1,
+      "message": "This ensures ramoops content are kept across reboots, no matter if kpanic occurred or not",
+      "revId": "4e6538edb94d6d51a4f6d40a5e2f1371b814c81c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
