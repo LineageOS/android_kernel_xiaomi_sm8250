@@ -7989,6 +7989,7 @@ void fts_secure_remove(struct fts_ts_info *info)
  * This function allocate, initialize and define all the most important function and flow that are used by the driver to operate with the IC.
  * It allocates device variables, initialize queues and schedule works, registers the IRQ handler, suspend/resume callbacks, registers the device to the linux input subsystem etc.
  */
+extern bool ts_is_probed;
 #ifdef I2C_INTERFACE
 static int fts_probe(struct i2c_client *client, const struct i2c_device_id *idp)
 {
@@ -8007,6 +8008,10 @@ static int fts_probe(struct spi_device *client)
 	int res = 0;
 	u8 gesture_cmd[6] = { 0xA2, 0x03, 0x00, 0x00, 0x00, 0x03 };
 #endif
+
+	if (ts_is_probed)
+		return -ENODEV;
+
 	MI_TOUCH_LOGI(1, "%s %s: Probe start\n", tag, __func__);
 
 	MI_TOUCH_LOGD(1, "%s %s: driver ver: %s\n", tag, __func__,
@@ -8504,6 +8509,7 @@ static int fts_probe(struct spi_device *client)
 	info->probe_ok = true;
 
 	MI_TOUCH_LOGI(1, "%s %s: Probe Finished\n", tag, __func__);
+	ts_is_probed = true;
 	return OK;
 ProbeErrorExit_8:
 	device_destroy(info->fts_tp_class, 0x49);
