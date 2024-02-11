@@ -1236,8 +1236,14 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		return -EBUSY;
 	}
 
-	pr_info("Restart sequence requested for %s, restart_level = %s.\n",
-		name, restart_levels[dev->restart_level]);
+	if (!strcmp(name, "modem")) {
+		dev->restart_level = RESET_SUBSYS_COUPLED;
+		pr_warn("Restart sequence requested for %s, force restart_level to = %s.\n",
+			name, restart_levels[dev->restart_level]);
+	} else {
+		pr_info("Restart sequence requested for %s, restart_level = %s.\n",
+			name, restart_levels[dev->restart_level]);
+	}
 
 	if (disable_restart_work == DISABLE_SSR) {
 		pr_warn("subsys-restart: Ignoring restart request for %s\n",
