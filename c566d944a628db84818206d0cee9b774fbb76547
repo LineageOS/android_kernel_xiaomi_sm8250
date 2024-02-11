@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9e47985c_de5788bc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2024-02-11T03:56:02Z",
+      "side": 1,
+      "message": "btw hey, I have umi too, I can help a little bit in bringup if you want :)\n\nI\u0027m quite noob with sm8250 stuff, can\u0027t help much in fixing the things, but I can test, my umi is now free for testing (I have fts_521 touchscreen and FPC FOD)\n\nAbout android device tree, I\u0027ve made a device tree for it back in 2022, based on lmi\u0027s tree. Back in lineage-19.1 days when I was still using their old kernel, everything were working fine, and I\u0027m using it as my daily driver. Problems happens after they updated the kernel in lineage-20. Apart from that, I don\u0027t know how to make proper screen cutout overlay and adapt QDCM configs yet. You can take my device tree if you find it useful...\n\nhttps://github.com/me-cafebabe-backyard/android_device_xiaomi_umi/commits/lineage-21/",
+      "revId": "c566d944a628db84818206d0cee9b774fbb76547",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
