@@ -72,23 +72,28 @@
 /********************************************
  * print information control
  *******************************************/
+#if 0
 #define aw_pr_err(format, ...)                                           \
 	pr_err(format, ##__VA_ARGS__)
-
 #define aw_pr_info(format, ...)                                          \
 	pr_info(format, ##__VA_ARGS__)
-
 #define aw_pr_debug(format, ...)                                          \
 	pr_debug(format, ##__VA_ARGS__)
-
 #define aw_dev_err(dev, format, ...)                                           \
 	pr_err("[%s]" format, dev_name(dev), ##__VA_ARGS__)
-
 #define aw_dev_info(dev, format, ...)                                          \
 	pr_info("[%s]" format, dev_name(dev), ##__VA_ARGS__)
-
 #define aw_dev_dbg(dev, format, ...)                                           \
 	pr_debug("[%s]" format, dev_name(dev), ##__VA_ARGS__)
+#else
+#define aw_pr_err(format, ...)
+#define aw_pr_info(format, ...)
+#define aw_pr_debug(format, ...)
+#define aw_dev_err(dev, format, ...)
+#define aw_dev_info(dev, format, ...)
+#define aw_dev_dbg(dev, format, ...)
+#endif
+
 /*
  * trig default high level
  * ___________         _________________
