@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5ccd23b7_cf6d2646",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 28963
+      },
+      "writtenOn": "2024-02-11T01:15:35Z",
+      "side": 1,
+      "message": "While using this techpack camera:\n* Camera works properly in umi\n* OIS works properly in apollon",
+      "revId": "ad51e54a8ed659363d5f571757b3f8a564954963",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
