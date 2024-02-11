@@ -72,6 +72,15 @@
 /********************************************
  * print information control
  *******************************************/
+#define aw_pr_err(format, ...)                                           \
+	pr_err(format, ##__VA_ARGS__)
+
+#define aw_pr_info(format, ...)                                          \
+	pr_info(format, ##__VA_ARGS__)
+
+#define aw_pr_debug(format, ...)                                          \
+	pr_debug(format, ##__VA_ARGS__)
+
 #define aw_dev_err(dev, format, ...)                                           \
 	pr_err("[%s]" format, dev_name(dev), ##__VA_ARGS__)
 
