@@ -3198,12 +3198,16 @@ static char goodix_touch_vendor_read(void)
  * goodix_ts_probe - called by kernel when a Goodix touch
  *  platform driver is added.
  */
+extern bool ts_is_probed;
 static int goodix_ts_probe(struct platform_device *pdev)
 {
 	struct goodix_ts_core *core_data = NULL;
 	struct goodix_ts_device *ts_device;
 	struct i2c_client *client = NULL;
 	int r;
+
+	if (ts_is_probed)
+		return -ENODEV;
 
 	ts_info("goodix_ts_probe IN");
 
@@ -3436,6 +3440,7 @@ out:
 	ts_info("goodix_ts_probe OUT, r:%d", r);
 	/* wakeup ext module register work */
 	complete_all(&goodix_modules.core_comp);
+	ts_is_probed = !!core_data->initialized;
 	return r;
 }
 

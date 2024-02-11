@@ -1,5 +1,6 @@
 #include <linux/input/tp_common.h>
 
+bool ts_is_probed = false;
 bool capacitive_keys_enabled;
 struct kobject *touchpanel_kobj;
 
