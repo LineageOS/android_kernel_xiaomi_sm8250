@@ -16,6 +16,23 @@
       "message": "maybe no",
       "revId": "bef6f9f2888d97f25a4295b7b3ab37426246f136",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a78490e0_997df8a0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2024-02-12T00:21:17Z",
+      "side": 1,
+      "message": "Ugly and extremely prone to race conditions, you could just move one of the two drivers initcalls to a later stage",
+      "revId": "bef6f9f2888d97f25a4295b7b3ab37426246f136",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
