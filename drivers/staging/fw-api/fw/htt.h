@@ -249,9 +249,15 @@
  * 3.121 Add HTT_T2H_MSG_TYPE_PEER_AST_OVERRIDE_INDEX_IND def.
  * 3.122 Add is_umac_hang flag in H2T UMAC_HANG_RECOVERY_SOC_START_PRE_RESET msg
  * 3.123 Add HTT_OPTION_TLV_TCL_METADATA_V21 def.
+ * 3.124 Add HTT_T2H_MSG_TYPE_PEER_EXTENDED_EVENT def.
+ * 3.125 Expand fisa_aggr_limit bits in fisa_control_bits_v2.
+ * 3.126 Add HTT_RXDATA_ERR_INVALID_PEER def.
+ * 3.127 Add transmit_count fields in htt_tx_wbm_completion_vX structs.
+ * 3.128 Add H2T TX_LATENCY_STATS_CFG + T2H TX_LATENCY_STATS_PERIODIC_IND
+ *       msg defs
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 123
+#define HTT_CURRENT_VERSION_MINOR 128
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -796,6 +802,17 @@ typedef enum {
     HTT_STATS_TX_PDEV_MLO_TXOP_ABORT_TAG           = 178, /* htt_tx_pdev_stats_mlo_txop_abort_tlv_v */
     HTT_STATS_UMAC_SSR_TAG                         = 179, /* htt_umac_ssr_stats_tlv */
     HTT_STATS_PEER_BE_OFDMA_STATS_TAG              = 180, /* htt_peer_be_ofdma_stats_tlv */
+    HTT_STATS_MLO_UMAC_SSR_TRIGGER_TAG             = 181, /* htt_mlo_umac_ssr_trigger_stats_tlv */
+    HTT_STATS_MLO_UMAC_SSR_CMN_TAG                 = 182, /* htt_mlo_umac_ssr_common_stats_tlv */
+    HTT_STATS_MLO_UMAC_SSR_KPI_TSTMP_TAG           = 183, /* htt_mlo_umac_ssr_kpi_tstamp_stats_tlv */
+    HTT_STATS_MLO_UMAC_SSR_DBG_TAG                 = 184, /* htt_mlo_umac_ssr_dbg_tlv */
+    HTT_STATS_MLO_UMAC_SSR_HANDSHAKE_TAG           = 185, /* htt_mlo_umac_htt_handshake_stats_tlv */
+    HTT_STATS_MLO_UMAC_SSR_MLO_TAG                 = 186, /* htt_mlo_umac_ssr_mlo_stats_tlv */
+    HTT_STATS_PDEV_TDMA_TAG                        = 187, /* htt_pdev_tdma_stats_tlv */
+    HTT_STATS_CODEL_SVC_CLASS_TAG                  = 188, /* htt_codel_svc_class_stats_tlv */
+    HTT_STATS_CODEL_MSDUQ_TAG                      = 189, /* htt_codel_msduq_stats_tlv */
+    HTT_STATS_MLO_SCHED_STATS_TAG                  = 190, /* htt_mlo_sched_stats_tlv */
+    HTT_STATS_PDEV_MLO_IPC_STATS_TAG               = 191, /* htt_pdev_mlo_ipc_stats_tlv */
 
 
     HTT_STATS_MAX_TAG,
@@ -868,6 +885,7 @@ enum htt_h2t_msg_type {
     HTT_H2T_MSG_TYPE_UMAC_HANG_RECOVERY_SOC_START_PRE_RESET = 0x22,
     HTT_H2T_MSG_TYPE_RX_CCE_SUPER_RULE_SETUP = 0x23,
     HTT_H2T_MSG_TYPE_PRIMARY_LINK_PEER_MIGRATE_RESP = 0x24,
+    HTT_H2T_MSG_TYPE_TX_LATENCY_STATS_CFG  = 0x25,
 
     /* keep this last */
     HTT_H2T_NUM_MSGS
@@ -2865,7 +2883,8 @@ PREPACK struct htt_tx_wbm_completion_v2 {
         tx_status:              4, /* Takes enum values of htt_tx_fw2wbm_tx_status_t */
         reinject_reason:        4, /* Takes enum values of htt_tx_fw2wbm_reinject_reason_t */
         exception_frame:        1,
-        rsvd0:                 12, /* For future use */
+        transmit_count:         7, /* Refer to struct wbm_release_ring */
+        rsvd0:                  5, /* For future use */
         used_by_hw4:            1, /* wbm_internal_error bit being used by HW */
         rsvd1:                  1; /* For future use */
     A_UINT32
@@ -2891,6 +2910,8 @@ PREPACK struct htt_tx_wbm_completion_v2 {
 #define HTT_TX_WBM_COMPLETION_V2_REINJECT_REASON_S           13
 #define HTT_TX_WBM_COMPLETION_V2_EXP_FRAME_M                 0x00020000
 #define HTT_TX_WBM_COMPLETION_V2_EXP_FRAME_S                 17
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_M            0x01FC0000
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_S            18
 
 /* DWORD 3 */
 #define HTT_TX_WBM_COMPLETION_V2_TX_STATUS_GET(_var) \
@@ -2923,6 +2944,16 @@ PREPACK struct htt_tx_wbm_completion_v2 {
          ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V2_EXP_FRAME_S)); \
      } while (0)
 
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_GET(_var) \
+     (((_var) & HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_M) >> \
+    HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_S)
+
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT, _val); \
+         ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V2_TRANSMIT_COUNT_S)); \
+     } while (0)
+
 /**
  * @brief HTT TX WBM Completion from firmware to host (V3)
  * @details
@@ -2948,7 +2979,8 @@ PREPACK struct htt_tx_wbm_completion_v3 {
     A_UINT32
         reinject_reason:       4,  /* Takes enum values of htt_tx_fw2wbm_reinject_reason_t */
         exception_frame:       1,
-        rsvd0:                 27; /* For future use */
+        transmit_count:        7, /* Refer to struct wbm_release_ring */
+        rsvd0:                 20; /* For future use */
     A_UINT32
         data0:                 32; /* data0,1 and 2 changes based on tx_status type
                                     * if HTT_TX_FW2WBM_TX_STATUS_OK or HTT_TX_FW2WBM_TX_STATUS_DROP
@@ -2965,13 +2997,17 @@ PREPACK struct htt_tx_wbm_completion_v3 {
         used_by_hw4:           12; /* Refer to struct wbm_release_ring */
 } POSTPACK;
 
-
+/* DWORD 3 */
 #define HTT_TX_WBM_COMPLETION_V3_TX_STATUS_M                 0x0001E000
 #define HTT_TX_WBM_COMPLETION_V3_TX_STATUS_S                 13
+
+/* DWORD 4 */
 #define HTT_TX_WBM_COMPLETION_V3_REINJECT_REASON_M           0x0000000F
 #define HTT_TX_WBM_COMPLETION_V3_REINJECT_REASON_S           0
 #define HTT_TX_WBM_COMPLETION_V3_EXP_FRAME_M                 0x00000010
 #define HTT_TX_WBM_COMPLETION_V3_EXP_FRAME_S                 4
+#define HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_M            0x00000FE0
+#define HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_S            5
 
 
 #define HTT_TX_WBM_COMPLETION_V3_TX_STATUS_GET(_var) \
@@ -3002,6 +3038,16 @@ PREPACK struct htt_tx_wbm_completion_v3 {
      do { \
          HTT_CHECK_SET_VAL(HTT_TX_WBM_COMPLETION_V3_EXP_FRAME, _val); \
          ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V3_EXP_FRAME_S)); \
+     } while (0)
+
+#define HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_GET(_var) \
+    (((_var) & HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_M) >> \
+    HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_S)
+
+#define HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT, _val); \
+         ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V3_TRANSMIT_COUNT_S)); \
      } while (0)
 
 
@@ -3044,7 +3090,11 @@ PREPACK struct htt_tx_wbm_transmit_status {
                               * contains valid data.
                               */
        frame_type:       4,  /* holds htt_tx_wbm_status_frame_type value */
-       reserved:         4;
+       transmit_count_valid: 1, /* If this "transmit_count_valid" is set, the
+                                 * transmit_count field in struct
+                                 * htt_tx_wbm_completion_vx has valid data.
+                                 */
+       reserved:         3;
    A_UINT32
        ppdu_start_tsf:  32;  /* PPDU Start timestamp added for multicast
                               * packets in the wbm completion path
@@ -3068,6 +3118,10 @@ PREPACK struct htt_tx_wbm_transmit_status {
 #define HTT_TX_WBM_COMPLETION_V2_MCAST_S               22
 #define HTT_TX_WBM_COMPLETION_V2_MCAST_VALID_M         0x00800000
 #define HTT_TX_WBM_COMPLETION_V2_MCAST_VALID_S         23
+#define HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_M          0x0F000000
+#define HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_S          24
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_M  0x10000000
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_S  28
 
 /* DWORD 4 */
 #define HTT_TX_WBM_COMPLETION_V2_SCH_CMD_ID_GET(_var) \
@@ -3140,6 +3194,26 @@ PREPACK struct htt_tx_wbm_transmit_status {
          HTT_CHECK_SET_VAL(HTT_TX_WBM_COMPLETION_V2_MCAST_VALID, _val); \
          ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V2_MCAST_VALID_S)); \
      } while (0)
+
+#define HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_GET(_var) \
+    (((_var) & HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_M) >> \
+    HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_S)
+
+#define HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE, _val); \
+         ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V2_FRAME_TYPE_S)); \
+
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_GET(_var) \
+    (((_var) & HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_M) >> \
+    HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_S)
+
+#define HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_TX_WBM_COMPLETION_V2_MCAST_VALID, _val); \
+         ((_var) |= ((_val) << HTT_TX_WBM_COMPLETION_V2_TRANSMIT_CNT_VALID_S)); \
+     } while (0)
+
 
 /**
  * @brief HTT TX WBM reinject status from firmware to host
@@ -8611,8 +8685,8 @@ PREPACK struct htt_h2t_msg_type_fisa_config_t {
          } fisa_control_bits;
          struct {
              A_UINT32 fisa_enable:                1,
-                      fisa_aggr_limit:            4,
-                      reserved:                   27;
+                      fisa_aggr_limit:            6,
+                      reserved:                   25;
          } fisa_control_bits_v2;
 
          A_UINT32 fisa_control_value;
@@ -8832,7 +8906,7 @@ PREPACK struct htt_h2t_msg_type_fisa_config_t {
         } while (0)
 
 /* Dword 1: fisa_control_value fisa_aggr_limit */
-#define HTT_RX_FISA_CONFIG_FISA_V2_AGGR_LIMIT_M        0x0000001e
+#define HTT_RX_FISA_CONFIG_FISA_V2_AGGR_LIMIT_M        0x0000007e
 #define HTT_RX_FISA_CONFIG_FISA_V2_AGGR_LIMIT_S        1
 #define HTT_RX_FISA_CONFIG_FISA_V2_AGGR_LIMIT_GET(_var) \
         (((_var) & HTT_RX_FISA_CONFIG_FISA_V2_AGGR_LIMIT_M) >> \
@@ -10703,6 +10777,88 @@ typedef struct {
         } while (0)
 
 
+/**
+ * @brief host -> tgt msg to configure params for PPDU tx latency stats report
+ *
+ * MSG_TYPE => HTT_H2T_MSG_TYPE_TX_LATENCY_STATS_CFG
+ *
+ * @details
+ *    HTT_H2T_MSG_TYPE_TX_LATENCY_STATS_CFG message is sent by the host to
+ *    configure the parameters needed for FW to report PPDU tx latency stats
+ *    for latency prediction in user space.
+ *
+ *    The message would appear as follows:
+ *    |31       28|27               12|11|10    8|7            0|
+ *    |-----------+-------------------+--+-------+--------------|
+ *    |granularity| periodic interval | E|vdev ID|   msg type   |
+ *    |-----------+-------------------+--+-------+--------------|
+ * Where: E = enable
+ *
+ * The message is interpreted as follows:
+ * dword0 - b'0:7   - msg_type: This will be set to 0x25
+ *                    (HTT_H2T_MSG_TYPE_TX_LATENCY_STATS_CFG)
+ *          b'8:10  - vdev_id: Indicate which vdev is configuration is for
+ *          b'11    - enable:  Indicate this message is to enable/disable
+ *                    PPDU latency report from FW
+ *          b'12:27 - periodic_interval: Indicate the report interval in MS
+ *          b'28:31 - granularity: Indicate the granularity of the latency
+ *                    stats report, in ms
+ */
+
+/* HTT_H2T_MSG_TYPE_TX_LATENCY_STATS_CFG */
+PREPACK struct htt_h2t_tx_latency_stats_cfg {
+    A_UINT32 msg_type          :8,
+             vdev_id           :3,
+             enable            :1,
+             periodic_interval :16,
+             granularity       :4;
+} POSTPACK;
+
+#define HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_M                       0x00000700
+#define HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_S                       8
+#define HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_GET(_var) \
+        (((_var) & HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_M) >> \
+                HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_S)
+#define HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID, _val);  \
+        ((_var) |= ((_val) << HTT_H2T_TX_LATENCY_STATS_CFG_VDEV_ID_S)); \
+    } while (0)
+
+#define HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_M                        0x00000800
+#define HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_S                        11
+#define HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_GET(_var) \
+        (((_var) & HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_M) >> \
+                HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_S)
+#define HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE, _val);  \
+        ((_var) |= ((_val) << HTT_H2T_TX_LATENCY_STATS_CFG_ENABLE_S)); \
+    } while (0)
+
+#define HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_M             0x0FFFF000
+#define HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_S             12
+#define HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_GET(_var) \
+        (((_var) & HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_M) >> \
+                HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_S)
+#define HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL, _val);  \
+        ((_var) |= ((_val) << HTT_H2T_TX_LATENCY_STATS_CFG_PERIODIC_INTERVAL_S)); \
+    } while (0)
+
+#define HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_M                   0xF0000000
+#define HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_S                   28
+#define HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_GET(_var) \
+        (((_var) & HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_M) >> \
+                HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_S)
+#define HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY, _val);  \
+        ((_var) |= ((_val) << HTT_H2T_TX_LATENCY_STATS_CFG_GRANULARITY_S)); \
+    } while (0)
+
+
 
 /*=== target -> host messages ===============================================*/
 
@@ -10767,11 +10923,13 @@ enum htt_t2h_msg_type {
     HTT_T2H_MSG_TYPE_RX_ADDBA_EXTN                 = 0x31,
     HTT_T2H_MSG_TYPE_RX_DELBA_EXTN                 = 0x32,
     HTT_T2H_MSG_TYPE_RX_CCE_SUPER_RULE_SETUP_DONE  = 0x33,
-    HTT_T2H_CODEL_MSDUQ_LATENCIES_ARRAY_CFG_IND    = 0x34,
+    HTT_T2H_CODEL_MSDUQ_LATENCIES_ARRAY_CFG_IND    = 0x34, /* DEPRECATED */
     HTT_T2H_MSG_TYPE_RX_DATA_IND                   = 0x35,
     HTT_T2H_MSG_TYPE_SOFT_UMAC_TX_COMPL_IND        = 0x36,
     HTT_T2H_MSG_TYPE_PRIMARY_LINK_PEER_MIGRATE_IND = 0x37,
     HTT_T2H_MSG_TYPE_PEER_AST_OVERRIDE_INDEX_IND   = 0x38,
+    HTT_T2H_MSG_TYPE_PEER_EXTENDED_EVENT           = 0x39,
+    HTT_T2H_MSG_TYPE_TX_LATENCY_STATS_PERIODIC_IND = 0x3a,
 
 
     HTT_T2H_MSG_TYPE_TEST,
@@ -14034,6 +14192,132 @@ typedef enum {
 
 #define HTT_RX_MLO_PEER_UNMAP_MLO_PEER_ID_SET    HTT_RX_MLO_PEER_MAP_MLO_PEER_ID_SET
 #define HTT_RX_MLO_PEER_UNMAP_MLO_PEER_ID_GET    HTT_RX_MLO_PEER_MAP_MLO_PEER_ID_GET
+
+/**
+ * @brief target -> host peer extended event for additional information
+ *
+ * MSG_TYPE => HTT_T2H_MSG_TYPE_PEER_EXTENDED_EVENT
+ *
+ * @details
+ * The following diagram shows the format of the peer extended message sent
+ * from the target to the host. This layout assumes the target operates
+ * as little-endian.
+ *
+ * This message always contains a SW peer ID.  The main purpose of the
+ * SW peer ID is to tell the host what peer ID logical link id will be tagged
+ * with, so that the host can use that peer ID to determine which link
+ * transmitted the rx/tx frame.
+ *
+ * This message also contains MLO logical link id assigned to peer
+ * with sw_peer_id if it is valid ML link peer.
+ *
+ *
+ * |31    28|27    24|23   20|19|18     16|15               8|7               0|
+ * |---------------------------------------------------------------------------|
+ * |     VDEV_ID     |              SW peer ID               |     msg type    |
+ * |---------------------------------------------------------------------------|
+ * |    MAC addr 3   |    MAC addr 2      |    MAC addr 1    |    MAC addr 0   |
+ * |---------------------------------------------------------------------------|
+ * |          Reserved       |V | LINK ID |    MAC addr 5    |    MAC addr 4   |
+ * |---------------------------------------------------------------------------|
+ * |                                  Reserved                                 |
+ * |---------------------------------------------------------------------------|
+ * |                                  Reserved                                 |
+ * |---------------------------------------------------------------------------|
+ *
+ * Where:
+ *      LINK_ID (LOGICAL)     - 3 Bits Bit16,17,18 of 3rd byte
+ *      V (valid)             - 1 Bit  Bit19 of 3rd byte
+ *
+ * The following field definitions describe the format of the rx peer extended
+ * event messages sent from the target to the host.
+ *     MSG_TYPE
+ *     Bits 7:0
+ *     Purpose: identifies this as an rx MLO peer extended information message
+ *     Value: 0x39 (HTT_T2H_MSG_TYPE_PEER_EXTENDED_EVENT)
+ *   - PEER_ID (a.k.a. SW_PEER_ID)
+ *     Bits 8:23
+ *     Purpose: The peer ID (index) that WAL has allocated
+ *     Value: (rx) peer ID
+ *   - VDEV_ID
+ *     Bits 24:31
+ *     Purpose: Gives the vdev id of peer with peer_id as above.
+ *     Value: VDEV ID of wal_peer
+ *
+ *   - MAC_ADDR_L32
+ *     Bits 31:0
+ *     Purpose: Identifies which peer node the peer ID is for.
+ *     Value: lower 4 bytes of peer node's MAC address
+ *
+ *   - MAC_ADDR_U16
+ *     Bits 15:0
+ *     Purpose: Identifies which peer node the peer ID is for.
+ *     Value: upper 2 bytes of peer node's MAC address
+ *     Rest all bits are reserved for future expansion
+ *   - LOGICAL_LINK_ID
+ *     Bits 18:16
+ *     Purpose: Gives the logical link id of peer with peer_id as above. This
+ *         field should be taken alongwith LOGICAL_LINK_ID_VALID
+ *     Value: Logical link id used by wal_peer
+ *   - LOGICAL_LINK_ID_VALID
+ *     Bit 19
+ *     Purpose: Clarifies whether the logical link id of peer with peer_id as
+ *         is valid or not
+ *     Value: 0/1 indicating LOGICAL_LINK_ID is valid or not
+ */
+#define HTT_RX_PEER_EXTENDED_PEER_ID_M                0x00ffff00
+#define HTT_RX_PEER_EXTENDED_PEER_ID_S                8
+#define HTT_RX_PEER_EXTENDED_VDEV_ID_M                0xff000000
+#define HTT_RX_PEER_EXTENDED_VDEV_ID_S                24
+
+#define HTT_RX_PEER_EXTENDED_MAC_ADDR_L32_M           0xffffffff
+#define HTT_RX_PEER_EXTENDED_MAC_ADDR_L32_S           0
+
+#define HTT_RX_PEER_EXTENDED_MAC_ADDR_U16_M           0x0000ffff
+#define HTT_RX_PEER_EXTENDED_MAC_ADDR_U16_S           0
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_M        0x00070000
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_S        16
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_M  0x00080000
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_S  19
+
+
+#define HTT_RX_PEER_EXTENDED_PEER_ID_SET(word, value)                        \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_RX_PEER_MAP_PEER_ID, value);              \
+        (word) |= (value)  << HTT_RX_PEER_EXTENDED_PEER_ID_S;                \
+    } while (0)
+#define HTT_RX_PEER_EXTENDED_PEER_ID_GET(word) \
+    (((word) & HTT_RX_PEER_EXTENDED_PEER_ID_M) >> HTT_RX_PEER_EXTENDED_PEER_ID_S)
+
+#define HTT_RX_PEER_EXTENDED_VDEV_ID_SET(word, value)                         \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_RX_PEER_EXTENDED_VDEV_ID, value);               \
+        (word) |= (value)  << HTT_RX_PEER_EXTENDED_VDEV_ID_S;                 \
+    } while (0)
+#define HTT_RX_PEER_EXTENDED_VDEV_ID_GET(word) \
+    (((word) & HTT_RX_PEER_EXTENDED_VDEV_ID_M) >> HTT_RX_PEER_EXTENDED_VDEV_ID_S)
+
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_SET(word, value)                         \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID, value);               \
+        (word) |= (value)  << HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_S;                 \
+    } while (0)
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_GET(word) \
+    (((word) & HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_M) >> HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_S)
+
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_SET(word, value)                         \
+    do {                                                                \
+        HTT_CHECK_SET_VAL(HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID, value);               \
+        (word) |= (value)  << HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_S;                 \
+    } while (0)
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_GET(word) \
+    (((word) & HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_M) >> HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_S)
+
+#define HTT_RX_PEER_EXTENDED_MAC_ADDR_OFFSET                4 /* bytes */
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_OFFSET         8  /* bytes */
+#define HTT_RX_PEER_EXTENDED_LOGICAL_LINK_ID_VALID_OFFSET   8  /* bytes */
+
+#define HTT_RX_PEER_EXTENDED_EVENT_BYTES 20 /* bytes */
 
 /**
  * @brief target -> host message specifying security parameters
@@ -17813,12 +18097,12 @@ enum htt_dbg_ext_stats_status {
  * to host ppdu stats indication message.
  *
  *
- * |31                         16|15   12|11   10|9      8|7            0 |
- * |----------------------------------------------------------------------|
+ * |31         24|23           16|15   12|11   10|9      8|7            0 |
+ * |-----------------------------+-------+-------+--------+---------------|
  * |    payload_size             | rsvd  |pdev_id|mac_id  |    msg type   |
- * |----------------------------------------------------------------------|
- * |                          ppdu_id                                     |
- * |----------------------------------------------------------------------|
+ * |-------------+---------------+-------+-------+--------+---------------|
+ * | tgt_private |                     ppdu_id                            |
+ * |-------------+--------------------------------------------------------|
  * |                        Timestamp in us                               |
  * |----------------------------------------------------------------------|
  * |                          reserved                                    |
@@ -17858,8 +18142,9 @@ enum htt_dbg_ext_stats_status {
 #define HTT_T2H_PPDU_STATS_PAYLOAD_SIZE_M     0xFFFF0000
 #define HTT_T2H_PPDU_STATS_PAYLOAD_SIZE_S     16
 
-#define HTT_T2H_PPDU_STATS_PPDU_ID_M          0xFFFFFFFF
+#define HTT_T2H_PPDU_STATS_PPDU_ID_M          0x00FFFFFF
 #define HTT_T2H_PPDU_STATS_PPDU_ID_S          0
+/* bits 31:24 are used by the target for internal purposes */
 
 #define HTT_T2H_PPDU_STATS_MAC_ID_SET(word, value)             \
     do {                                                         \
@@ -17890,7 +18175,7 @@ enum htt_dbg_ext_stats_status {
 
 #define HTT_T2H_PPDU_STATS_PPDU_ID_SET(word, value)             \
     do {                                                         \
-        HTT_CHECK_SET_VAL(HTT_T2H_PPDU_STATS_PPDU_ID, value);   \
+        /*HTT_CHECK_SET_VAL(HTT_T2H_PPDU_STATS_PPDU_ID, value);*/   \
         (word) |= (value)  << HTT_T2H_PPDU_STATS_PPDU_ID_S;     \
     } while (0)
 #define HTT_T2H_PPDU_STATS_PPDU_ID_GET(word) \
@@ -19094,9 +19379,9 @@ struct htt_ul_ofdma_user_info_v0_bitmap_w1 {
 
 #define HTT_UL_OFDMA_USER_INFO_V1_BITMAP_W0 \
     A_UINT32 w0_fw_rsvd:27; \
-    A_UINT32 w0_sub_version:3;  /* set to a value of “0” on WKK/Beryllium targets (future expansion) */ \
+    A_UINT32 w0_sub_version:3;  /* set to a value of "0" on WKK/Beryllium targets (future expansion) */ \
     A_UINT32 w0_valid:1; /* field aligns with V0 definition */ \
-    A_UINT32 w0_version:1;  /* set to a value of “1” to indicate picking htt_ul_ofdma_user_info_v1_bitmap (field aligns with V0 definition) */
+    A_UINT32 w0_version:1;  /* set to a value of "1" to indicate picking htt_ul_ofdma_user_info_v1_bitmap (field aligns with V0 definition) */
 
 struct htt_ul_ofdma_user_info_v1_bitmap_w0 {
     HTT_UL_OFDMA_USER_INFO_V1_BITMAP_W0
@@ -21067,6 +21352,8 @@ PREPACK struct htt_rx_cce_super_rule_setup_done_t {
         } while (0)
 
 /**
+ * THE BELOW MESSAGE HAS BEEN DEPRECATED
+ *======================================
  * @brief target -> host CoDel MSDU queue latencies array configuration
  *
  * MSG_TYPE => HTT_T2H_CODEL_MSDUQ_LATENCIES_ARRAY_CFG_IND
@@ -21117,7 +21404,7 @@ typedef struct {
              num_elem: 16; /* bits 31:16 */
     A_UINT32 paddr_low;
     A_UINT32 paddr_high;
-} htt_t2h_codel_msduq_latencies_array_cfg_int_t;
+} htt_t2h_codel_msduq_latencies_array_cfg_int_t; /* DEPRECATED */
 
 #define HTT_T2H_CODEL_MSDUQ_LATENCIES_ARRAY_CFG_SIZE 12 /* bytes */
 
@@ -21242,6 +21529,12 @@ typedef enum htt_t2h_rx_data_msdu_err {
      */
     HTT_RXDATA_ERR_ZERO_LEN_MSDU    = 7,
 
+    /* ERR_INVALID_PEER:
+     * FW sets this error flag when MSDU is recived from invalid PEER
+     * HOST decides to send DEAUTH or not, recyles buffer.
+     */
+    HTT_RXDATA_ERR_INVALID_PEER     = 8,
+
     /* add new error codes here */
 
     HTT_RXDATA_ERR_MAX              = 32
@@ -21276,7 +21569,17 @@ struct htt_t2h_rx_data_msdu_info
     A_UINT32 /* word 1 */
         buffer_addr_high        :  8,
         sw_buffer_cookie        : 21,
-        rsvd1                   :  3;
+        /* fw_offloads_inspected:
+         * When reo_destination_indication is 6 in reo_entrance_ring
+         * of the RXDMA2REO MPDU upload, all the MSDUs that are part
+         * of the MPDU are inspected by FW offloads layer, subsequently
+         * the MSDUs are qualified to be host interested.
+         * In such case the fw_offloads_inspected is set to 1, else 0.
+         * This will assist host to not consider such MSDUs for FISA
+         * flow addition.
+         */
+        fw_offloads_inspected   :  1,
+        rsvd1                   :  2;
     A_UINT32 /* word 2 */
         mpdu_retry_bit          :  1, /* used for stats maintenance */
         raw_mpdu_frame          :  1, /* used for pkt drop and processing */
@@ -21396,6 +21699,17 @@ struct htt_t2h_rx_data_msdu_info
     } while (0)
 #define HTT_RX_DATA_MSDU_INFO_SW_BUFFER_COOKIE_GET(word) \
     (((word) & HTT_RX_DATA_MSDU_INFO_SW_BUFFER_COOKIE_M) >> HTT_RX_DATA_MSDU_INFO_SW_BUFFER_COOKIE_S)
+
+#define HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_M   0x20000000
+#define HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_S   29
+
+#define HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_SET(word, value) \
+    do { \
+        HTT_CHECK_SET_VAL(HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED, value); \
+        (word) |= (value)  << HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_S; \
+    } while (0)
+#define HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_GET(word) \
+    (((word) & HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_M) >> HTT_RX_DATA_MSDU_INFO_FW_OFFLOADS_INSPECTED_S)
 
 #define HTT_RX_DATA_MSDU_INFO_MPDU_RETRY_BIT_M          0x00000001
 #define HTT_RX_DATA_MSDU_INFO_MPDU_RETRY_BIT_S          0
@@ -21761,6 +22075,142 @@ typedef struct {
 #define HTT_PEER_AST_OVERRIDE_DUMMY_AST2_WORD_BASE_OFFSET 12  /* bytes */
 
 #define HTT_PEER_AST_OVERRIDE_INDEX_IND_BYTES             16
+
+
+/**
+ * @brief target -> periodic report of tx latency to host
+ *
+ * MSG_TYPE => HTT_T2H_MSG_TYPE_TX_LATENCY_STATS_PERIODIC_IND
+ *
+ * @details
+ * The message starts with a message header followed by one or more
+ * htt_t2h_peer_tx_latency_stats structs, one for each peer within the vdev.
+ * After each upload, these tx latency stats will be reset.
+ *
+ *      |31        24|23        16|15 14|13 10|9 8|7        0|
+ *      +-------------------------+-----+-----+---+----------|
+ * hdr  |            |pyld elem sz|     |  GR | P | msg type |
+ *-    -|=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-|
+ * pyld |                        peer ID                     |
+ *      |----------------------------------------------------|
+ *      |                   peer_tx_latency[0]               |
+ *      |----------------------------------------------------|
+ * 1st  |                   peer_tx_latency[1]               |
+ * peer |----------------------------------------------------|
+ *      |                   peer_tx_latency[2]               |
+ *      |----------------------------------------------------|
+ *      |                   peer_tx_latency[3]               |
+ *      |----------------------------------------------------|
+ *      |                      avg latency                   |
+ *      |=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-|
+ *      |                        peer ID                     |
+ *      |----------------------------------------------------|
+ *      |                   peer_tx_latency[0]               |
+ *      |----------------------------------------------------|
+ * 2nd  |                   peer_tx_latency[1]               |
+ * peer |----------------------------------------------------|
+ *      |                   peer_tx_latency[2]               |
+ *      |----------------------------------------------------|
+ *      |                   peer_tx_latency[3]               |
+ *      |----------------------------------------------------|
+ *      |                      avg latency                   |
+ *      |=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-|
+ * Where:
+ *     P  = pdev ID
+ *     GR = granularity
+ *
+ * @details
+ * htt_t2h_tx_latency_stats_periodic_hdr_t:
+ *   - msg_type
+ *     Bits 7:0
+ *     Purpose: identifies this as a tx latency report message
+ *     Value: 0x3a (HTT_T2H_MSG_TYPE_TX_LATENCY_STATS_PERIODIC_IND)
+ *   - pdev_id
+ *     Bits 9:8
+ *     Purpose: Indicates which pdev this message is associated with.
+ *   - granularity
+ *     Bits 13:10
+ *     Purpose: specifies the granulairty of each tx latency bucket in MS.
+ *         There are 4 buckets in total. E.g. if granularity is set to 5 ms,
+ *         then the ranges for the 4 latency histogram buckets will be
+ *         0-5ms, 5ms-10ms, 10ms-15ms, 15ms-max, respectively.
+ *   - payload_elem_size
+ *     Bits 23:16
+ *     Purpose: specifies the size of each element within the msg's payload
+ *         In other words, this field specified the value of
+ *         sizeof(htt_t2h_peer_tx_latency_stats) based on the target's
+ *         revision of the htt_t2h_peer_tx_latency_stats definition.
+ *         If the payload_elem_size reported in the message exceeds the
+ *         sizeof(htt_t2h_peer_tx_latency_stats) based on the host's
+ *         revision of the htt_t2h_peer_tx_latency_stats definition,
+ *         the host shall ignore the excess data.
+ *         Conversely, if the payload_elem_size reported in the message is
+ *         less than sizeof(htt_t2h_peer_tx_latency_stats) based on the host's
+ *         revision of the htt_t2h_peer_tx_latency_stats definition,
+ *         the host shall use 0x0 values for the portion of the data not
+ *         provided by the target.
+ *         The host can compare the payload_elem_size to the total size of
+ *         the message minus the size of the message header to determine
+ *         how many peer payload elements are present in the message.
+ *   - sw_peer_id
+ *     Purpose: The peer to which the following stats belong
+ *   - peer_tx_latency
+ *     Purpose: tx latency histogram for this peer, with 4 buckets whose
+ *         size (in milliseconds) is specified by the granularity field
+ *   - avg_latency
+ *     Purpose: average tx latency (in ms) for this peer in this report interval
+*/
+typedef struct {
+    A_UINT32 msg_type:          8,
+             pdev_id:           2,
+             granularity:       4,
+             reserved1:         2,
+             payload_elem_size: 8,
+             reserved2:         8;
+} htt_t2h_tx_latency_stats_periodic_hdr_t;
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_HDR_SIZE \
+    (sizeof(htt_t2h_tx_latency_stats_periodic_hdr_t))
+#define HTT_PEER_TX_LATENCY_REPORT_BINS 4
+
+typedef struct _htt_tx_latency_stats {
+    A_UINT32 peer_id;
+    A_UINT32 peer_tx_latency[HTT_PEER_TX_LATENCY_REPORT_BINS];
+    A_UINT32 avg_latency;
+} htt_t2h_peer_tx_latency_stats;
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_M              0x00000300
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_S              8
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_GET(_var) \
+    (((_var) & HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_M) >> HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_S)
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_SET(_var, _val) \
+    do {                                                   \
+        HTT_CHECK_SET_VAL(HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID, _val);  \
+        ((_var) |= ((_val) << HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PDEV_ID_S)); \
+    } while (0)
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_M          0x00003C00
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_S          10
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_GET(_var) \
+    (((_var) & HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_M) >> HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_S)
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_SET(_var, _val) \
+    do {                                                   \
+        HTT_CHECK_SET_VAL(HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY, _val);  \
+        ((_var) |= ((_val) << HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_GRANULARITY_S)); \
+    } while (0)
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_M    0x00FF0000
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_S    16
+
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_GET(_var) \
+    (((_var) & HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_M) >> HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_S)
+#define HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_SET(_var, _val) \
+    do {                                                   \
+        HTT_CHECK_SET_VAL(HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE, _val);  \
+        ((_var) |= ((_val) << HTT_T2H_TX_LATENCY_STATS_PERIODIC_IND_PAYLOAD_ELEM_SIZE_S)); \
+    } while (0)
 
 
 

@@ -220,6 +220,7 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DPTT_SOCK_SVC_ENABLE \
 		-Wall\
 		-Werror\
+		-Wno-enum-conversion \
 		-D__linux__
 
 KBUILD_CPPFLAGS += $(CDEFINES)

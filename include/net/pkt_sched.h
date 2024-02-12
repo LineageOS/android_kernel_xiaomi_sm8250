@@ -130,6 +130,8 @@ static inline void qdisc_run(struct Qdisc *q)
 	}
 }
 
+extern const struct nla_policy rtm_tca_policy[TCA_MAX + 1];
+
 extern int tc_qdisc_flow_control(struct net_device *dev, u32 tcm_handle,
 				  int flow_enable);
 /* Calculate maximal size of packet seen by hard_start_xmit
@@ -137,7 +139,7 @@ extern int tc_qdisc_flow_control(struct net_device *dev, u32 tcm_handle,
  */
 static inline unsigned int psched_mtu(const struct net_device *dev)
 {
-	return dev->mtu + dev->hard_header_len;
+	return READ_ONCE(dev->mtu) + dev->hard_header_len;
 }
 
 static inline struct net *qdisc_net(struct Qdisc *q)

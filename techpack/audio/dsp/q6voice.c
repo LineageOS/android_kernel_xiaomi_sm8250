@@ -2759,6 +2759,13 @@ static int voice_send_cvs_register_cal_cmd(struct voice_data *v)
 		goto unlock;
 	}
 
+	if (col_data->cal_data.size >= MAX_COL_INFO_SIZE) {
+		pr_err("%s: Invalid cal data size %ld!\n",
+			__func__, col_data->cal_data.size);
+		ret = -EINVAL;
+		goto unlock;
+	}
+
 	memcpy(&cvs_reg_cal_cmd.cvs_cal_data.column_info[0],
 	       (void *) &((struct audio_cal_info_voc_col *)
 	       col_data->cal_info)->data,
