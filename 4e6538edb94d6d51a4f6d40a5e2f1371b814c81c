@@ -86,6 +86,24 @@
       "parentUuid": "f07ea322_ab68c72f",
       "revId": "4e6538edb94d6d51a4f6d40a5e2f1371b814c81c",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b77c09e3_b8be3c72",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2024-02-17T19:48:21Z",
+      "side": 1,
+      "message": "Hmm, I remember in the last time I encountered the issue, I wasn\u0027t able to plug anything (OTG/PC/Charger), it won\u0027t detect at all, and replugging doesn\u0027t help\n\nNow I\u0027m trying the following procedures, still unable to reproduce, USB works fine all the times:\n0) Flash the test kernel (enabled force warm reboot)\n1) Power off the device, or reboot the device\n2) Try to plug USB, or do nothing\n3) Reboot the device\n4) Try to plug USB\n\n(USB is removed before reboot or power off)\n\nI\u0027ve double checked and confirmed that there isn\u0027t any derp, warm reset is really being forced and no new changes has been applied, the built kernel really did booted on the device",
+      "parentUuid": "1324652b_a8777f43",
+      "revId": "4e6538edb94d6d51a4f6d40a5e2f1371b814c81c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
