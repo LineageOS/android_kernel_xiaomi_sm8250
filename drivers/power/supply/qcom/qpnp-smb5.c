@@ -5223,6 +5223,9 @@ static void smb5_shutdown(struct platform_device *pdev)
 	/* disable all interrupts */
 	smb5_disable_interrupts(chg);
 
+	/* disable VBUS regulator */
+	smblib_masked_write(chg, DCDC_CMD_OTG_REG, OTG_EN_BIT, 0);
+
 	/* disable the SMB_EN configuration */
 	smblib_masked_write(chg, MISC_SMB_EN_CMD_REG, EN_CP_CMD_BIT, 0);
 
