@@ -104,6 +104,24 @@
       "parentUuid": "1324652b_a8777f43",
       "revId": "4e6538edb94d6d51a4f6d40a5e2f1371b814c81c",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "292b6c9a_e40de888",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2024-02-18T20:12:18Z",
+      "side": 1,
+      "message": "does your device use qpnp-smb5 charger too? if yes, maybe you could try this\nhttps://review.lineageos.org/c/LineageOS/android_kernel_xiaomi_msm8937/+/383481\n\nThis does fixed the issue on Mi439, nothing changes on umi (sm8250), weird\n(on umi, if the device was rebooted with USB OTG plugged, then the first USB plug wouldn\u0027t work, if you replug it then USB starts working, still the same with the linked commit included)",
+      "parentUuid": "b77c09e3_b8be3c72",
+      "revId": "4e6538edb94d6d51a4f6d40a5e2f1371b814c81c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
