@@ -2672,6 +2672,13 @@ cnss_use_nv_mac(struct cnss_plat_data *plat_priv)
 				     "use-nv-mac");
 }
 
+static inline int cnss_get_cal_duration(struct cnss_plat_data *plat_priv)
+{
+	return of_property_read_u32(plat_priv->plat_dev->dev.of_node,
+				    "qcom,cnss-cal-duration",
+				    &plat_priv->cal_duration);
+}
+
 static int cnss_probe(struct platform_device *plat_dev)
 {
 	int ret = 0;
@@ -2709,6 +2716,9 @@ static int cnss_probe(struct platform_device *plat_dev)
 	} else {
 		plat_priv->use_nv_mac = cnss_use_nv_mac(plat_priv);
 	}
+	if (cnss_get_cal_duration(plat_priv) != 0)
+		plat_priv->cal_duration = CNSS_INVALID_CAL_DURATION;
+
 	plat_priv->use_fw_path_with_prefix =
 		cnss_use_fw_path_with_prefix(plat_priv);
 	cnss_set_plat_priv(plat_dev, plat_priv);

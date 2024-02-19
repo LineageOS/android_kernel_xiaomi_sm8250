@@ -46,6 +46,8 @@ enum {
 	__IFLA_RMNET_EXT_MAX,
 };
 
+#define IFLA_RMNET_EXT_MAX	(__IFLA_RMNET_EXT_MAX - 1)
+
 static const struct nla_policy rmnet_policy[__IFLA_RMNET_EXT_MAX] = {
 	[IFLA_RMNET_MUX_ID] = {
 		.type = NLA_U16
@@ -478,7 +480,7 @@ nla_put_failure:
 
 struct rtnl_link_ops rmnet_link_ops __read_mostly = {
 	.kind		= "rmnet",
-	.maxtype	= __IFLA_RMNET_EXT_MAX,
+	.maxtype	= IFLA_RMNET_EXT_MAX,
 	.priv_size	= sizeof(struct rmnet_priv),
 	.setup		= rmnet_vnd_setup,
 	.validate	= rmnet_rtnl_validate,

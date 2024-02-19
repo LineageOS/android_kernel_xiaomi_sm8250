@@ -5056,7 +5056,7 @@ static int msm_vidc_check_mbpf_supported(struct msm_vidc_inst *inst)
 	mutex_unlock(&core->lock);
 	if (mbpf > 2*capability->mbs_per_frame.max) {
 		msm_vidc_print_running_insts(inst->core);
-		return -ENOMEM;
+		return -EBUSY;
 	}
 
 	return 0;
