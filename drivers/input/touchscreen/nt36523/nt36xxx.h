@@ -156,13 +156,11 @@ struct nvt_ts_data {
 	struct completion dev_pm_suspend_completion;
 	uint16_t addr;
 	int8_t phys[32];
-#if defined(CONFIG_FB)
-#ifdef CONFIG_DRM
+#if defined (CONFIG_DRM)
 	struct notifier_block drm_notif;
-#else
+#elif defined (CONFIG_FB)
 	struct notifier_block fb_notif;
-#endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#elif defined (CONFIG_HAS_EARLYSUSPEND)
 	struct early_suspend early_suspend;
 #endif
 	uint32_t config_array_size;
