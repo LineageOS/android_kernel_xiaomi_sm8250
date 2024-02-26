@@ -27,13 +27,12 @@
 #include <linux/debugfs.h>
 #include <uapi/linux/sched/types.h>
 
-#if defined(CONFIG_FB)
-#ifdef CONFIG_DRM
+#if defined (CONFIG_DRM)
 #include <drm/drm_notifier_mi.h>
-#endif
+#elif defined (CONFIG_FB)
 #include <linux/notifier.h>
 #include <linux/fb.h>
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#elif defined (CONFIG_HAS_EARLYSUSPEND)
 #include <linux/earlysuspend.h>
 #endif
 
@@ -81,14 +80,12 @@ static struct workqueue_struct *nvt_lockdown_wq;
 extern void Boot_Update_Firmware(struct work_struct *work);
 #endif
 
-#if defined(CONFIG_FB)
-#ifdef CONFIG_DRM
+#if defined(CONFIG_DRM)
 static int nvt_drm_notifier_callback(struct notifier_block *self,
 				     unsigned long event, void *data);
-#else
+#elif defined(CONFIG_FB)
 static int nvt_fb_notifier_callback(struct notifier_block *self,
 				    unsigned long event, void *data);
-#endif
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 static void nvt_ts_early_suspend(struct early_suspend *h);
 static void nvt_ts_late_resume(struct early_suspend *h);
@@ -3327,23 +3324,21 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 			ret);
 		goto err_register_pen_charge_state_failed;
 	}
-#if defined(CONFIG_FB)
-#ifdef CONFIG_DRM
+#if defined (CONFIG_DRM)
 	ts->drm_notif.notifier_call = nvt_drm_notifier_callback;
 	ret = mi_drm_register_client(&ts->drm_notif);
 	if (ret) {
 		NVT_ERR("register drm_notifier failed. ret=%d\n", ret);
 		goto err_register_drm_notif_failed;
 	}
-#else
+#elif defined (CONFIG_FB)
 	ts->fb_notif.notifier_call = nvt_fb_notifier_callback;
 	ret = fb_register_client(&ts->fb_notif);
 	if (ret) {
 		NVT_ERR("register fb_notifier failed. ret=%d\n", ret);
 		goto err_register_fb_notif_failed;
 	}
-#endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#elif defined (CONFIG_HAS_EARLYSUSPEND)
 	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	ts->early_suspend.suspend = nvt_ts_early_suspend;
 	ts->early_suspend.resume = nvt_ts_late_resume;
@@ -3397,16 +3392,14 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 err_register_power_supply_notif_failed:
 	mutex_destroy(&ts->power_supply_lock);
-#if defined(CONFIG_FB)
-#ifdef CONFIG_DRM
+#if defined (CONFIG_DRM)
 	if (mi_drm_unregister_client(&ts->drm_notif))
 		NVT_ERR("Error occurred while unregistering drm_notifier.\n");
 err_register_drm_notif_failed:
-#else
+#elif defined (CONFIG_FB)
 	if (fb_unregister_client(&ts->fb_notif))
 		NVT_ERR("Error occurred while unregistering fb_notifier.\n");
 err_register_fb_notif_failed:
-#endif
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	unregister_early_suspend(&ts->early_suspend);
 err_register_early_suspend_failed:
@@ -3878,8 +3871,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 	return 0;
 }
 
-#if defined(CONFIG_FB)
-#ifdef CONFIG_DRM
+#if defined (CONFIG_DRM)
 static int nvt_drm_notifier_callback(struct notifier_block *self,
 				     unsigned long event, void *data)
 {
@@ -3918,7 +3910,7 @@ static int nvt_drm_notifier_callback(struct notifier_block *self,
 
 	return 0;
 }
-#else
+#elif defined (CONFIG_FB)
 static int nvt_fb_notifier_callback(struct notifier_block *self,
 				    unsigned long event, void *data)
 {
@@ -3943,8 +3935,7 @@ static int nvt_fb_notifier_callback(struct notifier_block *self,
 
 	return 0;
 }
-#endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#elif defined (CONFIG_HAS_EARLYSUSPEND)
 /*******************************************************
 Description:
 	Novatek touchscreen driver early suspend function.
