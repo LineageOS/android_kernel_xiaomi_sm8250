@@ -7351,7 +7351,7 @@ static int fts_write_charge_status(int status)
 	return res;
 }
 
-static int fts_get_charging_status()
+static int fts_get_charging_status(void)
 {
 	struct power_supply *usb_psy;
 	struct power_supply *dc_psy;
