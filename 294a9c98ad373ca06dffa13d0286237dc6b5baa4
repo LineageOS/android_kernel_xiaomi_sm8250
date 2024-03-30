@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6f35693b_a73ae3c5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2024-03-30T12:45:58Z",
+      "side": 1,
+      "message": "pick into android_kernel_qcom_sm8250 please. then we can merge here.",
+      "revId": "294a9c98ad373ca06dffa13d0286237dc6b5baa4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
