@@ -193,7 +193,7 @@ int uvcg_query_buffer(struct uvc_video_queue *queue, struct v4l2_buffer *buf)
 
 int uvcg_queue_buffer(struct uvc_video_queue *queue, struct v4l2_buffer *buf)
 {
-	return vb2_qbuf(&queue->queue, NULL, buf);
+	return vb2_qbuf(&queue->queue, buf);
 }
 
 /*
