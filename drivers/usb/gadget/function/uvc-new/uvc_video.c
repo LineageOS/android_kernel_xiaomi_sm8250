@@ -12,7 +12,7 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <linux/usb/video.h>
-#include <linux/unaligned.h>
+#include <asm/unaligned.h>
 
 #include <media/v4l2-dev.h>
 

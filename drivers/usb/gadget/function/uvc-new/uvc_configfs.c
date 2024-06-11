@@ -13,8 +13,10 @@
 #include "uvc_configfs.h"
 
 #include <linux/sort.h>
-#include <linux/usb/uvc.h>
 #include <linux/usb/video.h>
+
+#include <linux/videodev2.h>
+#include <media/v4l2-uvc.h>
 
 /* -----------------------------------------------------------------------------
  * Global Utility Structures and Macros
@@ -1860,7 +1862,7 @@ UVCG_UNCOMPRESSED_ATTR(b_bits_per_pixel, bBitsPerPixel, 8);
 UVCG_UNCOMPRESSED_ATTR(b_default_frame_index, bDefaultFrameIndex, 8);
 UVCG_UNCOMPRESSED_ATTR_RO(b_aspect_ratio_x, bAspectRatioX, 8);
 UVCG_UNCOMPRESSED_ATTR_RO(b_aspect_ratio_y, bAspectRatioY, 8);
-UVCG_UNCOMPRESSED_ATTR_RO(bm_interlace_flags, bmInterlaceFlags, 8);
+UVCG_UNCOMPRESSED_ATTR_RO(bm_interlace_flags, bmInterfaceFlags, 8);
 
 #undef UVCG_UNCOMPRESSED_ATTR
 #undef UVCG_UNCOMPRESSED_ATTR_RO
@@ -1929,7 +1931,7 @@ static struct config_group *uvcg_uncompressed_make(struct config_group *group,
 	h->desc.bDefaultFrameIndex	= 1;
 	h->desc.bAspectRatioX		= 0;
 	h->desc.bAspectRatioY		= 0;
-	h->desc.bmInterlaceFlags	= 0;
+	h->desc.bmInterfaceFlags	= 0;
 	h->desc.bCopyProtect		= 0;
 
 	INIT_LIST_HEAD(&h->fmt.frames);
@@ -2057,7 +2059,7 @@ UVCG_MJPEG_ATTR(b_default_frame_index, bDefaultFrameIndex, 8);
 UVCG_MJPEG_ATTR_RO(bm_flags, bmFlags, 8);
 UVCG_MJPEG_ATTR_RO(b_aspect_ratio_x, bAspectRatioX, 8);
 UVCG_MJPEG_ATTR_RO(b_aspect_ratio_y, bAspectRatioY, 8);
-UVCG_MJPEG_ATTR_RO(bm_interlace_flags, bmInterlaceFlags, 8);
+UVCG_MJPEG_ATTR_RO(bm_interlace_flags, bmInterfaceFlags, 8);
 
 #undef UVCG_MJPEG_ATTR
 #undef UVCG_MJPEG_ATTR_RO
@@ -2119,7 +2121,7 @@ static struct config_group *uvcg_mjpeg_make(struct config_group *group,
 	h->desc.bDefaultFrameIndex	= 1;
 	h->desc.bAspectRatioX		= 0;
 	h->desc.bAspectRatioY		= 0;
-	h->desc.bmInterlaceFlags	= 0;
+	h->desc.bmInterfaceFlags	= 0;
 	h->desc.bCopyProtect		= 0;
 
 	INIT_LIST_HEAD(&h->fmt.frames);
