@@ -477,25 +477,6 @@ uvc_register_video(struct uvc_device *uvc)
 		} \
 	} while (0)
 
-#define UVC_COPY_XU_DESCRIPTOR(mem, dst, desc)					\
-	do {									\
-		*(dst)++ = mem;							\
-		memcpy(mem, desc, 22); /* bLength to bNrInPins */		\
-		mem += 22;							\
-										\
-		memcpy(mem, (desc)->baSourceID, (desc)->bNrInPins);		\
-		mem += (desc)->bNrInPins;					\
-										\
-		memcpy(mem, &(desc)->bControlSize, 1);				\
-		mem++;								\
-										\
-		memcpy(mem, (desc)->bmControls, (desc)->bControlSize);		\
-		mem += (desc)->bControlSize;					\
-										\
-		memcpy(mem, &(desc)->iExtension, 1);				\
-		mem++;								\
-	} while (0)
-
 static struct usb_descriptor_header **
 uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 {
@@ -507,7 +488,6 @@ uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 	const struct usb_descriptor_header * const *src;
 	struct usb_descriptor_header **dst;
 	struct usb_descriptor_header **hdr;
-	struct uvcg_extension *xu;
 	unsigned int control_size;
 	unsigned int streaming_size;
 	unsigned int n_desc;
@@ -577,13 +557,6 @@ uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 		bytes += (*src)->bLength;
 		n_desc++;
 	}
-
-	list_for_each_entry(xu, uvc->desc.extension_units, list) {
-		control_size += xu->desc.bLength;
-		bytes += xu->desc.bLength;
-		n_desc++;
-	}
-
 	for (src = (const struct usb_descriptor_header **)uvc_streaming_cls;
 	     *src; ++src) {
 		streaming_size += (*src)->bLength;
@@ -610,10 +583,6 @@ uvc_copy_descriptors(struct uvc_device *uvc, enum usb_device_speed speed)
 	uvc_control_header = mem;
 	UVC_COPY_DESCRIPTORS(mem, dst,
 		(const struct usb_descriptor_header **)uvc_control_desc);
-
-	list_for_each_entry(xu, uvc->desc.extension_units, list)
-		UVC_COPY_XU_DESCRIPTOR(mem, dst, &xu->desc);
-
 	uvc_control_header->wTotalLength = cpu_to_le16(control_size);
 	uvc_control_header->bInCollection = 1;
 	uvc_control_header->baInterfaceNr[0] = uvc->streaming_intf;
@@ -1066,8 +1035,6 @@ static struct usb_function *uvc_alloc(struct usb_function_instance *fi)
 			return ERR_PTR(-EBUSY);
 		}
 	}
-
-	uvc->desc.extension_units = &opts->extension_units;
 
 	++opts->refcnt;
 	mutex_unlock(&opts->lock);
