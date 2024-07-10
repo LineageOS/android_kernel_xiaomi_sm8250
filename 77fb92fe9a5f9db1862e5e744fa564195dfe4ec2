@@ -16,6 +16,24 @@
       "message": "this is already enabled by kona-perf_defconfig",
       "revId": "77fb92fe9a5f9db1862e5e744fa564195dfe4ec2",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fb20ff9b_53983655",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11571
+      },
+      "writtenOn": "2024-07-10T14:27:18Z",
+      "side": 1,
+      "message": "Yes, indeed, thanks.",
+      "parentUuid": "c85a9f4c_10529826",
+      "revId": "77fb92fe9a5f9db1862e5e744fa564195dfe4ec2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
