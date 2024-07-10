@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3100be7c_8375a897",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11571
+      },
+      "writtenOn": "2024-07-10T15:36:25Z",
+      "side": 1,
+      "message": "Working pretty fine on alioth.",
+      "revId": "8f1d1929b70a0205d69e82232f46f435021933f6",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
