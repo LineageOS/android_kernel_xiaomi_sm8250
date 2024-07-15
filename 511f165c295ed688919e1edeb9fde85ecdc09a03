@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "af53b52b_11d9c551",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2024-07-15T14:03:40Z",
+      "side": 1,
+      "message": "Would like to see a backport like this one:\nhttps://review.lineageos.org/c/LineageOS/android_kernel_qcom_sm8450/+/397274",
+      "revId": "511f165c295ed688919e1edeb9fde85ecdc09a03",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
