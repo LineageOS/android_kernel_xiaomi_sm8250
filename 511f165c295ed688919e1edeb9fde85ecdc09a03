@@ -34,6 +34,24 @@
       "parentUuid": "af53b52b_11d9c551",
       "revId": "511f165c295ed688919e1edeb9fde85ecdc09a03",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e9c8d898_dc437f2b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2024-07-18T06:33:50Z",
+      "side": 1,
+      "message": "most likely he meant he want to see the thing getting upstreamed from 4.19 to android13-5.10 with **full** commit history, rather than a single commit that simply imports the files...\n\n(yeah, which would be pain)",
+      "parentUuid": "bb50c343_fc0504b6",
+      "revId": "511f165c295ed688919e1edeb9fde85ecdc09a03",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
