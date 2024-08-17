@@ -33,6 +33,24 @@
       "message": "can confirm this works for apollopro, will test on normal apollo",
       "revId": "e5c45395de26ec8d529b8c7d2966060b8d97cbb4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "29336092_42bc9e45",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32153
+      },
+      "writtenOn": "2024-08-17T13:10:03Z",
+      "side": 1,
+      "message": "The standard apollo (Mi 10T) does not have OIS AFAIK. But I tested all the other camera functionality on Mi 10T and everything seems to work just fine.",
+      "parentUuid": "a83d9f97_21d490ee",
+      "revId": "e5c45395de26ec8d529b8c7d2966060b8d97cbb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
