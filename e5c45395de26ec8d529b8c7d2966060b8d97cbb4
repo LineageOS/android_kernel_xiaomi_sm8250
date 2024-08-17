@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "998d8ea1_22fd0d09",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32153
+      },
+      "writtenOn": "2024-08-17T13:03:58Z",
+      "side": 1,
+      "message": "Dear maintainers,\nPlease review my small change. It fixes OIS on Mi 10T Pro.",
+      "revId": "e5c45395de26ec8d529b8c7d2966060b8d97cbb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
