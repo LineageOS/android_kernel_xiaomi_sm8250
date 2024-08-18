@@ -562,8 +562,7 @@ static int drawobj_add_sync_fence(struct kgsl_device *device,
 
 	set_bit(event->id, &syncobj->pending);
 
-	event->handle = kgsl_sync_fence_async_wait(sync.fd,
-				drawobj_sync_fence_func, event, priv);
+	event->handle = kgsl_sync_fence_async_wait(sync.fd, drawobj_sync_fence_func, event);
 
 	event->priv = priv;
 
@@ -584,6 +583,8 @@ static int drawobj_add_sync_fence(struct kgsl_device *device,
 
 		return ret;
 	}
+
+	kgsl_get_fence_info(event);
 
 	for (i = 0; priv && i < priv->num_fences; i++)
 		trace_syncpoint_fence(syncobj, priv->fences[i].name);
