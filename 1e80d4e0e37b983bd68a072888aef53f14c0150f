@@ -16,6 +16,40 @@
       "message": "Split in multiple commits",
       "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f6f2dca1_0128f648",
+        "filename": "drivers/power/supply/qcom/smb5-lib.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 3105,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2024-08-22T15:10:37Z",
+      "side": 1,
+      "message": "I would rather de-indent the return",
+      "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4ad63d00_a9002984",
+        "filename": "drivers/power/supply/qcom/smb5-lib.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 10443,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2024-08-22T15:10:37Z",
+      "side": 1,
+      "message": "Makes no sense, there\u0027s a goto before this code so this would become dead code",
+      "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
