@@ -3102,9 +3102,10 @@ int smblib_get_prop_batt_charge_done(struct smb_charger *chg,
 
 		if (chg->power_good_en) {
 			if ((smblib_get_fastcharge_mode(chg) == true)
-				&& (pval.intval >= 98))
+				&& (pval.intval >= 98)) {
 				smblib_set_fastcharge_mode(chg, false);
 				return 0;
+			}
 		}
 
 		if (smblib_get_fastcharge_mode(chg) == true)
@@ -10436,7 +10437,7 @@ static void smblib_charger_type_recheck(struct work_struct *work)
 		return;
 	}
 
-	if (smblib_get_prop_dfp_mode(chg) != POWER_SUPPLY_TYPEC_NONE)
+	if (smblib_get_prop_dfp_mode(chg) != POWER_SUPPLY_TYPEC_NONE) {
 		goto check_next;
 
 		if (chg->typec_port && !chg->pr_swap_in_progress) {
@@ -10458,6 +10459,7 @@ static void smblib_charger_type_recheck(struct work_struct *work)
 			 */
 			chg->typec_role_swap_failed = false;
 		}
+	}
 
 	if (!chg->recheck_charger)
 		chg->precheck_charger_type = chg->real_charger_type;
