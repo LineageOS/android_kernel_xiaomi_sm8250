@@ -53,6 +53,24 @@
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "265ac6ef_53538414",
+        "filename": "drivers/power/supply/qcom/smb5-lib.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 3105,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2024-08-24T04:11:58Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "f6f2dca1_0128f648",
+      "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "4ad63d00_a9002984",
@@ -70,6 +88,24 @@
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ab1c1ff0_75d880a4",
+        "filename": "drivers/power/supply/qcom/smb5-lib.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 10443,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2024-08-24T04:11:58Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "4ad63d00_a9002984",
+      "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "1ed5847d_eb19fac5",
@@ -83,6 +119,24 @@
       "writtenOn": "2024-08-22T15:11:50Z",
       "side": 1,
       "message": "No, de-indent the latter code",
+      "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fea32acc_e48814d3",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 534,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2024-08-24T04:11:58Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "1ed5847d_eb19fac5",
       "revId": "1e80d4e0e37b983bd68a072888aef53f14c0150f",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
