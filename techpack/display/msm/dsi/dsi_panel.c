@@ -531,17 +531,19 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 
 	if (panel->mi_cfg.is_tddi_flag) {
 		if (!panel->mi_cfg.tddi_doubleclick_flag || panel->mi_cfg.panel_dead_flag) {
-			if (gpio_is_valid(panel->reset_config.reset_gpio))
+			if (gpio_is_valid(panel->reset_config.reset_gpio)) {
 				gpio_set_value(panel->reset_config.reset_gpio, 0);
+			}
 
-				if (gpio_is_valid(panel->reset_config.tp_reset_gpio) && !panel->reset_gpio_always_on
-					&& panel->mi_cfg.panel_id == 0x4C38314100420400){
-					rc=gpio_direction_output(panel->reset_config.tp_reset_gpio, 0);
-					if (rc){
-							DSI_ERR("unable to set direction for gpio [%d]\n",
+			if (gpio_is_valid(panel->reset_config.tp_reset_gpio) &&
+				!panel->reset_gpio_always_on &&
+				panel->mi_cfg.panel_id == 0x4C38314100420400) {
+				rc = gpio_direction_output(panel->reset_config.tp_reset_gpio, 0);
+				if (rc) {
+					DSI_ERR("unable to set direction for gpio [%d]\n",
 							panel->reset_config.tp_reset_gpio);
-					}
 				}
+			}
 		}
 	} else {
 		if (gpio_is_valid(panel->reset_config.reset_gpio) &&
