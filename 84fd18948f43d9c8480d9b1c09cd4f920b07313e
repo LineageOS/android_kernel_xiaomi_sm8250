@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cb400de1_39cd72b4",
+        "filename": "drivers/media/rc/ir-spi.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2024-08-25T10:41:03Z",
+      "side": 1,
+      "message": "```suggestion\n\tidata-\u003eregulator \u003d devm_regulator_get_optional(dev, \"irda_regulator\");\n\tif (IS_ERR(idata-\u003eregulator)) {\n\t\tif (PTR_ERR(idata-\u003eregulator) !\u003d -ENODEV)\n\t\t\treturn PTR_ERR(idata-\u003eregulator);\n\n\t\tidata-\u003eregulator \u003d NULL;\n\t}\n```",
+      "range": {
+        "startLine": 126,
+        "startChar": 0,
+        "endLine": 128,
+        "endChar": 2
+      },
+      "revId": "84fd18948f43d9c8480d9b1c09cd4f920b07313e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
