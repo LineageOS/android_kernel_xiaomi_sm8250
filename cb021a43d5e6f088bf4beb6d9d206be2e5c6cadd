@@ -24,6 +24,30 @@
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "0c246d2c_2b68f53d",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 33095
+      },
+      "writtenOn": "2024-10-27T11:47:33Z",
+      "side": 1,
+      "message": "Yes it actually do. Without it upon booting to recovery (that happens way faster then booting to OS) touchscreen isn\u0027t working for some time.",
+      "parentUuid": "4e347cb7_59e28049",
+      "range": {
+        "startLine": 9,
+        "startChar": 20,
+        "endLine": 9,
+        "endChar": 26
+      },
+      "revId": "cb021a43d5e6f088bf4beb6d9d206be2e5c6cadd",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "c63d8ac7_53bdd6ac",
