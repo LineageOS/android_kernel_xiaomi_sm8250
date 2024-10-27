@@ -148,6 +148,35 @@ static struct tp_common_ops double_tap_ops = {
 };
 #endif
 
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t pen_firmware_show(struct kobject *kobj, struct kobj_attribute *attr,
+			char *buf)
+{
+	return sprintf(buf, "%d\n%s\n%s\n%s\n", ts->pen_firmware,
+				  "1 - use novatek_nt36523_k81a_fw01_pen.bin",
+				  "2 - use novatek_nt36523_k81a_fw02_pen.bin",
+				  "3 - use novatek_nt36523_k81_fw01_pen.bin");
+}
+
+static ssize_t pen_firmware_store(struct kobject *kobj, struct kobj_attribute *attr,
+			 const char *buf, size_t count)
+{
+	int rc, val;
+
+	rc = kstrtoint(buf, 10, &val);
+	if (rc)
+		return -EINVAL;
+
+	ts->pen_firmware = val;
+	return count;
+}
+
+static struct tp_common_ops pen_firmware_ops = {
+	.show = pen_firmware_show,
+	.store = pen_firmware_store,
+};
+#endif
+
 #ifdef CONFIG_MTK_SPI
 const struct mt_chip_conf spi_ctrdata = {
 	.setuptime = 25,
@@ -3183,6 +3212,12 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 				ts->pen_input_dev->name, ret);
 			goto err_pen_input_register_device_failed;
 		}
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+		ret = tp_common_set_pen_firmware_ops(&pen_firmware_ops);
+		if (ret < 0) {
+			NVT_ERR("Failed to create pen node err=%d\n", ret);
+		}
+#endif
 	} /* if (ts->pen_support) */
 
 	//---set int-pin & request irq---

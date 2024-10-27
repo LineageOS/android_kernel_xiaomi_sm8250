@@ -362,6 +362,24 @@ static int32_t update_firmware_request(const char *filename)
 	uint8_t retry = 0;
 	int32_t ret = 0;
 
+	if (ts->pen_firmware) {
+		switch (ts->pen_firmware) {
+		case 1:
+			filename = "novatek_nt36523_k81a_fw01_pen.bin";
+			break;
+		case 2:
+			filename = "novatek_nt36523_k81a_fw02_pen.bin";
+			break;
+		case 3:
+			filename = "novatek_nt36523_k81_fw01_pen.bin";
+			break;
+		default:
+			break;
+		}
+		pr_info("use firmware %d\n", ts->pen_firmware);
+		pr_info("use firmware name %s\n", filename);
+	}
+
 	if (NULL == filename) {
 		return -ENOENT;
 	}
