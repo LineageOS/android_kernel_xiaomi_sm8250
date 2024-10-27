@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9ad5f52c_db6a3c99",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29551
+      },
+      "writtenOn": "2024-10-27T11:28:08Z",
+      "side": 1,
+      "message": "Firmware extraction uses the following command:\n\n1.\nxxd -g 1 Image | grep \"00 0a 02 00 00 00 00 00 00 2a 02 00 cb 94 d0 20\" -B4 -A12283 | grep -oE \"[0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+ [0-9a-f]+\" \u003e elish.xxd\n\n2.\nxxd -r -p \u003c(sed -n \u00271,12288p\u0027       elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_ts_fw_k81.bin\nxxd -r -p \u003c(sed -n \u002712289,24576p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_ts_mp_k81.bin\nxxd -r -p \u003c(sed -n \u002724577,36864p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81_fw01.bin\nxxd -r -p \u003c(sed -n \u002736865,49152p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81_mp01.bin\nxxd -r -p \u003c(sed -n \u002749153,61440p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_fw02.bin\nxxd -r -p \u003c(sed -n \u002761441,73728p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_mp02.bin\nxxd -r -p \u003c(sed -n \u002773729,86016p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_fw01.bin\nxxd -r -p \u003c(sed -n \u002786017,98304p\u0027   elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_mp01.bin\nxxd -r -p \u003c(sed -n \u002798305,110592p\u0027  elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_mp01_pen.bin\nxxd -r -p \u003c(sed -n \u0027110593,122880p\u0027 elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_mp02_pen.bin\nxxd -r -p \u003c(sed -n \u0027122881,135168p\u0027 elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_fw01_pen.bin\nxxd -r -p \u003c(sed -n \u0027135169,147456p\u0027 elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81a_fw02_pen.bin\nxxd -r -p \u003c(sed -n \u0027147457,159744p\u0027 elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81_fw01_pen.bin\nxxd -r -p \u003c(sed -n \u0027159745,172032p\u0027 elish.xxd | sed \"s/ //g\" | tr -d \u0027\\n\u0027) \u003e novatek_nt36523_k81_mp01_pen.bin\n\n3.\nfind . -type f -iname \"*.bin\" -exec avr-objcopy -I binary -O ihex {} {}.ihex \\;",
+      "revId": "1057c2df46b339f0281e04633be710db9f5aff84",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
