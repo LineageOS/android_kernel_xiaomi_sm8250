@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4e347cb7_59e28049",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 13028
+      },
+      "writtenOn": "2024-10-27T10:59:52Z",
+      "side": 1,
+      "message": "wrong value\nAlso, the \"from\" and \"to\" values can be easily seen in the code, it\u0027s better to explain \"why\", not \"what\" if the code already clearly shows that\n\"Reduce delay before loading fw as usually [...]\" works just as fine and doesn\u0027t need to repeat the value",
+      "range": {
+        "startLine": 9,
+        "startChar": 20,
+        "endLine": 9,
+        "endChar": 26
+      },
+      "revId": "cb021a43d5e6f088bf4beb6d9d206be2e5c6cadd",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c63d8ac7_53bdd6ac",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13028
+      },
+      "writtenOn": "2024-10-27T10:59:52Z",
+      "side": 1,
+      "message": "In addition to my comment, does this commit solve anything and if yes, what?",
+      "revId": "cb021a43d5e6f088bf4beb6d9d206be2e5c6cadd",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
