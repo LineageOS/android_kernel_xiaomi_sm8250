@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "08f4ed98_83021f6a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13028
+      },
+      "writtenOn": "2024-10-27T11:58:50Z",
+      "side": 1,
+      "message": "You forgot about the part where I stated that repeating the values in the commit message at all doesn\u0027t make sense:\n```Also, the \"from\" and \"to\" values can be easily seen in the code, it\u0027s better to explain \"why\", not \"what\" if the code already clearly shows that\n\"Reduce delay before loading fw as usually [...]\" works just as fine and doesn\u0027t need to repeat the value```",
+      "revId": "df3bc12b08ca1303159b6d8a15600a8c8503b5ea",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
