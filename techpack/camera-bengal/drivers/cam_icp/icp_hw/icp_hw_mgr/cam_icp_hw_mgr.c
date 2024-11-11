@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/uaccess.h>
@@ -4596,6 +4596,10 @@ static int cam_icp_process_generic_cmd_buffer(
 	cmd_desc = (struct cam_cmd_buf_desc *)
 		((uint32_t *) &packet->payload + packet->cmd_buf_offset/4);
 	for (i = 0; i < packet->num_cmd_buf; i++) {
+		rc = cam_packet_util_validate_cmd_desc(&cmd_desc[i]);
+		if (rc)
+			return rc;
+
 		if (!cmd_desc[i].length)
 			continue;
 
@@ -4780,6 +4784,10 @@ static int cam_icp_mgr_config_stream_settings(
 
 	cmd_desc = (struct cam_cmd_buf_desc *)
 		((uint32_t *) &packet->payload + packet->cmd_buf_offset/4);
+
+	rc = cam_packet_util_validate_cmd_desc(cmd_desc);
+	if (rc)
+		return rc;
 
 	if (!cmd_desc[0].length ||
 		cmd_desc[0].meta_data != CAM_ICP_CMD_META_GENERIC_BLOB) {

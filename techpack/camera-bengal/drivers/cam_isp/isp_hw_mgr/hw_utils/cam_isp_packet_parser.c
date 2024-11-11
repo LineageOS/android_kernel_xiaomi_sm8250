@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <media/cam_defs.h>
@@ -283,6 +283,10 @@ int cam_isp_add_command_buffers(
 		split_id, prepare->packet->num_cmd_buf);
 
 	for (i = 0; i < prepare->packet->num_cmd_buf; i++) {
+		rc = cam_packet_util_validate_cmd_desc(&cmd_desc[i]);
+		if (rc)
+			return rc;
+
 		num_ent = prepare->num_hw_update_entries;
 		if (!cmd_desc[i].length)
 			continue;
