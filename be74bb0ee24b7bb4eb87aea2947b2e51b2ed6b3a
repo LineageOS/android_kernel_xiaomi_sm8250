@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "bd550ef3_3eb64ec6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29551
+      },
+      "writtenOn": "2024-11-30T13:33:38Z",
+      "side": 1,
+      "message": "Tested on elish device, the firmware has been parsed and updated correctly.\n\n```\n[NVT-ts] nvt_driver_init 3932: driver init start\n[NVT-ts] nvt_ts_probe 2848: probe start\n[NVT-ts] nvt_ts_probe 2900: mode\u003d0, max_speed_hz\u003d19200000\n[NVT-ts] nvt_parse_dt 1226: novatek,irq-gpio\u003d1139\n[NVT-ts] nvt_parse_dt 1229: novatek,pen-support\u003d1\n[NVT-ts] nvt_parse_dt 1232: novatek,wgp-stylus\u003d1\n[NVT-ts] nvt_parse_dt 1239: SWRST_N8_ADDR\u003d0x03F0FE\n[NVT-ts] nvt_parse_dt 1248: SPI_RD_FAST_ADDR\u003d0x03F310\n[NVT-ts] nvt_parse_dt 1256: config-array-size: 3\n[NVT-ts] nvt_parse_dt 1264: spi-max-frequency: 19200000\n[NVT-ts] nvt_parse_dt 1277: read touch gamemode parameter config1:[2, 2, 1, 2, 1]\n[NVT-ts] nvt_parse_dt 1289: read touch gamemode parameter config2:[2, 2, 2, 2, 1]\n[NVT-ts] nvt_parse_dt 1301: read touch gamemode parameter config3:[2, 2, 3, 2, 1]\n[NVT-ts] nvt_parse_dt 1323: tp hw version: 66\n[NVT-ts] nvt_parse_dt 1331: fw_name: novatek_nt36523_k81a_fw01.bin\n[NVT-ts] nvt_parse_dt 1339: mp_name: novatek_nt36523_k81a_mp01.bin\n[NVT-ts] nvt_parse_dt 1347: fw_pen_name: novatek_nt36523_k81a_fw01_pen.bin\n[NVT-ts] nvt_parse_dt 1355: mp_pen_name: novatek_nt36523_k81a_mp01_pen.bin\n[NVT-ts] nvt_parse_dt 1323: tp hw version: 8\n[NVT-ts] nvt_parse_dt 1331: fw_name: novatek_nt36523_k81a_fw02.bin\n[NVT-ts] nvt_parse_dt 1339: mp_name: novatek_nt36523_k81a_mp02.bin\n[NVT-ts] nvt_parse_dt 1347: fw_pen_name: novatek_nt36523_k81a_fw02_pen.bin\n[NVT-ts] nvt_parse_dt 1355: mp_pen_name: novatek_nt36523_k81a_mp02_pen.bin\n[NVT-ts] nvt_parse_dt 1323: tp hw version: 53\n[NVT-ts] nvt_parse_dt 1331: fw_name: novatek_nt36523_k81a_fw02.bin\n[NVT-ts] nvt_parse_dt 1339: mp_name: novatek_nt36523_k81a_mp02.bin\n[NVT-ts] nvt_parse_dt 1347: fw_pen_name: novatek_nt36523_k81a_fw02_pen.bin\n[NVT-ts] nvt_parse_dt 1355: mp_pen_name: novatek_nt36523_k81a_mp02_pen.bin\n```\n\nand update the pen firmware correctly via mi_touch ioctl (I\u0027m using MIUI).\n```\n[mi-touch] xiaomi_touch_dev_ioctl: cmd:0, mode:20, value:17\n[NVT-ts] nvt_set_cur_value 2360: mode:20, value:17\n[NVT-ts] nvt_set_cur_value 2368: ENABLE pen input dev \n[NVT-ts] disable_pen_input_device 2289: ++\n[NVT-ts] disable_pen_input_device 2316: pen charge state is ENABLE, DISABLE pen input device\n[mi-touch] update_pen_connect_strategy_value: pen_active \u003d 0\n[NVT-ts] disable_pen_input_device 2324: --\n[mi-pen]: switch_pen_firmware fw-name: novatek_nt36523_k81a_fw01_pen.bin\n[mi-pen]: switch_pen_firmware mp-name: novatek_nt36523_k81a_mp01_pen.bin\n[NVT-ts] update_firmware_request 334: filename is novatek_nt36523_k81a_fw01_pen.bin\n[NVT-ts] nvt_get_fw_need_write_size 65: fw_need_write_size \u003d 196608(0x30000), NVT end flag\n[NVT-ts] nvt_bin_header_parser 157: cascade_2nd_header_info \u003d 1\n[NVT-ts] nvt_bin_header_parser 189: ovly_info \u003d 0, ilm_dlm_num \u003d 2, ovly_sec_num \u003d 0, info_sec_num \u003d 14, partition \u003d 16\n[NVT-ts] nvt_tx_auto_copy_mode 537: tx auto copy mode enable\n[NVT-ts] nvt_update_firmware 1015: Update firmware success! \u003c141869 us\u003e\n[NVT-ts] nvt_get_fw_info 853: fw_ver \u003d 0x35, fw_type \u003d 0x01, x_num\u003d32, y_num\u003d50\n[NVT-ts] nvt_read_pid 790: PID\u003d5961\n```",
+      "revId": "be74bb0ee24b7bb4eb87aea2947b2e51b2ed6b3a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
