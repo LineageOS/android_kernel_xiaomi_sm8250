@@ -52,6 +52,23 @@
       "parentUuid": "bb50c343_fc0504b6",
       "revId": "511f165c295ed688919e1edeb9fde85ecdc09a03",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a5b4bd25_7e60ccf0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18796
+      },
+      "writtenOn": "2025-01-05T06:14:32Z",
+      "side": 1,
+      "message": "works fine for me in android 15",
+      "revId": "511f165c295ed688919e1edeb9fde85ecdc09a03",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
