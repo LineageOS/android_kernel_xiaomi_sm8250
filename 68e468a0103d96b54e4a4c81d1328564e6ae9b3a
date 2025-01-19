@@ -33,6 +33,23 @@
       "message": "It is running on my phone as we speak.\n\nYou can find a bit more explanation here: https://gitlab.com/LineageOS/issues/android/-/issues/7470",
       "revId": "68e468a0103d96b54e4a4c81d1328564e6ae9b3a",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3d092694_6131d5a5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 34430
+      },
+      "writtenOn": "2025-01-19T20:48:56Z",
+      "side": 1,
+      "message": "Is there something I can or even have to do to advance this patch?",
+      "revId": "68e468a0103d96b54e4a4c81d1328564e6ae9b3a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
