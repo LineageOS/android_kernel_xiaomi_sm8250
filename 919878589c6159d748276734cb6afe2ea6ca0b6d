@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3f7c8836_30c903c9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29551
+      },
+      "writtenOn": "2025-01-20T10:55:45Z",
+      "side": 1,
+      "message": "Hi, I have completed the self-test on munch, I don\u0027t know how UFS 3.0 (such as umi, etc.) works, because the UFS Firmware of these machines may be different",
+      "revId": "919878589c6159d748276734cb6afe2ea6ca0b6d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
