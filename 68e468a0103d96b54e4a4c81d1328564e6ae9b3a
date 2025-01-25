@@ -102,6 +102,23 @@
       "message": "I wrote the details (why I thought this would help) into the issue:\n\nhttps://gitlab.com/LineageOS/issues/android/-/issues/7470\n\nI wrote \u0027should\u0027 because I can only test on my phone. But I\u0027ve been running this patch since mid November and haven\u0027t had any issues with distortion since.",
       "revId": "68e468a0103d96b54e4a4c81d1328564e6ae9b3a",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "03825f56_648e50dc",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29551
+      },
+      "writtenOn": "2025-01-25T09:14:11Z",
+      "side": 1,
+      "message": "Tested, random video and audio playback using Chrome, volume pulled to 100%, no \"zizizi\" distortion.\nIt is recommended to protect this change, using ```#if defined(CONFIG_MACH_XIAOMI_MUNCH)```.\nOnly munch seems to need this.",
+      "revId": "68e468a0103d96b54e4a4c81d1328564e6ae9b3a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
