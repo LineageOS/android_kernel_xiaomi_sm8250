@@ -34,6 +34,23 @@
       "parentUuid": "7b3b8b44_a317f891",
       "revId": "095e8c73cd397ed9f6f7435d0f20df01838d6814",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d72dbb3f_bf55317f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2025-02-16T13:38:28Z",
+      "side": 1,
+      "message": "just blindly copy-pasted from my mi8937 kernel, not tested yet, will move to qcom_sm8250 and give CR\u0026V after it\u0027s tested",
+      "revId": "095e8c73cd397ed9f6f7435d0f20df01838d6814",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
