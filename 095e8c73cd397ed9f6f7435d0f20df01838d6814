@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7b3b8b44_a317f891",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-02-16T10:03:26Z",
+      "side": 1,
+      "message": "Isn\u0027t it better to add in kernel/qcom?",
+      "revId": "095e8c73cd397ed9f6f7435d0f20df01838d6814",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
