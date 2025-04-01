@@ -16,6 +16,24 @@
       "message": "Couldnt this be handled in the init script instead of the kernel?",
       "revId": "0eb5e382662dcc78fde3e89d80f1df5d45d102fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1f529dbc_895fc726",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-04-01T03:05:46Z",
+      "side": 1,
+      "message": "Handling this in the init script would be possible, but it wouldn\u0027t be as reliable. The issue occurs due to improper subsystem recovery when the modem crashes under certain LTE band conditions. By setting RESET_SUBSYS_COUPLED directly in the kernel, we ensure that the modem restarts properly without requiring external scripts or manual intervention. This approach provides a more integrated and fail-safe solution.",
+      "parentUuid": "95b49af3_d607002c",
+      "revId": "0eb5e382662dcc78fde3e89d80f1df5d45d102fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
