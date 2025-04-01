@@ -34,6 +34,24 @@
       "parentUuid": "95b49af3_d607002c",
       "revId": "0eb5e382662dcc78fde3e89d80f1df5d45d102fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e60d5ab7_912cece3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 35102
+      },
+      "writtenOn": "2025-04-01T06:21:59Z",
+      "side": 1,
+      "message": "Hi, this fix is for sm8250 modem only or this could be applied to others like sdm845 modem ( 4.19 kernel )?",
+      "parentUuid": "1f529dbc_895fc726",
+      "revId": "0eb5e382662dcc78fde3e89d80f1df5d45d102fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
