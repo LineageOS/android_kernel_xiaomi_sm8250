@@ -88,6 +88,23 @@
       "parentUuid": "b1e9ee5b_f4dd40ba",
       "revId": "0eb5e382662dcc78fde3e89d80f1df5d45d102fa",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2ac48bad_09e11d92",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2025-04-09T15:52:16Z",
+      "side": 1,
+      "message": "Test w/o this commit",
+      "revId": "0eb5e382662dcc78fde3e89d80f1df5d45d102fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
