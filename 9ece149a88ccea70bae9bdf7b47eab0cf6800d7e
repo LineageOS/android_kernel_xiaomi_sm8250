@@ -51,6 +51,24 @@
       "parentUuid": "efedb938_78dfc49c",
       "revId": "9ece149a88ccea70bae9bdf7b47eab0cf6800d7e",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ce6c7f7c_722a91a0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-04-10T00:41:53Z",
+      "side": 1,
+      "message": "Any suggest? This problem has existed for several years and sometimes makes the phone unusable.",
+      "parentUuid": "867a1edd_5e0292ad",
+      "revId": "9ece149a88ccea70bae9bdf7b47eab0cf6800d7e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
