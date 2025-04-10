@@ -33,6 +33,24 @@
       "message": "This two patch needed",
       "revId": "9ece149a88ccea70bae9bdf7b47eab0cf6800d7e",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "867a1edd_5e0292ad",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2025-04-10T00:33:01Z",
+      "side": 1,
+      "message": "Then ssr_setup is not setting restart_level properly",
+      "parentUuid": "efedb938_78dfc49c",
+      "revId": "9ece149a88ccea70bae9bdf7b47eab0cf6800d7e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
