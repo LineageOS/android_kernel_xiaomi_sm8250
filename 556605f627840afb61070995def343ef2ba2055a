@@ -16,6 +16,23 @@
       "message": "\u003e This is retard",
       "revId": "556605f627840afb61070995def343ef2ba2055a",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "59b930fd_7c12daa6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2025-04-27T07:54:59Z",
+      "side": 1,
+      "message": "https://github.com/LineageOS/charter/blob/master/code-of-conduct.md#our-standards",
+      "revId": "556605f627840afb61070995def343ef2ba2055a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
