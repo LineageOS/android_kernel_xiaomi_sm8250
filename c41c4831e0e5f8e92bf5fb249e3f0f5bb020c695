@@ -50,6 +50,23 @@
       "message": "It doesn\u0027t work",
       "revId": "c41c4831e0e5f8e92bf5fb249e3f0f5bb020c695",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "015f41c9_e2e83faf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-04-29T18:23:33Z",
+      "side": 1,
+      "message": "oh, wait. This patch works together with patch 425155",
+      "revId": "c41c4831e0e5f8e92bf5fb249e3f0f5bb020c695",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
