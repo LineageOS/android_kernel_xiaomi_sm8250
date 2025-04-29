@@ -86,6 +86,24 @@
       "message": "leaving alone that it can be configured in userspace, there\u0027s no subsys named \"modem\" but \"esoc0\" on kona? lol",
       "revId": "9ece149a88ccea70bae9bdf7b47eab0cf6800d7e",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "91a9dfea_eebf3a24",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-04-29T17:58:39Z",
+      "side": 1,
+      "message": "We can add our own changes to it. Feel free to make any suggestions or changes. I honestly have no idea.",
+      "parentUuid": "7f984073_ce71e5ff",
+      "revId": "9ece149a88ccea70bae9bdf7b47eab0cf6800d7e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
