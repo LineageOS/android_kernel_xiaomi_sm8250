@@ -33,6 +33,24 @@
       "message": "https://github.com/LineageOS/charter/blob/master/code-of-conduct.md#our-standards",
       "revId": "556605f627840afb61070995def343ef2ba2055a",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5c9c03a7_cfca7e1e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-04-29T17:52:08Z",
+      "side": 1,
+      "message": "Without this patch, the others won\u0027t work either, even if it\u0027s a retard.",
+      "parentUuid": "59b930fd_7c12daa6",
+      "revId": "556605f627840afb61070995def343ef2ba2055a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
