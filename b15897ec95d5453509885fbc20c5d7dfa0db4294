@@ -16,6 +16,24 @@
       "message": "Just realized that we disable CONFIG_DEBUG_FS, how does this work?",
       "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "338a52e0_5ef6ec2f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-07-29T21:04:51Z",
+      "side": 1,
+      "message": "https://github.com/LineageOS/android_kernel_xiaomi_sm8250/blob/lineage-22.2/arch/arm64/configs/vendor/kona-perf_defconfig#L722",
+      "parentUuid": "38ee93cc_e7d4d056",
+      "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
