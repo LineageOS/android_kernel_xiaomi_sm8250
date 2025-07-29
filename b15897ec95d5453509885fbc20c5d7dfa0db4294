@@ -105,6 +105,24 @@
       "parentUuid": "c4d59623_54a98aa4",
       "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4ded08c3_9f76b5ad",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2025-07-29T23:10:08Z",
+      "side": 1,
+      "message": "As you can see, our custom fragment is included after the defconfig, the result is that debugfs is disabled\n\nhttps://github.com/LineageOS/android_device_xiaomi_sm8250-common/blob/lineage-22.2/kona.mk#L233",
+      "parentUuid": "4a495112_af85704f",
+      "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
