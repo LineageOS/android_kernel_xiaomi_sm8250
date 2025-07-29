@@ -34,6 +34,24 @@
       "parentUuid": "38ee93cc_e7d4d056",
       "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "37e01429_25f44fa3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2025-07-29T22:13:09Z",
+      "side": 1,
+      "message": "https://github.com/LineageOS/android_kernel_xiaomi_sm8250/blob/lineage-22.2/arch/arm64/configs/vendor/xiaomi/sm8250-common.config#L9",
+      "parentUuid": "338a52e0_5ef6ec2f",
+      "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
