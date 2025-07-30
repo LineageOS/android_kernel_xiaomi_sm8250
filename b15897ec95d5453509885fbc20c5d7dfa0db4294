@@ -177,6 +177,24 @@
       "parentUuid": "d99a0653_7751ebe1",
       "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3ce509e9_3e909024",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2025-07-30T05:50:41Z",
+      "side": 1,
+      "message": "I mean, we can do whatever to enable debugfs *manually* whenever we need this commit to work... since this is solely for debugging, no need to be present in normal builds",
+      "parentUuid": "8baa11f8_b3953014",
+      "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
