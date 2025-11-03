@@ -2000,7 +2000,7 @@ static int functionfs_bind(struct ffs_data *ffs, struct usb_composite_dev *cdev)
 	ffs_log("enter: state %d setup_state %d flag %lu", ffs->state,
 		ffs->setup_state, ffs->flags);
 
-	if (WARN_ON(ffs->state != FFS_ACTIVE
+	if ((ffs->state != FFS_ACTIVE
 		 || test_and_set_bit(FFS_FL_BOUND, &ffs->flags)))
 		return -EBADFD;
 
@@ -3787,7 +3787,7 @@ static void ffs_free_inst(struct usb_function_instance *f)
 
 static int ffs_set_inst_name(struct usb_function_instance *fi, const char *name)
 {
-	if (strlen(name) >= FIELD_SIZEOF(struct ffs_dev, name))
+	if (strlen(name) >= sizeof_field(struct ffs_dev, name))
 		return -ENAMETOOLONG;
 	return ffs_name_dev(to_f_fs_opts(fi)->dev, name);
 }

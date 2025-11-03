@@ -16,7 +16,7 @@
 #include <linux/threads.h>
 #include <asm/addrspace.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/processor.h>
 #include <asm/cache.h>
 #include <asm/io.h>

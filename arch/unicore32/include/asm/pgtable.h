@@ -288,7 +288,6 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 /* FIXME: this is not correct */
 #define kern_addr_valid(addr)	(1)
 
-#include <asm-generic/pgtable.h>
 
 #define pgtable_cache_init() do { } while (0)
 

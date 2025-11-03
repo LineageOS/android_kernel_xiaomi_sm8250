@@ -183,10 +183,10 @@ static long __get_user_pages_unlocked(struct task_struct *tsk,
 			unsigned int gup_flags)
 {
 	long ret;
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	ret = __get_user_pages(tsk, mm, start, nr_pages, gup_flags, pages,
 				NULL, NULL);
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	return ret;
 }
 
@@ -237,24 +237,33 @@ void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
 }
 EXPORT_SYMBOL(__vmalloc);
 
-void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags)
+void *__vmalloc_node_range(unsigned long size, unsigned long align,
+		unsigned long start, unsigned long end, gfp_t gfp_mask,
+		pgprot_t prot, unsigned long vm_flags, int node,
+		const void *caller)
 {
-	return __vmalloc(size, flags, PAGE_KERNEL);
+	return __vmalloc(size, gfp_mask);
+}
+
+void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
+		int node, const void *caller)
+{
+	return __vmalloc(size, gfp_mask);
 }
 
 void *vmalloc_user(unsigned long size)
 {
 	void *ret;
 
-	ret = __vmalloc(size, GFP_KERNEL | __GFP_ZERO, PAGE_KERNEL);
+	ret = __vmalloc(size, GFP_KERNEL | __GFP_ZERO);
 	if (ret) {
 		struct vm_area_struct *vma;
 
-		down_write(&current->mm->mmap_sem);
+		mmap_write_lock(current->mm);
 		vma = find_vma(current->mm, (unsigned long)ret);
 		if (vma)
 			vma->vm_flags |= VM_USERMAP;
-		up_write(&current->mm->mmap_sem);
+		mmap_write_unlock(current->mm);
 	}
 
 	return ret;
@@ -306,7 +315,7 @@ long vwrite(char *buf, char *addr, unsigned long count)
  */
 void *vmalloc(unsigned long size)
 {
-       return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM, PAGE_KERNEL);
+       return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM);
 }
 EXPORT_SYMBOL(vmalloc);
 
@@ -324,8 +333,7 @@ EXPORT_SYMBOL(vmalloc);
  */
 void *vzalloc(unsigned long size)
 {
-	return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM | __GFP_ZERO,
-			PAGE_KERNEL);
+	return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM | __GFP_ZERO);
 }
 EXPORT_SYMBOL(vzalloc);
 
@@ -378,7 +386,7 @@ EXPORT_SYMBOL(vzalloc_node);
 
 void *vmalloc_exec(unsigned long size)
 {
-	return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM, PAGE_KERNEL_EXEC);
+	return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM);
 }
 
 /**
@@ -390,7 +398,7 @@ void *vmalloc_exec(unsigned long size)
  */
 void *vmalloc_32(unsigned long size)
 {
-	return __vmalloc(size, GFP_KERNEL, PAGE_KERNEL);
+	return __vmalloc(size, GFP_KERNEL);
 }
 EXPORT_SYMBOL(vmalloc_32);
 
@@ -1618,9 +1626,9 @@ int vm_munmap(unsigned long addr, size_t len)
 	struct mm_struct *mm = current->mm;
 	int ret;
 
-	down_write(&mm->mmap_sem);
+	mmap_write_lock(mm);
 	ret = do_munmap(mm, addr, len, NULL);
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 	return ret;
 }
 EXPORT_SYMBOL(vm_munmap);
@@ -1707,17 +1715,15 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
 {
 	unsigned long ret;
 
-	down_write(&current->mm->mmap_sem);
+	mmap_write_lock(current->mm);
 	ret = do_mremap(addr, old_len, new_len, flags, new_addr);
-	up_write(&current->mm->mmap_sem);
+	mmap_write_unlock(current->mm);
 	return ret;
 }
 
-struct page *follow_page_mask(struct vm_area_struct *vma,
-			      unsigned long address, unsigned int flags,
-			      unsigned int *page_mask)
+struct page *follow_page(struct vm_area_struct *vma, unsigned long address,
+			 unsigned int foll_flags)
 {
-	*page_mask = 0;
 	return NULL;
 }
 
@@ -1783,7 +1789,7 @@ int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
 	struct vm_area_struct *vma;
 	int write = gup_flags & FOLL_WRITE;
 
-	if (down_read_killable(&mm->mmap_sem))
+	if (mmap_read_lock_killable(mm))
 		return 0;
 
 	/* the access must start within one of the target process's mappings */
@@ -1806,7 +1812,7 @@ int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
 		len = 0;
 	}
 
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 
 	return len;
 }

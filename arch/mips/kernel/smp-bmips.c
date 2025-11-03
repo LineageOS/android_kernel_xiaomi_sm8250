@@ -27,7 +27,7 @@
 #include <linux/kernel.h>
 
 #include <asm/time.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/processor.h>
 #include <asm/bootinfo.h>
 #include <asm/pmon.h>

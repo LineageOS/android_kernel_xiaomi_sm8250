@@ -593,10 +593,10 @@ static int check_mem_type(unsigned long start, size_t num_pages)
 	struct mm_struct *mm = current->mm;
 	int rc;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	rc = __check_mem_type(find_vma(mm, start),
 			      start + num_pages * PAGE_SIZE);
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 
 	return rc;
 }

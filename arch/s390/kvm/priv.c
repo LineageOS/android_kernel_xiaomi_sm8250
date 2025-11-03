@@ -20,7 +20,7 @@
 #include <asm/debug.h>
 #include <asm/ebcdic.h>
 #include <asm/sysinfo.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/page-states.h>
 #include <asm/pgalloc.h>
 #include <asm/gmap.h>
@@ -269,18 +269,18 @@ static int handle_iske(struct kvm_vcpu *vcpu)
 		return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 retry:
 	unlocked = false;
-	down_read(&current->mm->mmap_sem);
+	mmap_read_lock(current->mm);
 	rc = get_guest_storage_key(current->mm, vmaddr, &key);
 
 	if (rc) {
 		rc = fixup_user_fault(current, current->mm, vmaddr,
 				      FAULT_FLAG_WRITE, &unlocked);
 		if (!rc) {
-			up_read(&current->mm->mmap_sem);
+			mmap_read_unlock(current->mm);
 			goto retry;
 		}
 	}
-	up_read(&current->mm->mmap_sem);
+	mmap_read_unlock(current->mm);
 	if (rc == -EFAULT)
 		return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 	if (rc < 0)
@@ -316,17 +316,17 @@ static int handle_rrbe(struct kvm_vcpu *vcpu)
 		return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 retry:
 	unlocked = false;
-	down_read(&current->mm->mmap_sem);
+	mmap_read_lock(current->mm);
 	rc = reset_guest_reference_bit(current->mm, vmaddr);
 	if (rc < 0) {
 		rc = fixup_user_fault(current, current->mm, vmaddr,
 				      FAULT_FLAG_WRITE, &unlocked);
 		if (!rc) {
-			up_read(&current->mm->mmap_sem);
+			mmap_read_unlock(current->mm);
 			goto retry;
 		}
 	}
-	up_read(&current->mm->mmap_sem);
+	mmap_read_unlock(current->mm);
 	if (rc == -EFAULT)
 		return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 	if (rc < 0)
@@ -384,7 +384,7 @@ static int handle_sske(struct kvm_vcpu *vcpu)
 		if (kvm_is_error_hva(vmaddr))
 			return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 
-		down_read(&current->mm->mmap_sem);
+		mmap_read_lock(current->mm);
 		rc = cond_set_guest_storage_key(current->mm, vmaddr, key, &oldkey,
 						m3 & SSKE_NQ, m3 & SSKE_MR,
 						m3 & SSKE_MC);
@@ -394,7 +394,7 @@ static int handle_sske(struct kvm_vcpu *vcpu)
 					      FAULT_FLAG_WRITE, &unlocked);
 			rc = !rc ? -EAGAIN : rc;
 		}
-		up_read(&current->mm->mmap_sem);
+		mmap_read_unlock(current->mm);
 		if (rc == -EFAULT)
 			return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 		if (rc == -EAGAIN)
@@ -1000,7 +1000,7 @@ static int handle_pfmf(struct kvm_vcpu *vcpu)
 
 			if (rc)
 				return rc;
-			down_read(&current->mm->mmap_sem);
+			mmap_read_lock(current->mm);
 			rc = cond_set_guest_storage_key(current->mm, vmaddr,
 							key, NULL, nq, mr, mc);
 			if (rc < 0) {
@@ -1008,7 +1008,7 @@ static int handle_pfmf(struct kvm_vcpu *vcpu)
 						      FAULT_FLAG_WRITE, &unlocked);
 				rc = !rc ? -EAGAIN : rc;
 			}
-			up_read(&current->mm->mmap_sem);
+			mmap_read_unlock(current->mm);
 			if (rc == -EFAULT)
 				return kvm_s390_inject_program_int(vcpu, PGM_ADDRESSING);
 			if (rc == -EAGAIN)
@@ -1129,9 +1129,9 @@ static int handle_essa(struct kvm_vcpu *vcpu)
 		 * already correct, we do nothing and avoid the lock.
 		 */
 		if (vcpu->kvm->mm->context.uses_cmm == 0) {
-			down_write(&vcpu->kvm->mm->mmap_sem);
+			mmap_write_lock(vcpu->kvm->mm);
 			vcpu->kvm->mm->context.uses_cmm = 1;
-			up_write(&vcpu->kvm->mm->mmap_sem);
+			mmap_write_unlock(vcpu->kvm->mm);
 		}
 		/*
 		 * If we are here, we are supposed to have CMMA enabled in
@@ -1148,11 +1148,11 @@ static int handle_essa(struct kvm_vcpu *vcpu)
 	} else {
 		int srcu_idx;
 
-		down_read(&vcpu->kvm->mm->mmap_sem);
+		mmap_read_lock(vcpu->kvm->mm);
 		srcu_idx = srcu_read_lock(&vcpu->kvm->srcu);
 		i = __do_essa(vcpu, orc);
 		srcu_read_unlock(&vcpu->kvm->srcu, srcu_idx);
-		up_read(&vcpu->kvm->mm->mmap_sem);
+		mmap_read_unlock(vcpu->kvm->mm);
 		if (i < 0)
 			return i;
 		/* Account for the possible extra cbrl entry */
@@ -1160,10 +1160,10 @@ static int handle_essa(struct kvm_vcpu *vcpu)
 	}
 	vcpu->arch.sie_block->cbrlo &= PAGE_MASK;	/* reset nceo */
 	cbrlo = phys_to_virt(vcpu->arch.sie_block->cbrlo);
-	down_read(&gmap->mm->mmap_sem);
+	mmap_read_lock(gmap->mm);
 	for (i = 0; i < entries; ++i)
 		__gmap_zap(gmap, cbrlo[i]);
-	up_read(&gmap->mm->mmap_sem);
+	mmap_read_unlock(gmap->mm);
 	return 0;
 }
 

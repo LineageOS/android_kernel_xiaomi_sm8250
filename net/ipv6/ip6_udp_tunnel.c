@@ -31,6 +31,11 @@ int udp_sock_create6(struct net *net, struct udp_port_cfg *cfg,
 		if (err < 0)
 			goto error;
 	}
+	if (cfg->bind_ifindex) {
+		err = sock_bindtoindex(sock->sk, cfg->bind_ifindex, true);
+		if (err < 0)
+			goto error;
+	}
 
 	udp6_addr.sin6_family = AF_INET6;
 	memcpy(&udp6_addr.sin6_addr, &cfg->local_ip6,

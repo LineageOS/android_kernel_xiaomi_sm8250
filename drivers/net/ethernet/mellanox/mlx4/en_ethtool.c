@@ -611,7 +611,7 @@ static u32 ptys_get_active_port(struct mlx4_ptys_reg *ptys_reg)
 }
 
 #define MLX4_LINK_MODES_SZ \
-	(FIELD_SIZEOF(struct mlx4_ptys_reg, eth_proto_cap) * 8)
+	(sizeof_field(struct mlx4_ptys_reg, eth_proto_cap) * 8)
 
 enum ethtool_report {
 	SUPPORTED = 0,
@@ -1889,6 +1889,7 @@ static int mlx4_en_get_ts_info(struct net_device *dev,
 	if (mdev->dev->caps.flags2 & MLX4_DEV_CAP_FLAG2_TS) {
 		info->so_timestamping |=
 			SOF_TIMESTAMPING_TX_HARDWARE |
+			SOF_TIMESTAMPING_TX_SOFTWARE |
 			SOF_TIMESTAMPING_RX_HARDWARE |
 			SOF_TIMESTAMPING_RAW_HARDWARE;
 

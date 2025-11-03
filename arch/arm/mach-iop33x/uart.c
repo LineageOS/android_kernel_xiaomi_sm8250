@@ -18,7 +18,7 @@
 #include <linux/tty.h>
 #include <linux/serial_8250.h>
 #include <linux/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/page.h>
 #include <asm/mach/map.h>
 #include <asm/setup.h>

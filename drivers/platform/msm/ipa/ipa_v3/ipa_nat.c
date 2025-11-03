@@ -53,7 +53,7 @@ enum ipa_nat_ipv6ct_table_type {
 
 static bool sram_compatible;
 
-static int ipa3_nat_ipv6ct_vma_fault_remap(struct vm_fault *vmf)
+static vm_fault_t ipa3_nat_ipv6ct_vma_fault_remap(struct vm_fault *vmf)
 {
 	vmf->page = NULL;
 

@@ -55,7 +55,7 @@
 #include <linux/spi/spi.h>
 #endif
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/io.h>
 #include <asm/div64.h>
 #include <media/v4l2-common.h>

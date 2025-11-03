@@ -24,7 +24,7 @@ static inline pgprot_t pte_pgprot(pte_t pte)	{ return __pgprot(pte_val(pte) & PA
 #ifdef CONFIG_NUMA_BALANCING
 /*
  * These work without NUMA balancing but the kernel does not care. See the
- * comment in include/asm-generic/pgtable.h . On powerpc, this will only
+ * comment in include/linux/pgtable.h . On powerpc, this will only
  * work for user pages and always return true for kernel pages.
  */
 static inline int pte_protnone(pte_t pte)

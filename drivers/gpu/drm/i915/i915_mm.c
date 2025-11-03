@@ -25,7 +25,7 @@
 #include <linux/mm.h>
 #include <linux/io-mapping.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #include "i915_drv.h"
 

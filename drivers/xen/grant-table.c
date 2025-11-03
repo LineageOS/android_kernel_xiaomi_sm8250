@@ -64,7 +64,7 @@
 #include <asm/xen/hypercall.h>
 #include <asm/xen/interface.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sync_bitops.h>
 
 /* External tools reserve first few grant table entries. */

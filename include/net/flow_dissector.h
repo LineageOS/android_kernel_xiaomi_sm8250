@@ -8,6 +8,10 @@
 #include <linux/string.h>
 #include <uapi/linux/if_ether.h>
 
+struct bpf_prog;
+struct net;
+struct sk_buff;
+
 /**
  * struct flow_dissector_key_control:
  * @thoff: Transport header offset
@@ -159,19 +163,16 @@ struct flow_dissector_key_ports {
 
 /**
  * flow_dissector_key_icmp:
- *	@ports: type and code of ICMP header
- *		icmp: ICMP type (high) and code (low)
  *		type: ICMP type
  *		code: ICMP code
+ *		id:   session identifier
  */
 struct flow_dissector_key_icmp {
-	union {
-		__be16 icmp;
-		struct {
-			u8 type;
-			u8 code;
-		};
+	struct {
+		u8 type;
+		u8 code;
 	};
+	u16 id;
 };
 
 /**
@@ -203,6 +204,14 @@ struct flow_dissector_key_ip {
 	__u8	ttl;
 };
 
+/**
+ * struct flow_dissector_key_meta:
+ * @ingress_ifindex: ingress ifindex
+ */
+struct flow_dissector_key_meta {
+	int ingress_ifindex;
+};
+
 enum flow_dissector_key_id {
 	FLOW_DISSECTOR_KEY_CONTROL, /* struct flow_dissector_key_control */
 	FLOW_DISSECTOR_KEY_BASIC, /* struct flow_dissector_key_basic */
@@ -228,14 +237,14 @@ enum flow_dissector_key_id {
 	FLOW_DISSECTOR_KEY_CVLAN, /* struct flow_dissector_key_flow_vlan */
 	FLOW_DISSECTOR_KEY_ENC_IP, /* struct flow_dissector_key_ip */
 	FLOW_DISSECTOR_KEY_ENC_OPTS, /* struct flow_dissector_key_enc_opts */
+	FLOW_DISSECTOR_KEY_META, /* struct flow_dissector_key_meta */
 
 	FLOW_DISSECTOR_KEY_MAX,
 };
 
 #define FLOW_DISSECTOR_F_PARSE_1ST_FRAG		BIT(0)
-#define FLOW_DISSECTOR_F_STOP_AT_L3		BIT(1)
-#define FLOW_DISSECTOR_F_STOP_AT_FLOW_LABEL	BIT(2)
-#define FLOW_DISSECTOR_F_STOP_AT_ENCAP		BIT(3)
+#define FLOW_DISSECTOR_F_STOP_AT_FLOW_LABEL	BIT(1)
+#define FLOW_DISSECTOR_F_STOP_AT_ENCAP		BIT(2)
 
 struct flow_dissector_key {
 	enum flow_dissector_key_id key_id;
@@ -262,6 +271,8 @@ struct flow_keys {
 	struct flow_dissector_key_vlan cvlan;
 	struct flow_dissector_key_keyid keyid;
 	struct flow_dissector_key_ports ports;
+	struct flow_dissector_key_icmp icmp;
+	/* 'addrs' must be the last member */
 	struct flow_dissector_key_addrs addrs;
 };
 
@@ -295,6 +306,9 @@ static inline bool flow_keys_have_l4(const struct flow_keys *keys)
 }
 
 u32 flow_hash_from_keys(struct flow_keys *keys);
+void skb_flow_get_icmp_tci(const struct sk_buff *skb,
+			   struct flow_dissector_key_icmp *key_icmp,
+			   void *data, int thoff, int hlen);
 
 static inline bool dissector_uses_key(const struct flow_dissector *flow_dissector,
 				      enum flow_dissector_key_id key_id)
@@ -316,5 +330,17 @@ flow_dissector_init_keys(struct flow_dissector_key_control *key_control,
 	memset(key_control, 0, sizeof(*key_control));
 	memset(key_basic, 0, sizeof(*key_basic));
 }
+
+struct bpf_flow_dissector {
+	struct bpf_flow_keys	*flow_keys;
+	const struct sk_buff	*skb;
+	void			*data;
+	void			*data_end;
+};
+
+#ifdef CONFIG_BPF_SYSCALL
+int flow_dissector_bpf_prog_attach_check(struct net *net,
+					 struct bpf_prog *prog);
+#endif /* CONFIG_BPF_SYSCALL */
 
 #endif

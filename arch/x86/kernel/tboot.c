@@ -36,7 +36,7 @@
 #include <asm/realmode.h>
 #include <asm/processor.h>
 #include <asm/bootparam.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <asm/swiotlb.h>
 #include <asm/fixmap.h>

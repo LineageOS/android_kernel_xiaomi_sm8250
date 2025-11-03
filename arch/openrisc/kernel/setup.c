@@ -41,7 +41,7 @@
 
 #include <asm/sections.h>
 #include <asm/segment.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/types.h>
 #include <asm/setup.h>
 #include <asm/io.h>

@@ -42,7 +42,7 @@
 #include <linux/delay.h>
 #include <linux/fb.h>
 #include <linux/init.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #ifdef CONFIG_ZORRO
 #include <linux/zorro.h>

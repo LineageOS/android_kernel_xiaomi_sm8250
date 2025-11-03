@@ -23,7 +23,7 @@
 #include <asm/kernel-pgtable.h>
 #include <asm/page.h>
 #include <asm/pgalloc.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
 

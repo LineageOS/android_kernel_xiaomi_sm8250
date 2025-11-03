@@ -25,7 +25,7 @@
 
 #include <linux/uaccess.h>
 #include <asm/ptrace.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/fpumacro.h>
 #include <asm/uctx.h>
 #include <asm/siginfo.h>

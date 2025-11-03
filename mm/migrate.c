@@ -240,7 +240,7 @@ static bool remove_migration_pte(struct page *page, struct vm_area_struct *vma,
 		 */
 		entry = pte_to_swp_entry(*pvmw.pte);
 		if (is_write_migration_entry(entry))
-			pte = maybe_mkwrite(pte, vma->vm_flags);
+			pte = maybe_mkwrite(pte, vma);
 
 		if (unlikely(is_zone_device_page(new))) {
 			if (is_device_private_page(new)) {
@@ -1534,7 +1534,7 @@ static int add_page_for_migration(struct mm_struct *mm, unsigned long addr,
 	unsigned int follflags;
 	int err;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	err = -EFAULT;
 	vma = find_vma(mm, addr);
 	if (!vma || addr < vma->vm_start || !vma_migratable(vma))
@@ -1587,7 +1587,7 @@ out_putpage:
 	 */
 	put_page(page);
 out:
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	return err;
 }
 
@@ -1719,7 +1719,7 @@ static void do_pages_stat_array(struct mm_struct *mm, unsigned long nr_pages,
 {
 	unsigned long i;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 
 	for (i = 0; i < nr_pages; i++) {
 		unsigned long addr = (unsigned long)(*pages);
@@ -1746,7 +1746,7 @@ set_status:
 		status++;
 	}
 
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 }
 
 /*
@@ -1970,7 +1970,7 @@ bool pmd_trans_migrating(pmd_t pmd)
  * node. Caller is expected to have an elevated reference count on
  * the page that will be dropped by this function before returning.
  */
-int migrate_misplaced_page(struct page *page, struct vm_fault *vmf,
+int migrate_misplaced_page(struct page *page, struct vm_area_struct *vma,
 			   int node)
 {
 	pg_data_t *pgdat = NODE_DATA(node);
@@ -1983,7 +1983,7 @@ int migrate_misplaced_page(struct page *page, struct vm_fault *vmf,
 	 * with execute permissions as they are probably shared libraries.
 	 */
 	if (page_mapcount(page) != 1 && page_is_file_cache(page) &&
-	    (vmf->vma_flags & VM_EXEC))
+	    (vma->vm_flags & VM_EXEC))
 		goto out;
 
 	/*

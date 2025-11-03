@@ -1008,9 +1008,9 @@ extern void perf_event_output_forward(struct perf_event *event,
 extern void perf_event_output_backward(struct perf_event *event,
 				       struct perf_sample_data *data,
 				       struct pt_regs *regs);
-extern void perf_event_output(struct perf_event *event,
-			      struct perf_sample_data *data,
-			      struct pt_regs *regs);
+extern int perf_event_output(struct perf_event *event,
+			     struct perf_sample_data *data,
+			     struct pt_regs *regs);
 
 static inline bool
 __is_default_overflow_handler(perf_overflow_handler_t overflow_handler)
@@ -1164,6 +1164,13 @@ static inline void perf_event_task_sched_out(struct task_struct *prev,
 }
 
 extern void perf_event_mmap(struct vm_area_struct *vma);
+
+extern void perf_event_ksymbol(u16 ksym_type, u64 addr, u32 len,
+			       bool unregister, const char *sym);
+extern void perf_event_bpf_event(struct bpf_prog *prog,
+				 enum perf_bpf_event_type type,
+				 u16 flags);
+
 extern struct perf_guest_info_callbacks *perf_guest_cbs;
 extern int perf_register_guest_info_callbacks(struct perf_guest_info_callbacks *callbacks);
 extern int perf_unregister_guest_info_callbacks(struct perf_guest_info_callbacks *callbacks);
@@ -1184,6 +1191,8 @@ get_perf_callchain(struct pt_regs *regs, u32 init_nr, bool kernel, bool user,
 extern struct perf_callchain_entry *perf_callchain(struct perf_event *event, struct pt_regs *regs);
 extern int get_callchain_buffers(int max_stack);
 extern void put_callchain_buffers(void);
+extern struct perf_callchain_entry *get_callchain_entry(int *rctx);
+extern void put_callchain_entry(int rctx);
 
 extern int sysctl_perf_event_max_stack;
 extern int sysctl_perf_event_max_contexts_per_stack;
@@ -1220,15 +1229,12 @@ extern int sysctl_perf_cpu_time_max_percent;
 
 extern void perf_sample_event_took(u64 sample_len_ns);
 
-extern int perf_proc_update_handler(struct ctl_table *table, int write,
-		void __user *buffer, size_t *lenp,
-		loff_t *ppos);
-extern int perf_cpu_time_max_percent_handler(struct ctl_table *table, int write,
-		void __user *buffer, size_t *lenp,
-		loff_t *ppos);
-
+int perf_proc_update_handler(struct ctl_table *table, int write,
+		void *buffer, size_t *lenp, loff_t *ppos);
+int perf_cpu_time_max_percent_handler(struct ctl_table *table, int write,
+		void *buffer, size_t *lenp, loff_t *ppos);
 int perf_event_max_stack_handler(struct ctl_table *table, int write,
-				 void __user *buffer, size_t *lenp, loff_t *ppos);
+		void *buffer, size_t *lenp, loff_t *ppos);
 
 /* Access to perf_event_open(2) syscall. */
 #define PERF_SECURITY_OPEN		0
@@ -1406,6 +1412,13 @@ static inline int perf_unregister_guest_info_callbacks
 (struct perf_guest_info_callbacks *callbacks)				{ return 0; }
 
 static inline void perf_event_mmap(struct vm_area_struct *vma)		{ }
+
+typedef int (perf_ksymbol_get_name_f)(char *name, int name_len, void *data);
+static inline void perf_event_ksymbol(u16 ksym_type, u64 addr, u32 len,
+				      bool unregister, const char *sym)	{ }
+static inline void perf_event_bpf_event(struct bpf_prog *prog,
+					enum perf_bpf_event_type type,
+					u16 flags)			{ }
 static inline void perf_event_exec(void)				{ }
 static inline void perf_event_comm(struct task_struct *tsk, bool exec)	{ }
 static inline void perf_event_namespaces(struct task_struct *tsk)	{ }

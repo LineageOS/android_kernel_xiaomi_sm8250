@@ -20,7 +20,7 @@
 #include <asm/irq.h>
 #include <asm/pal.h>
 #include <asm/machvec.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sal.h>
 #include <asm/hpsim.h>
 

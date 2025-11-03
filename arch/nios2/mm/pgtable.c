@@ -10,7 +10,7 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/cpuinfo.h>
 
 /* pteaddr:

@@ -82,7 +82,7 @@ TRACE_EVENT(sock_rcvqueue_full,
 	TP_fast_assign(
 		__entry->rmem_alloc = atomic_read(&sk->sk_rmem_alloc);
 		__entry->truesize   = skb->truesize;
-		__entry->sk_rcvbuf  = sk->sk_rcvbuf;
+		__entry->sk_rcvbuf  = READ_ONCE(sk->sk_rcvbuf);
 	),
 
 	TP_printk("rmem_alloc=%d truesize=%u sk_rcvbuf=%d",
@@ -149,7 +149,7 @@ TRACE_EVENT(inet_sock_set_state,
 		__field(__u16, sport)
 		__field(__u16, dport)
 		__field(__u16, family)
-		__field(__u8, protocol)
+		__field(__u16, protocol)
 		__array(__u8, saddr, 4)
 		__array(__u8, daddr, 4)
 		__array(__u8, saddr_v6, 16)

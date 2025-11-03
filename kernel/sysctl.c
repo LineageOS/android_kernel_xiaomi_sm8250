@@ -68,6 +68,7 @@
 #include <linux/bpf.h>
 #include <linux/mount.h>
 #include <linux/pipe_fs_i.h>
+#include <linux/userfaultfd_k.h>
 
 #include "../lib/kstrtox.h"
 
@@ -369,6 +370,40 @@ static int max_sched_tunable_scaling = SCHED_TUNABLESCALING_END-1;
 #ifdef CONFIG_COMPACTION
 static int min_extfrag_threshold;
 static int max_extfrag_threshold = 1000;
+#endif
+
+#ifdef CONFIG_BPF_SYSCALL
+static int bpf_stats_handler(struct ctl_table *table, int write,
+			     void __user *buffer, size_t *lenp,
+			     loff_t *ppos)
+{
+	struct static_key *key = (struct static_key *)table->data;
+	static int saved_val;
+	int val, ret;
+	struct ctl_table tmp = {
+		.data   = &val,
+		.maxlen = sizeof(val),
+		.mode   = table->mode,
+		.extra1 = &zero,
+		.extra2 = &one,
+	};
+
+	if (write && !capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	mutex_lock(&bpf_stats_enabled_mutex);
+	val = saved_val;
+	ret = proc_dointvec_minmax(&tmp, write, buffer, lenp, ppos);
+	if (write && !ret && val != saved_val) {
+		if (val)
+			static_key_slow_inc(key);
+		else
+			static_key_slow_dec(key);
+		saved_val = val;
+	}
+	mutex_unlock(&bpf_stats_enabled_mutex);
+	return ret;
+}
 #endif
 
 static struct ctl_table kern_table[] = {
@@ -1604,6 +1639,13 @@ static struct ctl_table kern_table[] = {
 		.extra2		= &two,
 	},
 #endif
+	{
+		.procname	= "bpf_stats_enabled",
+		.data		= &bpf_stats_enabled_key.key,
+		.maxlen		= sizeof(bpf_stats_enabled_key),
+		.mode		= 0644,
+		.proc_handler	= bpf_stats_handler,
+	},
 #if defined(CONFIG_TREE_RCU) || defined(CONFIG_PREEMPT_RCU)
 	{
 		.procname	= "panic_on_rcu_stall",
@@ -2120,6 +2162,17 @@ static struct ctl_table vm_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 	},
 #endif
+#ifdef CONFIG_USERFAULTFD
+	{
+		.procname	= "unprivileged_userfaultfd",
+		.data		= &sysctl_unprivileged_userfaultfd,
+		.maxlen		= sizeof(sysctl_unprivileged_userfaultfd),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+#endif
 	{ }
 };
 
@@ -2377,12 +2430,10 @@ int __init sysctl_init(void)
 #ifdef CONFIG_PROC_SYSCTL
 
 static int _proc_do_string(char *data, int maxlen, int write,
-			   char __user *buffer,
-			   size_t *lenp, loff_t *ppos)
+		char *buffer, size_t *lenp, loff_t *ppos)
 {
 	size_t len;
-	char __user *p;
-	char c;
+	char c, *p;
 
 	if (!data || !maxlen || !*lenp) {
 		*lenp = 0;
@@ -2407,8 +2458,7 @@ static int _proc_do_string(char *data, int maxlen, int write,
 		*ppos += *lenp;
 		p = buffer;
 		while ((p - buffer) < *lenp && len < maxlen - 1) {
-			if (get_user(c, p++))
-				return -EFAULT;
+			c = *(p++);
 			if (c == 0 || c == '\n')
 				break;
 			data[len++] = c;
@@ -2430,11 +2480,9 @@ static int _proc_do_string(char *data, int maxlen, int write,
 		if (len > *lenp)
 			len = *lenp;
 		if (len)
-			if (copy_to_user(buffer, data, len))
-				return -EFAULT;
+			memcpy(buffer, data, len);
 		if (len < *lenp) {
-			if (put_user('\n', buffer + len))
-				return -EFAULT;
+			buffer[len] = '\n';
 			len++;
 		}
 		*lenp = len;
@@ -2495,13 +2543,13 @@ static bool proc_first_pos_non_zero_ignore(loff_t *ppos,
  * Returns 0 on success.
  */
 int proc_dostring(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos)
+		  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	if (write)
 		proc_first_pos_non_zero_ignore(ppos, table);
 
-	return _proc_do_string((char *)(table->data), table->maxlen, write,
-			       (char __user *)buffer, lenp, ppos);
+	return _proc_do_string(table->data, table->maxlen, write, buffer, lenp,
+			ppos);
 }
 
 static void proc_skip_spaces(char **buf, size_t *size)
@@ -2632,11 +2680,10 @@ static int proc_get_long(char **buf, size_t *size,
  * @val: the integer to be converted
  * @neg: sign of the number, %TRUE for negative
  *
- * In case of success %0 is returned and @buf and @size are updated with
- * the amount of bytes written.
+ * In case of success @buf and @size are updated with the amount of bytes
+ * written.
  */
-static int proc_put_long(void __user **buf, size_t *size, unsigned long val,
-			  bool neg)
+static void proc_put_long(void **buf, size_t *size, unsigned long val, bool neg)
 {
 	int len;
 	char tmp[TMPBUFLEN], *p = tmp;
@@ -2645,24 +2692,22 @@ static int proc_put_long(void __user **buf, size_t *size, unsigned long val,
 	len = strlen(tmp);
 	if (len > *size)
 		len = *size;
-	if (copy_to_user(*buf, tmp, len))
-		return -EFAULT;
+	memcpy(*buf, tmp, len);
 	*size -= len;
 	*buf += len;
-	return 0;
 }
 #undef TMPBUFLEN
 
-static int proc_put_char(void __user **buf, size_t *size, char c)
+static void proc_put_char(void **buf, size_t *size, char c)
 {
 	if (*size) {
-		char __user **buffer = (char __user **)buf;
-		if (put_user(c, *buffer))
-			return -EFAULT;
-		(*size)--, (*buffer)++;
+		char **buffer = (char **)buf;
+		**buffer = c;
+
+		(*size)--;
+		(*buffer)++;
 		*buf = *buffer;
 	}
-	return 0;
 }
 
 static int do_proc_dointvec_conv(bool *negp, unsigned long *lvalp,
@@ -2710,7 +2755,7 @@ static int do_proc_douintvec_conv(unsigned long *lvalp,
 static const char proc_wspace_sep[] = { ' ', '\t', '\n' };
 
 static int __do_proc_dointvec(void *tbl_data, struct ctl_table *table,
-		  int write, void __user *buffer,
+		  int write, void *buffer,
 		  size_t *lenp, loff_t *ppos,
 		  int (*conv)(bool *negp, unsigned long *lvalp, int *valp,
 			      int write, void *data),
@@ -2718,7 +2763,7 @@ static int __do_proc_dointvec(void *tbl_data, struct ctl_table *table,
 {
 	int *i, vleft, first = 1, err = 0;
 	size_t left;
-	char *kbuf = NULL, *p;
+	char *p;
 	
 	if (!tbl_data || !table->maxlen || !*lenp || (*ppos && !write)) {
 		*lenp = 0;
@@ -2738,9 +2783,7 @@ static int __do_proc_dointvec(void *tbl_data, struct ctl_table *table,
 
 		if (left > PAGE_SIZE - 1)
 			left = PAGE_SIZE - 1;
-		p = kbuf = memdup_user_nul(buffer, left);
-		if (IS_ERR(kbuf))
-			return PTR_ERR(kbuf);
+		p = buffer;
 	}
 
 	for (; left && vleft--; i++, first=0) {
@@ -2767,24 +2810,17 @@ static int __do_proc_dointvec(void *tbl_data, struct ctl_table *table,
 				break;
 			}
 			if (!first)
-				err = proc_put_char(&buffer, &left, '\t');
-			if (err)
-				break;
-			err = proc_put_long(&buffer, &left, lval, neg);
-			if (err)
-				break;
+				proc_put_char(&buffer, &left, '\t');
+			proc_put_long(&buffer, &left, lval, neg);
 		}
 	}
 
 	if (!write && !first && left && !err)
-		err = proc_put_char(&buffer, &left, '\n');
+		proc_put_char(&buffer, &left, '\n');
 	if (write && !err && left)
 		proc_skip_spaces(&p, &left);
-	if (write) {
-		kfree(kbuf);
-		if (first)
-			return err ? : -EINVAL;
-	}
+	if (write && first)
+		return err ? : -EINVAL;
 	*lenp -= left;
 out:
 	*ppos += *lenp;
@@ -2792,7 +2828,7 @@ out:
 }
 
 static int do_proc_dointvec(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos,
+		  void *buffer, size_t *lenp, loff_t *ppos,
 		  int (*conv)(bool *negp, unsigned long *lvalp, int *valp,
 			      int write, void *data),
 		  void *data)
@@ -2803,7 +2839,7 @@ static int do_proc_dointvec(struct ctl_table *table, int write,
 
 static int do_proc_douintvec_w(unsigned int *tbl_data,
 			       struct ctl_table *table,
-			       void __user *buffer,
+			       void *buffer,
 			       size_t *lenp, loff_t *ppos,
 			       int (*conv)(unsigned long *lvalp,
 					   unsigned int *valp,
@@ -2814,7 +2850,7 @@ static int do_proc_douintvec_w(unsigned int *tbl_data,
 	int err = 0;
 	size_t left;
 	bool neg;
-	char *kbuf = NULL, *p;
+	char *p = buffer;
 
 	left = *lenp;
 
@@ -2823,10 +2859,6 @@ static int do_proc_douintvec_w(unsigned int *tbl_data,
 
 	if (left > PAGE_SIZE - 1)
 		left = PAGE_SIZE - 1;
-
-	p = kbuf = memdup_user_nul(buffer, left);
-	if (IS_ERR(kbuf))
-		return -EINVAL;
 
 	proc_skip_spaces(&p, &left);
 	if (!left) {
@@ -2851,7 +2883,6 @@ static int do_proc_douintvec_w(unsigned int *tbl_data,
 		proc_skip_spaces(&p, &left);
 
 out_free:
-	kfree(kbuf);
 	if (err)
 		return -EINVAL;
 
@@ -2863,7 +2894,7 @@ bail_early:
 	return err;
 }
 
-static int do_proc_douintvec_r(unsigned int *tbl_data, void __user *buffer,
+static int do_proc_douintvec_r(unsigned int *tbl_data, void *buffer,
 			       size_t *lenp, loff_t *ppos,
 			       int (*conv)(unsigned long *lvalp,
 					   unsigned int *valp,
@@ -2881,11 +2912,11 @@ static int do_proc_douintvec_r(unsigned int *tbl_data, void __user *buffer,
 		goto out;
 	}
 
-	err = proc_put_long(&buffer, &left, lval, false);
-	if (err || !left)
+	proc_put_long(&buffer, &left, lval, false);
+	if (!left)
 		goto out;
 
-	err = proc_put_char(&buffer, &left, '\n');
+	proc_put_char(&buffer, &left, '\n');
 
 out:
 	*lenp -= left;
@@ -2895,7 +2926,7 @@ out:
 }
 
 static int __do_proc_douintvec(void *tbl_data, struct ctl_table *table,
-			       int write, void __user *buffer,
+			       int write, void *buffer,
 			       size_t *lenp, loff_t *ppos,
 			       int (*conv)(unsigned long *lvalp,
 					   unsigned int *valp,
@@ -2931,7 +2962,7 @@ static int __do_proc_douintvec(void *tbl_data, struct ctl_table *table,
 }
 
 static int do_proc_douintvec(struct ctl_table *table, int write,
-			     void __user *buffer, size_t *lenp, loff_t *ppos,
+			     void *buffer, size_t *lenp, loff_t *ppos,
 			     int (*conv)(unsigned long *lvalp,
 					 unsigned int *valp,
 					 int write, void *data),
@@ -2954,8 +2985,8 @@ static int do_proc_douintvec(struct ctl_table *table, int write,
  *
  * Returns 0 on success.
  */
-int proc_dointvec(struct ctl_table *table, int write,
-		     void __user *buffer, size_t *lenp, loff_t *ppos)
+int proc_dointvec(struct ctl_table *table, int write, void *buffer,
+		  size_t *lenp, loff_t *ppos)
 {
 	return do_proc_dointvec(table, write, buffer, lenp, ppos, NULL, NULL);
 }
@@ -2973,8 +3004,8 @@ int proc_dointvec(struct ctl_table *table, int write,
  *
  * Returns 0 on success.
  */
-int proc_douintvec(struct ctl_table *table, int write,
-		     void __user *buffer, size_t *lenp, loff_t *ppos)
+int proc_douintvec(struct ctl_table *table, int write, void *buffer,
+		size_t *lenp, loff_t *ppos)
 {
 	return do_proc_douintvec(table, write, buffer, lenp, ppos,
 				 do_proc_douintvec_conv, NULL);
@@ -2985,7 +3016,7 @@ int proc_douintvec(struct ctl_table *table, int write,
  * This means we can safely use a temporary.
  */
 static int proc_taint(struct ctl_table *table, int write,
-			       void __user *buffer, size_t *lenp, loff_t *ppos)
+			       void *buffer, size_t *lenp, loff_t *ppos)
 {
 	struct ctl_table t;
 	unsigned long tmptaint = get_taint();
@@ -3017,7 +3048,7 @@ static int proc_taint(struct ctl_table *table, int write,
 
 #ifdef CONFIG_PRINTK
 static int proc_dointvec_minmax_sysadmin(struct ctl_table *table, int write,
-				void __user *buffer, size_t *lenp, loff_t *ppos)
+				void *buffer, size_t *lenp, loff_t *ppos)
 {
 	if (write && !capable(CAP_SYS_ADMIN))
 		return -EPERM;
@@ -3090,7 +3121,7 @@ static int do_proc_dointvec_minmax_conv(bool *negp, unsigned long *lvalp,
  * Returns 0 on success or -EINVAL on write when the range check fails.
  */
 int proc_dointvec_minmax(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos)
+		  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	struct do_proc_dointvec_minmax_conv_param param = {
 		.min = (int *) table->extra1,
@@ -3159,7 +3190,7 @@ static int do_proc_douintvec_minmax_conv(unsigned long *lvalp,
  * Returns 0 on success or -ERANGE on write when the range check fails.
  */
 int proc_douintvec_minmax(struct ctl_table *table, int write,
-			  void __user *buffer, size_t *lenp, loff_t *ppos)
+			  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	struct do_proc_douintvec_minmax_conv_param param = {
 		.min = (unsigned int *) table->extra1,
@@ -3190,7 +3221,7 @@ static int do_proc_dopipe_max_size_conv(unsigned long *lvalp,
 }
 
 static int proc_dopipe_max_size(struct ctl_table *table, int write,
-				void __user *buffer, size_t *lenp, loff_t *ppos)
+				void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return do_proc_douintvec(table, write, buffer, lenp, ppos,
 				 do_proc_dopipe_max_size_conv, NULL);
@@ -3211,7 +3242,7 @@ static void validate_coredump_safety(void)
 }
 
 static int proc_dointvec_minmax_coredump(struct ctl_table *table, int write,
-		void __user *buffer, size_t *lenp, loff_t *ppos)
+		void *buffer, size_t *lenp, loff_t *ppos)
 {
 	int error = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
 	if (!error)
@@ -3221,7 +3252,7 @@ static int proc_dointvec_minmax_coredump(struct ctl_table *table, int write,
 
 #ifdef CONFIG_COREDUMP
 static int proc_dostring_coredump(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos)
+		  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	int error = proc_dostring(table, write, buffer, lenp, ppos);
 	if (!error)
@@ -3244,7 +3275,7 @@ static int proc_douintvec_minmax_schedhyst(struct ctl_table *table, int write,
 #endif
 
 static int __do_proc_doulongvec_minmax(void *data, struct ctl_table *table, int write,
-				     void __user *buffer,
+				     void *buffer,
 				     size_t *lenp, loff_t *ppos,
 				     unsigned long convmul,
 				     unsigned long convdiv)
@@ -3252,7 +3283,7 @@ static int __do_proc_doulongvec_minmax(void *data, struct ctl_table *table, int 
 	unsigned long *i, *min, *max;
 	int vleft, first = 1, err = 0;
 	size_t left;
-	char *kbuf = NULL, *p;
+	char *p;
 
 	if (!data || !table->maxlen || !*lenp || (*ppos && !write)) {
 		*lenp = 0;
@@ -3271,9 +3302,7 @@ static int __do_proc_doulongvec_minmax(void *data, struct ctl_table *table, int 
 
 		if (left > PAGE_SIZE - 1)
 			left = PAGE_SIZE - 1;
-		p = kbuf = memdup_user_nul(buffer, left);
-		if (IS_ERR(kbuf))
-			return PTR_ERR(kbuf);
+		p = buffer;
 	}
 
 	for (; left && vleft--; i++, first = 0) {
@@ -3301,26 +3330,18 @@ static int __do_proc_doulongvec_minmax(void *data, struct ctl_table *table, int 
 			*i = val;
 		} else {
 			val = convdiv * (*i) / convmul;
-			if (!first) {
-				err = proc_put_char(&buffer, &left, '\t');
-				if (err)
-					break;
-			}
-			err = proc_put_long(&buffer, &left, val, false);
-			if (err)
-				break;
+			if (!first)
+				proc_put_char(&buffer, &left, '\t');
+			proc_put_long(&buffer, &left, val, false);
 		}
 	}
 
 	if (!write && !first && left && !err)
-		err = proc_put_char(&buffer, &left, '\n');
+		proc_put_char(&buffer, &left, '\n');
 	if (write && !err)
 		proc_skip_spaces(&p, &left);
-	if (write) {
-		kfree(kbuf);
-		if (first)
-			return err ? : -EINVAL;
-	}
+	if (write && first)
+		return err ? : -EINVAL;
 	*lenp -= left;
 out:
 	*ppos += *lenp;
@@ -3328,10 +3349,8 @@ out:
 }
 
 static int do_proc_doulongvec_minmax(struct ctl_table *table, int write,
-				     void __user *buffer,
-				     size_t *lenp, loff_t *ppos,
-				     unsigned long convmul,
-				     unsigned long convdiv)
+		void *buffer, size_t *lenp, loff_t *ppos, unsigned long convmul,
+		unsigned long convdiv)
 {
 	return __do_proc_doulongvec_minmax(table->data, table, write,
 			buffer, lenp, ppos, convmul, convdiv);
@@ -3354,7 +3373,7 @@ static int do_proc_doulongvec_minmax(struct ctl_table *table, int write,
  * Returns 0 on success.
  */
 int proc_doulongvec_minmax(struct ctl_table *table, int write,
-			   void __user *buffer, size_t *lenp, loff_t *ppos)
+			   void *buffer, size_t *lenp, loff_t *ppos)
 {
     return do_proc_doulongvec_minmax(table, write, buffer, lenp, ppos, 1l, 1l);
 }
@@ -3377,8 +3396,7 @@ int proc_doulongvec_minmax(struct ctl_table *table, int write,
  * Returns 0 on success.
  */
 int proc_doulongvec_ms_jiffies_minmax(struct ctl_table *table, int write,
-				      void __user *buffer,
-				      size_t *lenp, loff_t *ppos)
+				      void *buffer, size_t *lenp, loff_t *ppos)
 {
     return do_proc_doulongvec_minmax(table, write, buffer,
 				     lenp, ppos, HZ, 1000l);
@@ -3472,7 +3490,7 @@ static int do_proc_dointvec_ms_jiffies_conv(bool *negp, unsigned long *lvalp,
  * Returns 0 on success.
  */
 int proc_dointvec_jiffies(struct ctl_table *table, int write,
-			  void __user *buffer, size_t *lenp, loff_t *ppos)
+			  void *buffer, size_t *lenp, loff_t *ppos)
 {
     return do_proc_dointvec(table,write,buffer,lenp,ppos,
 		    	    do_proc_dointvec_jiffies_conv,NULL);
@@ -3494,7 +3512,7 @@ int proc_dointvec_jiffies(struct ctl_table *table, int write,
  * Returns 0 on success.
  */
 int proc_dointvec_userhz_jiffies(struct ctl_table *table, int write,
-				 void __user *buffer, size_t *lenp, loff_t *ppos)
+				 void *buffer, size_t *lenp, loff_t *ppos)
 {
     return do_proc_dointvec(table,write,buffer,lenp,ppos,
 		    	    do_proc_dointvec_userhz_jiffies_conv,NULL);
@@ -3516,15 +3534,15 @@ int proc_dointvec_userhz_jiffies(struct ctl_table *table, int write,
  *
  * Returns 0 on success.
  */
-int proc_dointvec_ms_jiffies(struct ctl_table *table, int write,
-			     void __user *buffer, size_t *lenp, loff_t *ppos)
+int proc_dointvec_ms_jiffies(struct ctl_table *table, int write, void *buffer,
+		size_t *lenp, loff_t *ppos)
 {
 	return do_proc_dointvec(table, write, buffer, lenp, ppos,
 				do_proc_dointvec_ms_jiffies_conv, NULL);
 }
 
-static int proc_do_cad_pid(struct ctl_table *table, int write,
-			   void __user *buffer, size_t *lenp, loff_t *ppos)
+static int proc_do_cad_pid(struct ctl_table *table, int write, void *buffer,
+		size_t *lenp, loff_t *ppos)
 {
 	struct pid *new_pid;
 	pid_t tmp;
@@ -3563,7 +3581,7 @@ static int proc_do_cad_pid(struct ctl_table *table, int write,
  * Returns 0 on success.
  */
 int proc_do_large_bitmap(struct ctl_table *table, int write,
-			 void __user *buffer, size_t *lenp, loff_t *ppos)
+			 void *buffer, size_t *lenp, loff_t *ppos)
 {
 	int err = 0;
 	bool first = 1;
@@ -3579,22 +3597,16 @@ int proc_do_large_bitmap(struct ctl_table *table, int write,
 	}
 
 	if (write) {
-		char *kbuf, *p;
+		char *p = buffer;
 
 		if (left > PAGE_SIZE - 1)
 			left = PAGE_SIZE - 1;
 
-		p = kbuf = memdup_user_nul(buffer, left);
-		if (IS_ERR(kbuf))
-			return PTR_ERR(kbuf);
-
 		tmp_bitmap = kcalloc(BITS_TO_LONGS(bitmap_len),
 				     sizeof(unsigned long),
 				     GFP_KERNEL);
-		if (!tmp_bitmap) {
-			kfree(kbuf);
+		if (!tmp_bitmap)
 			return -ENOMEM;
-		}
 		proc_skip_char(&p, &left, '\n');
 		while (!err && left) {
 			unsigned long val_a, val_b;
@@ -3636,7 +3648,6 @@ int proc_do_large_bitmap(struct ctl_table *table, int write,
 			first = 0;
 			proc_skip_char(&p, &left, '\n');
 		}
-		kfree(kbuf);
 	} else {
 		unsigned long bit_a, bit_b = 0;
 
@@ -3647,27 +3658,17 @@ int proc_do_large_bitmap(struct ctl_table *table, int write,
 			bit_b = find_next_zero_bit(bitmap, bitmap_len,
 						   bit_a + 1) - 1;
 
-			if (!first) {
-				err = proc_put_char(&buffer, &left, ',');
-				if (err)
-					break;
-			}
-			err = proc_put_long(&buffer, &left, bit_a, false);
-			if (err)
-				break;
+			if (!first)
+				proc_put_char(&buffer, &left, ',');
+			proc_put_long(&buffer, &left, bit_a, false);
 			if (bit_a != bit_b) {
-				err = proc_put_char(&buffer, &left, '-');
-				if (err)
-					break;
-				err = proc_put_long(&buffer, &left, bit_b, false);
-				if (err)
-					break;
+				proc_put_char(&buffer, &left, '-');
+				proc_put_long(&buffer, &left, bit_b, false);
 			}
 
 			first = 0; bit_b++;
 		}
-		if (!err)
-			err = proc_put_char(&buffer, &left, '\n');
+		proc_put_char(&buffer, &left, '\n');
 	}
 
 	if (!err) {
@@ -3748,79 +3749,110 @@ int proc_douintvec_ravg_window(struct ctl_table *table, int write,
 #else /* CONFIG_PROC_SYSCTL */
 
 int proc_dostring(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos)
+		  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_dointvec(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos)
+		  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_douintvec(struct ctl_table *table, int write,
-		  void __user *buffer, size_t *lenp, loff_t *ppos)
+		  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_dointvec_minmax(struct ctl_table *table, int write,
-		    void __user *buffer, size_t *lenp, loff_t *ppos)
+		    void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_douintvec_minmax(struct ctl_table *table, int write,
-			  void __user *buffer, size_t *lenp, loff_t *ppos)
+			  void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_dointvec_jiffies(struct ctl_table *table, int write,
-		    void __user *buffer, size_t *lenp, loff_t *ppos)
+		    void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_dointvec_userhz_jiffies(struct ctl_table *table, int write,
-		    void __user *buffer, size_t *lenp, loff_t *ppos)
+		    void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_dointvec_ms_jiffies(struct ctl_table *table, int write,
-			     void __user *buffer, size_t *lenp, loff_t *ppos)
+			     void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_doulongvec_minmax(struct ctl_table *table, int write,
-		    void __user *buffer, size_t *lenp, loff_t *ppos)
+		    void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_doulongvec_ms_jiffies_minmax(struct ctl_table *table, int write,
-				      void __user *buffer,
-				      size_t *lenp, loff_t *ppos)
+				      void *buffer, size_t *lenp, loff_t *ppos)
 {
-    return -ENOSYS;
+	return -ENOSYS;
 }
 
 int proc_douintvec_capacity(struct ctl_table *table, int write,
-			    void __user *buffer, size_t *lenp, loff_t *ppos)
+			    void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 int proc_douintvec_ravg_window(struct ctl_table *table, int write,
-			       void __user *buffer, size_t *lenp, loff_t *ppos)
+			       void *buffer, size_t *lenp, loff_t *ppos)
 {
 	return -ENOSYS;
 }
 
 #endif /* CONFIG_PROC_SYSCTL */
+
+#if defined(CONFIG_SYSCTL)
+int proc_do_static_key(struct ctl_table *table, int write,
+		       void *buffer, size_t *lenp, loff_t *ppos)
+{
+	struct static_key *key = (struct static_key *)table->data;
+	static DEFINE_MUTEX(static_key_mutex);
+	int val, ret;
+	struct ctl_table tmp = {
+		.data   = &val,
+		.maxlen = sizeof(val),
+		.mode   = table->mode,
+		.extra1 = &zero,
+		.extra2 = &one,
+	};
+
+	if (write && !capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	mutex_lock(&static_key_mutex);
+	val = static_key_enabled(key);
+	ret = proc_dointvec_minmax(&tmp, write, buffer, lenp, ppos);
+	if (write && !ret) {
+		if (val)
+			static_key_enable(key);
+		else
+			static_key_disable(key);
+	}
+	mutex_unlock(&static_key_mutex);
+	return ret;
+}
+#endif
 
 /*
  * No sense putting this after each symbol definition, twice,

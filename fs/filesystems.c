@@ -16,6 +16,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+#include <linux/fs_parser.h>
 
 /*
  * Handling of filesystem drivers list.
@@ -72,6 +73,9 @@ int register_filesystem(struct file_system_type * fs)
 {
 	int res = 0;
 	struct file_system_type ** p;
+
+	if (fs->parameters && !fs_validate_description(fs->parameters))
+		return -EINVAL;
 
 	BUG_ON(strchr(fs->name, '.'));
 	if (fs->next)
@@ -151,15 +155,19 @@ static int fs_index(const char __user * __name)
 static int fs_name(unsigned int index, char __user * buf)
 {
 	struct file_system_type * tmp;
-	int len, res;
+	int len, res = -EINVAL;
 
 	read_lock(&file_systems_lock);
-	for (tmp = file_systems; tmp; tmp = tmp->next, index--)
-		if (index <= 0 && try_module_get(tmp->owner))
+	for (tmp = file_systems; tmp; tmp = tmp->next, index--) {
+		if (index == 0) {
+			if (try_module_get(tmp->owner))
+				res = 0;
 			break;
+		}
+	}
 	read_unlock(&file_systems_lock);
-	if (!tmp)
-		return -EINVAL;
+	if (res)
+		return res;
 
 	/* OK, we got the reference, so we can safely block */
 	len = strlen(tmp->name) + 1;

@@ -152,10 +152,10 @@ static int nft_nat_init(const struct nft_ctx *ctx, const struct nft_expr *expr,
 
 	switch (family) {
 	case NFPROTO_IPV4:
-		alen = FIELD_SIZEOF(struct nf_nat_range, min_addr.ip);
+		alen = sizeof_field(struct nf_nat_range, min_addr.ip);
 		break;
 	case NFPROTO_IPV6:
-		alen = FIELD_SIZEOF(struct nf_nat_range, min_addr.ip6);
+		alen = sizeof_field(struct nf_nat_range, min_addr.ip6);
 		break;
 	default:
 		if (tb[NFTA_NAT_REG_ADDR_MIN])
@@ -181,7 +181,7 @@ static int nft_nat_init(const struct nft_ctx *ctx, const struct nft_expr *expr,
 		}
 	}
 
-	plen = FIELD_SIZEOF(struct nf_nat_range, min_addr.all);
+	plen = sizeof_field(struct nf_nat_range, min_addr.all);
 	if (tb[NFTA_NAT_REG_PROTO_MIN]) {
 		err = nft_parse_register_load(tb[NFTA_NAT_REG_PROTO_MIN],
 					      &priv->sreg_proto_min, plen);

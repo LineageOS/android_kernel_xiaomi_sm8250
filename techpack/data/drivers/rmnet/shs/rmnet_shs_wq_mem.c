@@ -47,7 +47,7 @@ static void rmnet_shs_vm_close(struct vm_area_struct *vma)
 	return;
 }
 
-static int rmnet_shs_vm_fault_caps(struct vm_fault *vmf)
+static vm_fault_t rmnet_shs_vm_fault_caps(struct vm_fault *vmf)
 {
 	struct page *page = NULL;
 	struct rmnet_shs_mmap_info *info;
@@ -73,7 +73,7 @@ static int rmnet_shs_vm_fault_caps(struct vm_fault *vmf)
 }
 
 
-static int rmnet_shs_vm_fault_g_flows(struct vm_fault *vmf)
+static vm_fault_t rmnet_shs_vm_fault_g_flows(struct vm_fault *vmf)
 {
 	struct page *page = NULL;
 	struct rmnet_shs_mmap_info *info;
@@ -99,7 +99,7 @@ static int rmnet_shs_vm_fault_g_flows(struct vm_fault *vmf)
 	return 0;
 }
 
-static int rmnet_shs_vm_fault_ss_flows(struct vm_fault *vmf)
+static vm_fault_t rmnet_shs_vm_fault_ss_flows(struct vm_fault *vmf)
 {
 	struct page *page = NULL;
 	struct rmnet_shs_mmap_info *info;
@@ -124,7 +124,7 @@ static int rmnet_shs_vm_fault_ss_flows(struct vm_fault *vmf)
 	return 0;
 }
 
-static int rmnet_shs_vm_fault_netdev(struct vm_fault *vmf)
+static vm_fault_t rmnet_shs_vm_fault_netdev(struct vm_fault *vmf)
 {
 	struct page *page = NULL;
 	struct rmnet_shs_mmap_info *info;

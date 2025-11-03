@@ -50,7 +50,7 @@
 #include <linux/cuda.h>
 #include <asm/io.h>
 #include <asm/prom.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/btext.h>
 
 #include "macmodes.h"

@@ -10,7 +10,7 @@
 #include <linux/bootmem.h>
 #include <linux/highmem.h>
 #include <asm/fixmap.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 
 void pgd_init(unsigned long page)

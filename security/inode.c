@@ -15,6 +15,7 @@
 /* #define DEBUG */
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/fs_context.h>
 #include <linux/mount.h>
 #include <linux/pagemap.h>
 #include <linux/init.h>
@@ -44,7 +45,7 @@ static const struct super_operations securityfs_super_operations = {
 	.destroy_inode	= securityfs_destroy_inode,
 };
 
-static int fill_super(struct super_block *sb, void *data, int silent)
+static int securityfs_fill_super(struct super_block *sb, struct fs_context *fc)
 {
 	static const struct tree_descr files[] = {{""}};
 	int error;
@@ -58,17 +59,25 @@ static int fill_super(struct super_block *sb, void *data, int silent)
 	return 0;
 }
 
-static struct dentry *get_sb(struct file_system_type *fs_type,
-		  int flags, const char *dev_name,
-		  void *data)
+static int securityfs_get_tree(struct fs_context *fc)
 {
-	return mount_single(fs_type, flags, data, fill_super);
+	return get_tree_single(fc, securityfs_fill_super);
+}
+
+static const struct fs_context_operations securityfs_context_ops = {
+	.get_tree	= securityfs_get_tree,
+};
+
+static int securityfs_init_fs_context(struct fs_context *fc)
+{
+	fc->ops = &securityfs_context_ops;
+	return 0;
 }
 
 static struct file_system_type fs_type = {
 	.owner =	THIS_MODULE,
 	.name =		"securityfs",
-	.mount =	get_sb,
+	.init_fs_context = securityfs_init_fs_context,
 	.kill_sb =	kill_litter_super,
 };
 
@@ -158,7 +167,6 @@ static struct dentry *securityfs_create_dentry(const char *name, umode_t mode,
 		inode->i_fop = fops;
 	}
 	d_instantiate(dentry, inode);
-	dget(dentry);
 	inode_unlock(dir);
 	return dentry;
 
@@ -305,7 +313,6 @@ void securityfs_remove(struct dentry *dentry)
 			simple_rmdir(dir, dentry);
 		else
 			simple_unlink(dir, dentry);
-		dput(dentry);
 	}
 	inode_unlock(dir);
 	simple_release_fs(&mount, &mount_count);

@@ -11,7 +11,7 @@
 #include <linux/vmstat.h>
 #include <linux/pagemap.h>
 #include <linux/rwsem.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/adi.h>
 
 /*

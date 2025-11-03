@@ -28,7 +28,7 @@
 #include <asm/bootinfo.h>
 #include <asm/bootinfo-vme.h>
 #include <asm/byteorder.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/setup.h>
 #include <asm/irq.h>
 #include <asm/traps.h>

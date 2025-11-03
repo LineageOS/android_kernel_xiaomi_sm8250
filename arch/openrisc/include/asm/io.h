@@ -31,7 +31,7 @@
 
 #define ioremap_nocache ioremap_nocache
 #include <asm-generic/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
 				pgprot_t prot);

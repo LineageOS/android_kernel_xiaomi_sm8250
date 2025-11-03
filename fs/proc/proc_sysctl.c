@@ -12,8 +12,10 @@
 #include <linux/cred.h>
 #include <linux/namei.h>
 #include <linux/mm.h>
+#include <linux/uio.h>
 #include <linux/module.h>
 #include <linux/kmemleak.h>
+#include <linux/bpf-cgroup.h>
 #include "internal.h"
 
 static const struct dentry_operations proc_sys_dentry_operations;
@@ -568,14 +570,15 @@ out:
 	return err;
 }
 
-static ssize_t proc_sys_call_handler(struct file *filp, void __user *buf,
-		size_t count, loff_t *ppos, int write)
+static ssize_t proc_sys_call_handler(struct kiocb *iocb, struct iov_iter *iter,
+		int write)
 {
-	struct inode *inode = file_inode(filp);
+	struct inode *inode = file_inode(iocb->ki_filp);
 	struct ctl_table_header *head = grab_header(inode);
 	struct ctl_table *table = PROC_I(inode)->sysctl_entry;
+	size_t count = iov_iter_count(iter);
+	char *kbuf;
 	ssize_t error;
-	size_t res;
 
 	if (IS_ERR(head))
 		return PTR_ERR(head);
@@ -593,27 +596,54 @@ static ssize_t proc_sys_call_handler(struct file *filp, void __user *buf,
 	if (!table->proc_handler)
 		goto out;
 
+	/* don't even try if the size is too large */
+	error = -ENOMEM;
+	if (count >= KMALLOC_MAX_SIZE)
+		goto out;
+	kbuf = kvzalloc(count + 1, GFP_KERNEL);
+	if (!kbuf)
+		goto out;
+
+	if (write) {
+		error = -EFAULT;
+		if (!copy_from_iter_full(kbuf, count, iter))
+			goto out_free_buf;
+		kbuf[count] = '\0';
+	}
+
+	error = BPF_CGROUP_RUN_PROG_SYSCTL(head, table, write, &kbuf, &count,
+					   &iocb->ki_pos);
+	if (error)
+		goto out_free_buf;
+
 	/* careful: calling conventions are nasty here */
-	res = count;
-	error = table->proc_handler(table, write, buf, &res, ppos);
-	if (!error)
-		error = res;
+	error = table->proc_handler(table, write, kbuf, &count, &iocb->ki_pos);
+	if (error)
+		goto out_free_buf;
+
+	if (!write) {
+		error = -EFAULT;
+		if (copy_to_iter(kbuf, count, iter) < count)
+			goto out_free_buf;
+	}
+
+	error = count;
+out_free_buf:
+	kvfree(kbuf);
 out:
 	sysctl_head_finish(head);
 
 	return error;
 }
 
-static ssize_t proc_sys_read(struct file *filp, char __user *buf,
-				size_t count, loff_t *ppos)
+static ssize_t proc_sys_read(struct kiocb *iocb, struct iov_iter *iter)
 {
-	return proc_sys_call_handler(filp, (void __user *)buf, count, ppos, 0);
+	return proc_sys_call_handler(iocb, iter, 0);
 }
 
-static ssize_t proc_sys_write(struct file *filp, const char __user *buf,
-				size_t count, loff_t *ppos)
+static ssize_t proc_sys_write(struct kiocb *iocb, struct iov_iter *iter)
 {
-	return proc_sys_call_handler(filp, (void __user *)buf, count, ppos, 1);
+	return proc_sys_call_handler(iocb, iter, 1);
 }
 
 static int proc_sys_open(struct inode *inode, struct file *filp)
@@ -850,8 +880,10 @@ static int proc_sys_getattr(const struct path *path, struct kstat *stat,
 static const struct file_operations proc_sys_file_operations = {
 	.open		= proc_sys_open,
 	.poll		= proc_sys_poll,
-	.read		= proc_sys_read,
-	.write		= proc_sys_write,
+	.read_iter	= proc_sys_read,
+	.write_iter	= proc_sys_write,
+	.splice_read	= generic_file_splice_read,
+	.splice_write	= iter_file_splice_write,
 	.llseek		= default_llseek,
 };
 
@@ -907,17 +939,21 @@ static int proc_sys_compare(const struct dentry *dentry,
 	struct ctl_table_header *head;
 	struct inode *inode;
 
-	/* Although proc doesn't have negative dentries, rcu-walk means
-	 * that inode here can be NULL */
-	/* AV: can it, indeed? */
-	inode = d_inode_rcu(dentry);
-	if (!inode)
-		return 1;
 	if (name->len != len)
 		return 1;
 	if (memcmp(name->name, str, len))
 		return 1;
-	head = rcu_dereference(PROC_I(inode)->sysctl);
+
+	// false positive is fine here - we'll recheck anyway
+	if (d_in_lookup(dentry))
+		return 0;
+
+	inode = d_inode_rcu(dentry);
+	// we just might have run into dentry in the middle of __dentry_kill()
+	if (!inode)
+		return 1;
+
+	head = READ_ONCE(PROC_I(inode)->sysctl);
 	return !head || !sysctl_is_seen(head);
 }
 

@@ -23,6 +23,7 @@
 #include <asm/memory.h>
 #include <asm/pgtable-hwdef.h>
 #include <asm/pgtable-prot.h>
+#include <asm/tlbflush.h>
 
 /*
  * VMALLOC range.
@@ -360,7 +361,7 @@ static inline pgprot_t mk_sect_prot(pgprot_t prot)
 
 #ifdef CONFIG_NUMA_BALANCING
 /*
- * See the comment in include/asm-generic/pgtable.h
+ * See the comment in include/linux/pgtable.h
  */
 static inline int pte_protnone(pte_t pte)
 {
@@ -384,6 +385,7 @@ static inline int pmd_protnone(pmd_t pmd)
 #define pmd_present(pmd)	pte_present(pmd_pte(pmd))
 #define pmd_dirty(pmd)		pte_dirty(pmd_pte(pmd))
 #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
+#define pmd_valid(pmd)		pte_valid(pmd_pte(pmd))
 #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
 #define pmd_mkold(pmd)		pte_pmd(pte_mkold(pmd_pte(pmd)))
 #define pmd_mkwrite(pmd)	pte_pmd(pte_mkwrite(pmd_pte(pmd)))
@@ -412,6 +414,7 @@ static inline int pmd_protnone(pmd_t pmd)
 #define pfn_pud(pfn,prot)	__pud(__phys_to_pud_val((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot))
 
 #define set_pmd_at(mm, addr, pmdp, pmd)	set_pte_at(mm, addr, (pte_t *)pmdp, pmd_pte(pmd))
+#define set_pud_at(mm, addr, pudp, pud)	set_pte_at(mm, addr, (pte_t *)pudp, pud_pte(pud))
 
 #define __pgd_to_phys(pgd)	__pte_to_phys(pgd_pte(pgd))
 #define __phys_to_pgd_val(phys)	__phys_to_pte_val(phys)
@@ -455,8 +458,11 @@ static inline bool pud_table(pud_t pud) { return true; }
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
 	WRITE_ONCE(*pmdp, pmd);
-	dsb(ishst);
-	isb();
+
+	if (pmd_valid(pmd)) {
+		dsb(ishst);
+		isb();
+	}
 }
 
 static inline void pmd_clear(pmd_t *pmdp)
@@ -508,12 +514,16 @@ static inline void pte_unmap(pte_t *pte) { }
 #define pud_none(pud)		(!pud_val(pud))
 #define pud_bad(pud)		(!(pud_val(pud) & PUD_TABLE_BIT))
 #define pud_present(pud)	pte_present(pud_pte(pud))
+#define pud_valid(pud)		pte_valid(pud_pte(pud))
 
 static inline void set_pud(pud_t *pudp, pud_t pud)
 {
 	WRITE_ONCE(*pudp, pud);
-	dsb(ishst);
-	isb();
+
+	if (pud_valid(pud)) {
+		dsb(ishst);
+		isb();
+	}
 }
 
 static inline void pud_clear(pud_t *pudp)
@@ -694,6 +704,27 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
 	return __ptep_test_and_clear_young(ptep);
 }
 
+#define __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
+static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
+					 unsigned long address, pte_t *ptep)
+{
+	int young = ptep_test_and_clear_young(vma, address, ptep);
+
+	if (young) {
+		/*
+		 * We can elide the trailing DSB here since the worst that can
+		 * happen is that a CPU continues to use the young entry in its
+		 * TLB and we mistakenly reclaim the associated page. The
+		 * window for such an event is bounded by the next
+		 * context-switch, which provides a DSB to complete the TLB
+		 * invalidation.
+		 */
+		flush_tlb_page_nosync(vma, address);
+	}
+
+	return young;
+}
+
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 #define __HAVE_ARCH_PMDP_TEST_AND_CLEAR_YOUNG
 static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
@@ -788,7 +819,6 @@ extern pgd_t tramp_pg_dir[PTRS_PER_PGD];
 
 extern int kern_addr_valid(unsigned long addr);
 
-#include <asm-generic/pgtable.h>
 
 void pgd_cache_init(void);
 #define pgtable_cache_init	pgd_cache_init

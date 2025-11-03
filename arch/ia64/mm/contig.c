@@ -23,7 +23,7 @@
 
 #include <asm/meminit.h>
 #include <asm/pgalloc.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sections.h>
 #include <asm/mca.h>
 

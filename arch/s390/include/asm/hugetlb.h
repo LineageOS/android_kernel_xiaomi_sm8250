@@ -10,7 +10,7 @@
 #define _ASM_S390_HUGETLB_H
 
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 
 #define is_hugepage_only_range(mm, addr, len)	0

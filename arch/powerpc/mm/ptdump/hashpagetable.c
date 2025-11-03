@@ -19,7 +19,7 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 #include <linux/seq_file.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <linux/const.h>
 #include <asm/page.h>
 #include <asm/pgalloc.h>

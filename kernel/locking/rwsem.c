@@ -35,7 +35,7 @@ int __sched down_read_killable(struct rw_semaphore *sem)
 	rwsem_acquire_read(&sem->dep_map, 0, 0, _RET_IP_);
 
 	if (LOCK_CONTENDED_RETURN(sem, __down_read_trylock, __down_read_killable)) {
-		rwsem_release(&sem->dep_map, 1, _RET_IP_);
+		rwsem_release(&sem->dep_map, _RET_IP_);
 		return -EINTR;
 	}
 
@@ -84,7 +84,7 @@ int __sched down_write_killable(struct rw_semaphore *sem)
 	rwsem_acquire(&sem->dep_map, 0, 0, _RET_IP_);
 
 	if (LOCK_CONTENDED_RETURN(sem, __down_write_trylock, __down_write_killable)) {
-		rwsem_release(&sem->dep_map, 1, _RET_IP_);
+		rwsem_release(&sem->dep_map, _RET_IP_);
 		return -EINTR;
 	}
 
@@ -116,7 +116,7 @@ EXPORT_SYMBOL(down_write_trylock);
  */
 void up_read(struct rw_semaphore *sem)
 {
-	rwsem_release(&sem->dep_map, 1, _RET_IP_);
+	rwsem_release(&sem->dep_map, _RET_IP_);
 	DEBUG_RWSEMS_WARN_ON(sem->owner != RWSEM_READER_OWNED);
 
 	__up_read(sem);
@@ -129,7 +129,7 @@ EXPORT_SYMBOL(up_read);
  */
 void up_write(struct rw_semaphore *sem)
 {
-	rwsem_release(&sem->dep_map, 1, _RET_IP_);
+	rwsem_release(&sem->dep_map, _RET_IP_);
 	DEBUG_RWSEMS_WARN_ON(sem->owner != current);
 
 	rwsem_clear_owner(sem);
@@ -203,7 +203,7 @@ int __sched down_write_killable_nested(struct rw_semaphore *sem, int subclass)
 	rwsem_acquire(&sem->dep_map, subclass, 0, _RET_IP_);
 
 	if (LOCK_CONTENDED_RETURN(sem, __down_write_trylock, __down_write_killable)) {
-		rwsem_release(&sem->dep_map, 1, _RET_IP_);
+		rwsem_release(&sem->dep_map, _RET_IP_);
 		return -EINTR;
 	}
 

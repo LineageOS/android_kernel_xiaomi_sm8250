@@ -42,7 +42,7 @@
 #include <asm/kasan.h>
 #include <asm/sysreg.h>
 #include <asm/system_misc.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/tlbflush.h>
 #include <asm/traps.h>
 #include <soc/qcom/scm.h>
@@ -393,12 +393,14 @@ static void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *re
 #define VM_FAULT_BADMAP		((__force vm_fault_t)0x010000)
 #define VM_FAULT_BADACCESS	((__force vm_fault_t)0x020000)
 
-static int __do_page_fault(struct vm_area_struct *vma, unsigned long addr,
+static vm_fault_t __do_page_fault(struct mm_struct *mm, unsigned long addr,
 			   unsigned int mm_flags, unsigned long vm_flags,
 			   struct task_struct *tsk)
 {
+	struct vm_area_struct *vma;
 	vm_fault_t fault;
 
+	vma = find_vma(mm, addr);
 	fault = VM_FAULT_BADMAP;
 	if (unlikely(!vma))
 		goto out;
@@ -442,7 +444,6 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 	vm_fault_t fault, major = 0;
 	unsigned long vm_flags = VM_READ | VM_WRITE | VM_EXEC;
 	unsigned int mm_flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
-	struct vm_area_struct *vma = NULL;
 
 	if (notify_page_fault(regs, esr))
 		return 0;
@@ -485,23 +486,15 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
 
 	/*
-	 * let's try a speculative page fault without grabbing the
-	 * mmap_sem.
-	 */
-	fault = handle_speculative_fault(mm, addr, mm_flags, &vma);
-	if (fault != VM_FAULT_RETRY)
-		goto done;
-
-	/*
 	 * As per x86, we may deadlock here. However, since the kernel only
 	 * validly references user space from well defined areas of the code,
 	 * we can bug out early if this is from code which shouldn't.
 	 */
-	if (!down_read_trylock(&mm->mmap_sem)) {
+	if (!mmap_read_trylock(mm)) {
 		if (!user_mode(regs) && !search_exception_tables(regs->pc))
 			goto no_context;
 retry:
-		down_read(&mm->mmap_sem);
+		mmap_read_lock(mm);
 	} else {
 		/*
 		 * The above down_read_trylock() might have succeeded in which
@@ -514,45 +507,23 @@ retry:
 #endif
 	}
 
-	if (!vma || !can_reuse_spf_vma(vma, addr))
-		vma = find_vma(mm, addr);
-
-	fault = __do_page_fault(vma, addr, mm_flags, vm_flags, tsk);
+	fault = __do_page_fault(mm, addr, mm_flags, vm_flags, tsk);
 	major |= fault & VM_FAULT_MAJOR;
 
+	/* Quick path to respond to signals */
+	if (fault_signal_pending(fault, regs)) {
+		if (!user_mode(regs))
+			goto no_context;
+		return 0;
+	}
+
 	if (fault & VM_FAULT_RETRY) {
-		/*
-		 * If we need to retry but a fatal signal is pending,
-		 * handle the signal first. We do not need to release
-		 * the mmap_sem because it would already be released
-		 * in __lock_page_or_retry in mm/filemap.c.
-		 */
-		if (fatal_signal_pending(current)) {
-			if (!user_mode(regs))
-				goto no_context;
-			return 0;
-		}
-
-		/*
-		 * Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk of
-		 * starvation.
-		 */
 		if (mm_flags & FAULT_FLAG_ALLOW_RETRY) {
-			mm_flags &= ~FAULT_FLAG_ALLOW_RETRY;
 			mm_flags |= FAULT_FLAG_TRIED;
-
-			/*
-			 * Do not try to reuse this vma and fetch it
-			 * again since we will release the mmap_sem.
-			 */
-			vma = NULL;
-
 			goto retry;
 		}
 	}
-	up_read(&mm->mmap_sem);
-
-done:
+	mmap_read_unlock(mm);
 
 	/*
 	 * Handle the "normal" (no error) case first.

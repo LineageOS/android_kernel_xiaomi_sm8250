@@ -11,7 +11,7 @@
  *   GNU General Public License for more details.
  */
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/cacheflush.h>
 
 void flush_icache_pte(pte_t pte)

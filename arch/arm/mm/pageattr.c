@@ -13,7 +13,7 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/tlbflush.h>
 #include <asm/set_memory.h>
 

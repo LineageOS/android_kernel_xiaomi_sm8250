@@ -51,7 +51,7 @@
 #include <asm/daifflags.h>
 #include <asm/mmu_context.h>
 #include <asm/numa.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <asm/processor.h>
 #include <asm/scs.h>

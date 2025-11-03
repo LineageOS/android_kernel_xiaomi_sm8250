@@ -19,7 +19,7 @@
 #include <asm/set_memory.h>
 #include <asm/e820/api.h>
 #include <asm/fixmap.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/tlbflush.h>
 #include <asm/pgalloc.h>
 #include <asm/pat.h>

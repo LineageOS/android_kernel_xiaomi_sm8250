@@ -4,7 +4,7 @@
 #include <linux/vmalloc.h>
 #include <linux/io.h>
 #include <linux/mm.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 void __iomem *ioremap(phys_addr_t phys_addr, size_t size);
 

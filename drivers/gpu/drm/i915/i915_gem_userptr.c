@@ -221,7 +221,7 @@ i915_mmu_notifier_find(struct i915_mm_struct *mm)
 	if (IS_ERR(mn))
 		err = PTR_ERR(mn);
 
-	down_write(&mm->mm->mmap_sem);
+	mmap_write_lock(mm->mm);
 	mutex_lock(&mm->i915->mm_lock);
 	if (mm->mn == NULL && !err) {
 		/* Protected by mmap_sem (write-lock) */
@@ -238,7 +238,7 @@ i915_mmu_notifier_find(struct i915_mm_struct *mm)
 		err = 0;
 	}
 	mutex_unlock(&mm->i915->mm_lock);
-	up_write(&mm->mm->mmap_sem);
+	mmap_write_unlock(mm->mm);
 
 	if (mn && !IS_ERR(mn)) {
 		destroy_workqueue(mn->wq);
@@ -519,7 +519,7 @@ __i915_gem_userptr_get_pages_worker(struct work_struct *_work)
 
 		ret = -EFAULT;
 		if (mmget_not_zero(mm)) {
-			down_read(&mm->mmap_sem);
+			mmap_read_lock(mm);
 			while (pinned < npages) {
 				ret = get_user_pages_remote
 					(work->task, mm,
@@ -532,7 +532,7 @@ __i915_gem_userptr_get_pages_worker(struct work_struct *_work)
 
 				pinned += ret;
 			}
-			up_read(&mm->mmap_sem);
+			mmap_read_unlock(mm);
 			mmput(mm);
 		}
 	}

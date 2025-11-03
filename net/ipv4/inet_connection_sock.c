@@ -612,7 +612,7 @@ struct dst_entry *inet_csk_route_req(const struct sock *sk,
 	rt = ip_route_output_flow(net, fl4, sk);
 	if (IS_ERR(rt))
 		goto no_route;
-	if (opt && opt->opt.is_strictroute && rt->rt_uses_gateway)
+	if (opt && opt->opt.is_strictroute && rt->rt_gw_family)
 		goto route_err;
 	rcu_read_unlock();
 	return &rt->dst;
@@ -650,7 +650,7 @@ struct dst_entry *inet_csk_route_child_sock(const struct sock *sk,
 	rt = ip_route_output_flow(net, fl4, sk);
 	if (IS_ERR(rt))
 		goto no_route;
-	if (opt && opt->opt.is_strictroute && rt->rt_uses_gateway)
+	if (opt && opt->opt.is_strictroute && rt->rt_gw_family)
 		goto route_err;
 	return &rt->dst;
 
@@ -714,20 +714,30 @@ static bool reqsk_queue_unlink(struct request_sock_queue *queue,
 		found = __sk_nulls_del_node_init_rcu(req_to_sk(req));
 		spin_unlock(lock);
 	}
-	if (timer_pending(&req->rsk_timer) && del_timer_sync(&req->rsk_timer))
-		reqsk_put(req);
+
 	return found;
 }
 
-bool inet_csk_reqsk_queue_drop(struct sock *sk, struct request_sock *req)
+static bool __inet_csk_reqsk_queue_drop(struct sock *sk,
+					struct request_sock *req,
+					bool from_timer)
 {
 	bool unlinked = reqsk_queue_unlink(&inet_csk(sk)->icsk_accept_queue, req);
+
+	if (!from_timer && del_timer_sync(&req->rsk_timer))
+		reqsk_put(req);
 
 	if (unlinked) {
 		reqsk_queue_removed(&inet_csk(sk)->icsk_accept_queue, req);
 		reqsk_put(req);
 	}
+
 	return unlinked;
+}
+
+bool inet_csk_reqsk_queue_drop(struct sock *sk, struct request_sock *req)
+{
+	return __inet_csk_reqsk_queue_drop(sk, req, false);
 }
 EXPORT_SYMBOL(inet_csk_reqsk_queue_drop);
 
@@ -801,7 +811,8 @@ static void reqsk_timer_handler(struct timer_list *t)
 		return;
 	}
 drop:
-	inet_csk_reqsk_queue_drop_and_put(sk_listener, req);
+	__inet_csk_reqsk_queue_drop(sk_listener, req, true);
+	reqsk_put(req);
 }
 
 static void reqsk_queue_hash_req(struct request_sock *req,
@@ -982,7 +993,7 @@ static void inet_child_forget(struct sock *sk, struct request_sock *req,
 	percpu_counter_inc(sk->sk_prot->orphan_count);
 
 	if (sk->sk_protocol == IPPROTO_TCP && tcp_rsk(req)->tfo_listener) {
-		BUG_ON(tcp_sk(child)->fastopen_rsk != req);
+		BUG_ON(rcu_access_pointer(tcp_sk(child)->fastopen_rsk) != req);
 		BUG_ON(sk != req->rsk_listener);
 
 		/* Paranoid, to prevent race condition if
@@ -991,7 +1002,7 @@ static void inet_child_forget(struct sock *sk, struct request_sock *req,
 		 * Also to satisfy an assertion in
 		 * tcp_v4_destroy_sock().
 		 */
-		tcp_sk(child)->fastopen_rsk = NULL;
+		RCU_INIT_POINTER(tcp_sk(child)->fastopen_rsk, NULL);
 	}
 	inet_csk_destroy_sock(child);
 }

@@ -341,7 +341,7 @@ struct qdf_nbuf_cb {
 }; /* struct qdf_nbuf_cb: MAX 48 bytes */
 
 QDF_COMPILE_TIME_ASSERT(qdf_nbuf_cb_size,
-	(sizeof(struct qdf_nbuf_cb)) <= FIELD_SIZEOF(struct sk_buff, cb));
+	(sizeof(struct qdf_nbuf_cb)) <= sizeof_field(struct sk_buff, cb));
 
 /**
  *  access macros to qdf_nbuf_cb

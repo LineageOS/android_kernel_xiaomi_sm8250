@@ -19,7 +19,7 @@
 #include <linux/platform_device.h>
 
 #include <asm/time.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sgialib.h>
 #include <asm/sn/ioc3.h>
 #include <asm/sn/klconfig.h>

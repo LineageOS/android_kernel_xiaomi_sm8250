@@ -35,7 +35,7 @@ enum nat_table_type {
 #define IPA_TABLE_MAX_ENTRIES 1000
 #define MAX_ALLOC_NAT_SIZE (IPA_TABLE_MAX_ENTRIES * NAT_TABLE_ENTRY_SIZE_BYTE)
 
-static int ipa_nat_vma_fault_remap(struct vm_fault *vmf)
+static vm_fault_t ipa_nat_vma_fault_remap(struct vm_fault *vmf)
 {
 	IPADBG("\n");
 	vmf->page = NULL;

@@ -28,7 +28,7 @@
 #include <linux/ksm.h>
 #include <linux/uaccess.h>
 #include <linux/mm_inline.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/cacheflush.h>
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
@@ -458,14 +458,12 @@ success:
 	 * vm_flags and vm_page_prot are protected by the mmap_sem
 	 * held in write mode.
 	 */
-	vm_write_begin(vma);
-	WRITE_ONCE(vma->vm_flags, newflags);
+	vma->vm_flags = newflags;
 	dirty_accountable = vma_wants_writenotify(vma, vma->vm_page_prot);
 	vma_set_page_prot(vma);
 
 	change_protection(vma, start, end, vma->vm_page_prot,
 			  dirty_accountable, 0);
-	vm_write_end(vma);
 
 	/*
 	 * Private VM_LOCKED VMA becoming writable: trigger COW to avoid major
@@ -518,7 +516,7 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 
 	reqprot = prot;
 
-	if (down_write_killable(&current->mm->mmap_sem))
+	if (mmap_write_lock_killable(current->mm))
 		return -EINTR;
 
 	/*
@@ -608,7 +606,7 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 		prot = reqprot;
 	}
 out:
-	up_write(&current->mm->mmap_sem);
+	mmap_write_unlock(current->mm);
 	return error;
 }
 
@@ -638,7 +636,7 @@ SYSCALL_DEFINE2(pkey_alloc, unsigned long, flags, unsigned long, init_val)
 	if (init_val & ~PKEY_ACCESS_MASK)
 		return -EINVAL;
 
-	down_write(&current->mm->mmap_sem);
+	mmap_write_lock(current->mm);
 	pkey = mm_pkey_alloc(current->mm);
 
 	ret = -ENOSPC;
@@ -652,7 +650,7 @@ SYSCALL_DEFINE2(pkey_alloc, unsigned long, flags, unsigned long, init_val)
 	}
 	ret = pkey;
 out:
-	up_write(&current->mm->mmap_sem);
+	mmap_write_unlock(current->mm);
 	return ret;
 }
 
@@ -660,9 +658,9 @@ SYSCALL_DEFINE1(pkey_free, int, pkey)
 {
 	int ret;
 
-	down_write(&current->mm->mmap_sem);
+	mmap_write_lock(current->mm);
 	ret = mm_pkey_free(current->mm, pkey);
-	up_write(&current->mm->mmap_sem);
+	mmap_write_unlock(current->mm);
 
 	/*
 	 * We could provie warnings or errors if any VMA still

@@ -23,6 +23,14 @@ SoCs:
     compatible = "renesas,r8a7745"
   - RZ/G1C (R8A77470)
     compatible = "renesas,r8a77470"
+  - RZ/G2M (R8A774A1)
+    compatible = "renesas,r8a774a1"
+  - RZ/G2N (R8A774B1)
+    compatible = "renesas,r8a774b1"
+  - RZ/G2E (R8A774C0)
+    compatible = "renesas,r8a774c0"
+  - RZ/G2H (R8A774E1)
+    compatible = "renesas,r8a774e1"
   - R-Car M1A (R8A77781)
     compatible = "renesas,r8a7778"
   - R-Car H1 (R8A77790)
@@ -85,6 +93,17 @@ Boards:
     compatible = "renesas,h3ulcb", "renesas,r8a7795"
   - Henninger
     compatible = "renesas,henninger", "renesas,r8a7791"
+  - HopeRun expansion board for HiHope RZ/G2 platforms
+    compatible = "hoperun,hihope-rzg2h", "renesas,r8a774e1",
+                 "hoperun,hihope-rzg2m", "renesas,r8a774a1",
+                 "hoperun,hihope-rzg2n", "renesas,r8a774b1",
+                 "hoperun,hihope-rzg2-ex"
+  - HopeRun HiHope RZ/G2H platform
+    compatible = "hoperun,hihope-rzg2h", "renesas,r8a774e1"
+  - HopeRun HiHope RZ/G2M platform
+    compatible = "hoperun,hihope-rzg2m", "renesas,r8a774a1"
+  - HopeRun HiHope RZ/G2N platform
+    compatible = "hoperun,hihope-rzg2n", "renesas,r8a774b1"
   - iWave Systems RZ/G1C Single Board Computer (iW-RainboW-G23S)
     compatible = "iwave,g23s", "renesas,r8a77470"
   - iWave Systems RZ/G1E SODIMM SOM Development Platform (iW-RainboW-G22D)
@@ -127,6 +146,10 @@ Boards:
     compatible = "renesas,salvator-xs", "renesas,r8a7796"
   - Salvator-XS (Salvator-X 2nd version, RTP0RC77965SIPB012S)
     compatible = "renesas,salvator-xs", "renesas,r8a77965"
+  - Silicon Linux RZ/G2E 96board platform (CAT874)
+    compatible = "si-linux,cat874", "renesas,r8a774c0"
+  - Silicon Linux sub board for CAT874 (CAT875)
+    compatible = "si-linux,cat875", "si-linux,cat874", "renesas,r8a774c0"
   - SILK (RTP0RC7794LCB00011S)
     compatible = "renesas,silk", "renesas,r8a7794"
   - SK-RZG1E (YR8A77450S000BE)

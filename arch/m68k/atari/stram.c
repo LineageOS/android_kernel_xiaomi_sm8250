@@ -26,7 +26,7 @@
 #include <asm/setup.h>
 #include <asm/machdep.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/atarihw.h>
 #include <asm/atari_stram.h>
 #include <asm/io.h>

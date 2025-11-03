@@ -18,6 +18,8 @@
  * General Public License.
  */
 
+#include <linux/fs_context.h>
+
 #include "sdcardfs.h"
 
 /*
@@ -103,54 +105,6 @@ static int sdcardfs_statfs(struct dentry *dentry, struct kstatfs *buf)
 	return err;
 }
 
-/*
- * @flags: numeric mount options
- * @options: mount options string
- */
-static int sdcardfs_remount_fs(struct super_block *sb, int *flags, char *options)
-{
-	int err = 0;
-
-	/*
-	 * The VFS will take care of "ro" and "rw" flags among others.  We
-	 * can safely accept a few flags (RDONLY, MANDLOCK), and honor
-	 * SILENT, but anything else left over is an error.
-	 */
-	if ((*flags & ~(MS_RDONLY | MS_MANDLOCK | MS_SILENT)) != 0) {
-		pr_err("sdcardfs: remount flags 0x%x unsupported\n", *flags);
-		err = -EINVAL;
-	}
-
-	return err;
-}
-
-/*
- * @mnt: mount point we are remounting
- * @sb: superblock we are remounting
- * @flags: numeric mount options
- * @options: mount options string
- */
-static int sdcardfs_remount_fs2(struct vfsmount *mnt, struct super_block *sb,
-						int *flags, char *options)
-{
-	int err = 0;
-
-	/*
-	 * The VFS will take care of "ro" and "rw" flags among others.  We
-	 * can safely accept a few flags (RDONLY, MANDLOCK), and honor
-	 * SILENT, but anything else left over is an error.
-	 */
-	if ((*flags & ~(MS_RDONLY | MS_MANDLOCK | MS_SILENT | MS_REMOUNT)) != 0) {
-		pr_err("sdcardfs: remount flags 0x%x unsupported\n", *flags);
-		err = -EINVAL;
-	}
-	pr_info("Remount options were %s for vfsmnt %p.\n", options, mnt);
-	err = parse_options_remount(sb, options, *flags & ~MS_SILENT, mnt->data);
-
-
-	return err;
-}
-
 static void *sdcardfs_clone_mnt_data(void *data)
 {
 	struct sdcardfs_vfsmount_options *opt = kmalloc(sizeof(struct sdcardfs_vfsmount_options), GFP_KERNEL);
@@ -170,6 +124,15 @@ static void sdcardfs_copy_mnt_data(void *data, void *newdata)
 
 	old->gid = new->gid;
 	old->mask = new->mask;
+}
+
+static void sdcardfs_update_mnt_data(void *data, struct fs_context *fc)
+{
+	struct sdcardfs_vfsmount_options *opts = data;
+	struct sdcardfs_context_options *fcopts = fc->fs_private;
+
+	opts->gid = fcopts->vfsopts.gid;
+	opts->mask = fcopts->vfsopts.mask;
 }
 
 /*
@@ -319,30 +282,12 @@ static int sdcardfs_show_options(struct vfsmount *mnt, struct seq_file *m,
 	return 0;
 };
 
-int sdcardfs_on_fscrypt_key_removed(struct notifier_block *nb,
-				    unsigned long action, void *data)
-{
-	struct sdcardfs_sb_info *sbi = container_of(nb, struct sdcardfs_sb_info,
-						    fscrypt_nb);
-
-	/*
-	 * Evict any unused sdcardfs dentries (and hence any unused sdcardfs
-	 * inodes, since sdcardfs doesn't cache unpinned inodes by themselves)
-	 * so that the lower filesystem's encrypted inodes can be evicted.
-	 * This is needed to make the FS_IOC_REMOVE_ENCRYPTION_KEY ioctl
-	 * properly "lock" the files underneath the sdcardfs mount.
-	 */
-	shrink_dcache_sb(sbi->sb);
-	return NOTIFY_OK;
-}
-
 const struct super_operations sdcardfs_sops = {
 	.put_super	= sdcardfs_put_super,
 	.statfs		= sdcardfs_statfs,
-	.remount_fs	= sdcardfs_remount_fs,
-	.remount_fs2	= sdcardfs_remount_fs2,
 	.clone_mnt_data	= sdcardfs_clone_mnt_data,
 	.copy_mnt_data	= sdcardfs_copy_mnt_data,
+	.update_mnt_data = sdcardfs_update_mnt_data,
 	.evict_inode	= sdcardfs_evict_inode,
 	.umount_begin	= sdcardfs_umount_begin,
 	.show_options2	= sdcardfs_show_options,

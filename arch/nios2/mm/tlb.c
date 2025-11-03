@@ -16,7 +16,7 @@
 
 #include <asm/tlb.h>
 #include <asm/mmu_context.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/cpuinfo.h>
 
 #define TLB_INDEX_MASK		\

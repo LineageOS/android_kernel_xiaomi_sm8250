@@ -1614,6 +1614,62 @@ static int call_netdevice_notifier(struct notifier_block *nb, unsigned long val,
 	return nb->notifier_call(nb, val, &info);
 }
 
+static int call_netdevice_register_notifiers(struct notifier_block *nb,
+					     struct net_device *dev)
+{
+	int err;
+
+	err = call_netdevice_notifier(nb, NETDEV_REGISTER, dev);
+	err = notifier_to_errno(err);
+	if (err)
+		return err;
+
+	if (!(dev->flags & IFF_UP))
+		return 0;
+
+	call_netdevice_notifier(nb, NETDEV_UP, dev);
+	return 0;
+}
+
+static void call_netdevice_unregister_notifiers(struct notifier_block *nb,
+						struct net_device *dev)
+{
+	if (dev->flags & IFF_UP) {
+		call_netdevice_notifier(nb, NETDEV_GOING_DOWN,
+					dev);
+		call_netdevice_notifier(nb, NETDEV_DOWN, dev);
+	}
+	call_netdevice_notifier(nb, NETDEV_UNREGISTER, dev);
+}
+
+static int call_netdevice_register_net_notifiers(struct notifier_block *nb,
+						 struct net *net)
+{
+	struct net_device *dev;
+	int err;
+
+	for_each_netdev(net, dev) {
+		err = call_netdevice_register_notifiers(nb, dev);
+		if (err)
+			goto rollback;
+	}
+	return 0;
+
+rollback:
+	for_each_netdev_continue_reverse(net, dev)
+		call_netdevice_unregister_notifiers(nb, dev);
+	return err;
+}
+
+static void call_netdevice_unregister_net_notifiers(struct notifier_block *nb,
+						    struct net *net)
+{
+	struct net_device *dev;
+
+	for_each_netdev(net, dev)
+		call_netdevice_unregister_notifiers(nb, dev);
+}
+
 static int dev_boot_phase = 1;
 
 /**
@@ -1632,8 +1688,6 @@ static int dev_boot_phase = 1;
 
 int register_netdevice_notifier(struct notifier_block *nb)
 {
-	struct net_device *dev;
-	struct net_device *last;
 	struct net *net;
 	int err;
 
@@ -1646,17 +1700,9 @@ int register_netdevice_notifier(struct notifier_block *nb)
 	if (dev_boot_phase)
 		goto unlock;
 	for_each_net(net) {
-		for_each_netdev(net, dev) {
-			err = call_netdevice_notifier(nb, NETDEV_REGISTER, dev);
-			err = notifier_to_errno(err);
-			if (err)
-				goto rollback;
-
-			if (!(dev->flags & IFF_UP))
-				continue;
-
-			call_netdevice_notifier(nb, NETDEV_UP, dev);
-		}
+		err = call_netdevice_register_net_notifiers(nb, net);
+		if (err)
+			goto rollback;
 	}
 
 unlock:
@@ -1665,22 +1711,9 @@ unlock:
 	return err;
 
 rollback:
-	last = dev;
-	for_each_net(net) {
-		for_each_netdev(net, dev) {
-			if (dev == last)
-				goto outroll;
+	for_each_net_continue_reverse(net)
+		call_netdevice_unregister_net_notifiers(nb, net);
 
-			if (dev->flags & IFF_UP) {
-				call_netdevice_notifier(nb, NETDEV_GOING_DOWN,
-							dev);
-				call_netdevice_notifier(nb, NETDEV_DOWN, dev);
-			}
-			call_netdevice_notifier(nb, NETDEV_UNREGISTER, dev);
-		}
-	}
-
-outroll:
 	raw_notifier_chain_unregister(&netdev_chain, nb);
 	goto unlock;
 }
@@ -1730,6 +1763,138 @@ unlock:
 }
 EXPORT_SYMBOL(unregister_netdevice_notifier);
 
+static int __register_netdevice_notifier_net(struct net *net,
+					     struct notifier_block *nb,
+					     bool ignore_call_fail)
+{
+	int err;
+
+	err = raw_notifier_chain_register(&net->netdev_chain, nb);
+	if (err)
+		return err;
+	if (dev_boot_phase)
+		return 0;
+
+	err = call_netdevice_register_net_notifiers(nb, net);
+	if (err && !ignore_call_fail)
+		goto chain_unregister;
+
+	return 0;
+
+chain_unregister:
+	raw_notifier_chain_unregister(&net->netdev_chain, nb);
+	return err;
+}
+
+static int __unregister_netdevice_notifier_net(struct net *net,
+					       struct notifier_block *nb)
+{
+	int err;
+
+	err = raw_notifier_chain_unregister(&net->netdev_chain, nb);
+	if (err)
+		return err;
+
+	call_netdevice_unregister_net_notifiers(nb, net);
+	return 0;
+}
+
+/**
+ * register_netdevice_notifier_net - register a per-netns network notifier block
+ * @net: network namespace
+ * @nb: notifier
+ *
+ * Register a notifier to be called when network device events occur.
+ * The notifier passed is linked into the kernel structures and must
+ * not be reused until it has been unregistered. A negative errno code
+ * is returned on a failure.
+ *
+ * When registered all registration and up events are replayed
+ * to the new notifier to allow device to have a race free
+ * view of the network device list.
+ */
+
+int register_netdevice_notifier_net(struct net *net, struct notifier_block *nb)
+{
+	int err;
+
+	rtnl_lock();
+	err = __register_netdevice_notifier_net(net, nb, false);
+	rtnl_unlock();
+	return err;
+}
+EXPORT_SYMBOL(register_netdevice_notifier_net);
+
+/**
+ * unregister_netdevice_notifier_net - unregister a per-netns
+ *                                     network notifier block
+ * @net: network namespace
+ * @nb: notifier
+ *
+ * Unregister a notifier previously registered by
+ * register_netdevice_notifier(). The notifier is unlinked into the
+ * kernel structures and may then be reused. A negative errno code
+ * is returned on a failure.
+ *
+ * After unregistering unregister and down device events are synthesized
+ * for all devices on the device list to the removed notifier to remove
+ * the need for special case cleanup code.
+ */
+
+int unregister_netdevice_notifier_net(struct net *net,
+				      struct notifier_block *nb)
+{
+	int err;
+
+	rtnl_lock();
+	err = __unregister_netdevice_notifier_net(net, nb);
+	rtnl_unlock();
+	return err;
+}
+EXPORT_SYMBOL(unregister_netdevice_notifier_net);
+
+int register_netdevice_notifier_dev_net(struct net_device *dev,
+					struct notifier_block *nb,
+					struct netdev_net_notifier *nn)
+{
+	int err;
+
+	rtnl_lock();
+	err = __register_netdevice_notifier_net(dev_net(dev), nb, false);
+	if (!err) {
+		nn->nb = nb;
+		list_add(&nn->list, &dev->net_notifier_list);
+	}
+	rtnl_unlock();
+	return err;
+}
+EXPORT_SYMBOL(register_netdevice_notifier_dev_net);
+
+int unregister_netdevice_notifier_dev_net(struct net_device *dev,
+					  struct notifier_block *nb,
+					  struct netdev_net_notifier *nn)
+{
+	int err;
+
+	rtnl_lock();
+	list_del(&nn->list);
+	err = __unregister_netdevice_notifier_net(dev_net(dev), nb);
+	rtnl_unlock();
+	return err;
+}
+EXPORT_SYMBOL(unregister_netdevice_notifier_dev_net);
+
+static void move_netdevice_notifiers_dev_net(struct net_device *dev,
+					     struct net *net)
+{
+	struct netdev_net_notifier *nn;
+
+	list_for_each_entry(nn, &dev->net_notifier_list, list) {
+		__unregister_netdevice_notifier_net(dev_net(dev), nn->nb);
+		__register_netdevice_notifier_net(net, nn->nb, true);
+	}
+}
+
 /**
  *	call_netdevice_notifiers_info - call all network notifier blocks
  *	@val: value passed unmodified to notifier function
@@ -1742,7 +1907,18 @@ EXPORT_SYMBOL(unregister_netdevice_notifier);
 static int call_netdevice_notifiers_info(unsigned long val,
 					 struct netdev_notifier_info *info)
 {
+	struct net *net = dev_net(info->dev);
+	int ret;
+
 	ASSERT_RTNL();
+
+	/* Run per-netns notifier block chain first, then run the global one.
+	 * Hopefully, one day, the global one is going to be removed after
+	 * all notifier block registrators get converted to be per-netns.
+	 */
+	ret = raw_notifier_call_chain(&net->netdev_chain, val, info);
+	if (ret & NOTIFY_STOP_MASK)
+		return ret;
 	return raw_notifier_call_chain(&netdev_chain, val, info);
 }
 
@@ -2861,6 +3037,7 @@ static u16 skb_tx_hash(const struct net_device *dev,
 	}
 
 	if (skb_rx_queue_recorded(skb)) {
+		BUILD_BUG_ON_INVALID(qcount == 0);
 		hash = skb_get_rx_queue(skb);
 		if (hash >= qoffset)
 			hash -= qoffset;
@@ -3807,6 +3984,7 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
 	bool again = false;
 
 	skb_reset_mac_header(skb);
+	skb_assert_len(skb);
 
 	if (unlikely(skb_shinfo(skb)->tx_flags & SKBTX_SCHED_TSTAMP))
 		__skb_tstamp_tx(skb, NULL, skb->sk, SCM_TSTAMP_SCHED);
@@ -4468,7 +4646,6 @@ void generic_xdp_tx(struct sk_buff *skb, struct bpf_prog *xdp_prog)
 		kfree_skb(skb);
 	}
 }
-EXPORT_SYMBOL_GPL(generic_xdp_tx);
 
 static DEFINE_STATIC_KEY_FALSE(generic_xdp_needed_key);
 
@@ -4650,7 +4827,7 @@ EXPORT_SYMBOL_GPL(br_fdb_test_addr_hook);
 
 static inline struct sk_buff *
 sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
-		   struct net_device *orig_dev)
+		   struct net_device *orig_dev, bool *another)
 {
 #ifdef CONFIG_NET_CLS_ACT
 	struct mini_Qdisc *miniq = rcu_dereference_bh(skb->dev->miniq_ingress);
@@ -4693,7 +4870,11 @@ sch_handle_ingress(struct sk_buff *skb, struct packet_type **pt_prev, int *ret,
 		 * redirecting to another netdev
 		 */
 		__skb_push(skb, skb->mac_len);
-		skb_do_redirect(skb);
+		if (skb_do_redirect(skb) == -EAGAIN) {
+			__skb_pull(skb, skb->mac_len);
+			*another = true;
+			break;
+		}
 		return NULL;
 	case TC_ACT_REINSERT:
 		/* this does not scrub the packet, and updates stats on error */
@@ -4886,7 +5067,12 @@ another_round:
 skip_taps:
 #ifdef CONFIG_NET_INGRESS
 	if (static_branch_unlikely(&ingress_needed_key)) {
-		skb = sch_handle_ingress(skb, &pt_prev, &ret, orig_dev);
+		bool another = false;
+
+		skb = sch_handle_ingress(skb, &pt_prev, &ret, orig_dev,
+					 &another);
+		if (another)
+			goto another_round;
 		if (!skb)
 			goto out;
 
@@ -5146,6 +5332,25 @@ static int generic_xdp_install(struct net_device *dev, struct netdev_bpf *xdp)
 	struct bpf_prog *old = rtnl_dereference(dev->xdp_prog);
 	struct bpf_prog *new = xdp->prog;
 	int ret = 0;
+
+	if (new) {
+		u32 i;
+
+		mutex_lock(&new->aux->used_maps_mutex);
+
+		/* generic XDP does not work with DEVMAPs that can
+		 * have a bpf_prog installed on an entry
+		 */
+		for (i = 0; i < new->aux->used_map_cnt; i++) {
+			if (dev_map_can_have_prog(new->aux->used_maps[i]) ||
+			    cpu_map_prog_allowed(new->aux->used_maps[i])) {
+				mutex_unlock(&new->aux->used_maps_mutex);
+				return -EINVAL;
+			}
+		}
+
+		mutex_unlock(&new->aux->used_maps_mutex);
+	}
 
 	switch (xdp->command) {
 	case XDP_SETUP_PROG:
@@ -8058,67 +8263,438 @@ int dev_change_proto_down(struct net_device *dev, bool proto_down)
 }
 EXPORT_SYMBOL(dev_change_proto_down);
 
-u32 __dev_xdp_query(struct net_device *dev, bpf_op_t bpf_op,
-		    enum bpf_netdev_command cmd)
+/**
+ *	dev_change_proto_down_generic - generic implementation for
+ * 	ndo_change_proto_down that sets carrier according to
+ * 	proto_down.
+ *
+ *	@dev: device
+ *	@proto_down: new value
+ */
+int dev_change_proto_down_generic(struct net_device *dev, bool proto_down)
 {
-	struct netdev_bpf xdp;
+	if (proto_down)
+		netif_carrier_off(dev);
+	else
+		netif_carrier_on(dev);
+	dev->proto_down = proto_down;
+	return 0;
+}
+EXPORT_SYMBOL(dev_change_proto_down_generic);
 
-	if (!bpf_op)
-		return 0;
+struct bpf_xdp_link {
+	struct bpf_link link;
+	struct net_device *dev; /* protected by rtnl_lock, no refcnt held */
+	int flags;
+};
 
-	memset(&xdp, 0, sizeof(xdp));
-	xdp.command = cmd;
-
-	/* Query must always succeed. */
-	WARN_ON(bpf_op(dev, &xdp) < 0 && cmd == XDP_QUERY_PROG);
-
-	return xdp.prog_id;
+static enum bpf_xdp_mode dev_xdp_mode(u32 flags)
+{
+	if (flags & XDP_FLAGS_HW_MODE)
+		return XDP_MODE_HW;
+	if (flags & XDP_FLAGS_DRV_MODE)
+		return XDP_MODE_DRV;
+	return XDP_MODE_SKB;
 }
 
-static int dev_xdp_install(struct net_device *dev, bpf_op_t bpf_op,
-			   struct netlink_ext_ack *extack, u32 flags,
-			   struct bpf_prog *prog)
+static bpf_op_t dev_xdp_bpf_op(struct net_device *dev, enum bpf_xdp_mode mode)
+{
+	switch (mode) {
+	case XDP_MODE_SKB:
+		return generic_xdp_install;
+	case XDP_MODE_DRV:
+	case XDP_MODE_HW:
+		return dev->netdev_ops->ndo_bpf;
+	default:
+		return NULL;
+	};
+}
+
+static struct bpf_xdp_link *dev_xdp_link(struct net_device *dev,
+					 enum bpf_xdp_mode mode)
+{
+	return dev->xdp_state[mode].link;
+}
+
+static struct bpf_prog *dev_xdp_prog(struct net_device *dev,
+				     enum bpf_xdp_mode mode)
+{
+	struct bpf_xdp_link *link = dev_xdp_link(dev, mode);
+
+	if (link)
+		return link->link.prog;
+	return dev->xdp_state[mode].prog;
+}
+
+u32 dev_xdp_prog_id(struct net_device *dev, enum bpf_xdp_mode mode)
+{
+	struct bpf_prog *prog = dev_xdp_prog(dev, mode);
+
+	return prog ? prog->aux->id : 0;
+}
+
+static void dev_xdp_set_link(struct net_device *dev, enum bpf_xdp_mode mode,
+			     struct bpf_xdp_link *link)
+{
+	dev->xdp_state[mode].link = link;
+	dev->xdp_state[mode].prog = NULL;
+}
+
+static void dev_xdp_set_prog(struct net_device *dev, enum bpf_xdp_mode mode,
+			     struct bpf_prog *prog)
+{
+	dev->xdp_state[mode].link = NULL;
+	dev->xdp_state[mode].prog = prog;
+}
+
+static int dev_xdp_install(struct net_device *dev, enum bpf_xdp_mode mode,
+			   bpf_op_t bpf_op, struct netlink_ext_ack *extack,
+			   u32 flags, struct bpf_prog *prog)
 {
 	struct netdev_bpf xdp;
+	int err;
 
 	memset(&xdp, 0, sizeof(xdp));
-	if (flags & XDP_FLAGS_HW_MODE)
-		xdp.command = XDP_SETUP_PROG_HW;
-	else
-		xdp.command = XDP_SETUP_PROG;
+	xdp.command = mode == XDP_MODE_HW ? XDP_SETUP_PROG_HW : XDP_SETUP_PROG;
 	xdp.extack = extack;
 	xdp.flags = flags;
 	xdp.prog = prog;
 
-	return bpf_op(dev, &xdp);
+	/* Drivers assume refcnt is already incremented (i.e, prog pointer is
+	 * "moved" into driver), so they don't increment it on their own, but
+	 * they do decrement refcnt when program is detached or replaced.
+	 * Given net_device also owns link/prog, we need to bump refcnt here
+	 * to prevent drivers from underflowing it.
+	 */
+	if (prog)
+		bpf_prog_inc(prog);
+	err = bpf_op(dev, &xdp);
+	if (err) {
+		if (prog)
+			bpf_prog_put(prog);
+		return err;
+	}
+
+	if (mode != XDP_MODE_HW)
+		bpf_prog_change_xdp(dev_xdp_prog(dev, mode), prog);
+
+	return 0;
 }
 
 static void dev_xdp_uninstall(struct net_device *dev)
 {
-	struct netdev_bpf xdp;
-	bpf_op_t ndo_bpf;
+	struct bpf_xdp_link *link;
+	struct bpf_prog *prog;
+	enum bpf_xdp_mode mode;
+	bpf_op_t bpf_op;
 
-	/* Remove generic XDP */
-	WARN_ON(dev_xdp_install(dev, generic_xdp_install, NULL, 0, NULL));
+	ASSERT_RTNL();
 
-	/* Remove from the driver */
-	ndo_bpf = dev->netdev_ops->ndo_bpf;
-	if (!ndo_bpf)
-		return;
+	for (mode = XDP_MODE_SKB; mode < __MAX_XDP_MODE; mode++) {
+		prog = dev_xdp_prog(dev, mode);
+		if (!prog)
+			continue;
 
-	memset(&xdp, 0, sizeof(xdp));
-	xdp.command = XDP_QUERY_PROG;
-	WARN_ON(ndo_bpf(dev, &xdp));
-	if (xdp.prog_id)
-		WARN_ON(dev_xdp_install(dev, ndo_bpf, NULL, xdp.prog_flags,
-					NULL));
+		bpf_op = dev_xdp_bpf_op(dev, mode);
+		if (!bpf_op)
+			continue;
 
-	/* Remove HW offload */
-	memset(&xdp, 0, sizeof(xdp));
-	xdp.command = XDP_QUERY_PROG_HW;
-	if (!ndo_bpf(dev, &xdp) && xdp.prog_id)
-		WARN_ON(dev_xdp_install(dev, ndo_bpf, NULL, xdp.prog_flags,
-					NULL));
+		WARN_ON(dev_xdp_install(dev, mode, bpf_op, NULL, 0, NULL));
+
+		/* auto-detach link from net device */
+		link = dev_xdp_link(dev, mode);
+		if (link)
+			link->dev = NULL;
+		else
+			bpf_prog_put(prog);
+
+		dev_xdp_set_link(dev, mode, NULL);
+	}
+}
+
+static int dev_xdp_attach(struct net_device *dev, struct netlink_ext_ack *extack,
+			  struct bpf_xdp_link *link, struct bpf_prog *new_prog,
+			  struct bpf_prog *old_prog, u32 flags)
+{
+	struct bpf_prog *cur_prog;
+	enum bpf_xdp_mode mode;
+	bpf_op_t bpf_op;
+	int err;
+
+	ASSERT_RTNL();
+
+	/* either link or prog attachment, never both */
+	if (link && (new_prog || old_prog))
+		return -EINVAL;
+	/* link supports only XDP mode flags */
+	if (link && (flags & ~XDP_FLAGS_MODES)) {
+		NL_SET_ERR_MSG(extack, "Invalid XDP flags for BPF link attachment");
+		return -EINVAL;
+	}
+	/* just one XDP mode bit should be set, zero defaults to SKB mode */
+	if (hweight32(flags & XDP_FLAGS_MODES) > 1) {
+		NL_SET_ERR_MSG(extack, "Only one XDP mode flag can be set");
+		return -EINVAL;
+	}
+	/* old_prog != NULL implies XDP_FLAGS_REPLACE is set */
+	if (old_prog && !(flags & XDP_FLAGS_REPLACE)) {
+		NL_SET_ERR_MSG(extack, "XDP_FLAGS_REPLACE is not specified");
+		return -EINVAL;
+	}
+
+	mode = dev_xdp_mode(flags);
+	/* can't replace attached link */
+	if (dev_xdp_link(dev, mode)) {
+		NL_SET_ERR_MSG(extack, "Can't replace active BPF XDP link");
+		return -EBUSY;
+	}
+
+	cur_prog = dev_xdp_prog(dev, mode);
+	/* can't replace attached prog with link */
+	if (link && cur_prog) {
+		NL_SET_ERR_MSG(extack, "Can't replace active XDP program with BPF link");
+		return -EBUSY;
+	}
+	if ((flags & XDP_FLAGS_REPLACE) && cur_prog != old_prog) {
+		NL_SET_ERR_MSG(extack, "Active program does not match expected");
+		return -EEXIST;
+	}
+	if ((flags & XDP_FLAGS_UPDATE_IF_NOEXIST) && cur_prog) {
+		NL_SET_ERR_MSG(extack, "XDP program already attached");
+		return -EBUSY;
+	}
+
+	/* put effective new program into new_prog */
+	if (link)
+		new_prog = link->link.prog;
+
+	if (new_prog) {
+		bool offload = mode == XDP_MODE_HW;
+		enum bpf_xdp_mode other_mode = mode == XDP_MODE_SKB
+					       ? XDP_MODE_DRV : XDP_MODE_SKB;
+
+		if (!offload && dev_xdp_prog(dev, other_mode)) {
+			NL_SET_ERR_MSG(extack, "Native and generic XDP can't be active at the same time");
+			return -EEXIST;
+		}
+		if (!offload && bpf_prog_is_dev_bound(new_prog->aux)) {
+			NL_SET_ERR_MSG(extack, "Using device-bound program without HW_MODE flag is not supported");
+			return -EINVAL;
+		}
+		if (new_prog->expected_attach_type == BPF_XDP_DEVMAP) {
+			NL_SET_ERR_MSG(extack, "BPF_XDP_DEVMAP programs can not be attached to a device");
+			return -EINVAL;
+		}
+		if (new_prog->expected_attach_type == BPF_XDP_CPUMAP) {
+			NL_SET_ERR_MSG(extack, "BPF_XDP_CPUMAP programs can not be attached to a device");
+			return -EINVAL;
+		}
+	}
+
+	/* don't call drivers if the effective program didn't change */
+	if (new_prog != cur_prog) {
+		bpf_op = dev_xdp_bpf_op(dev, mode);
+		if (!bpf_op) {
+			NL_SET_ERR_MSG(extack, "Underlying driver does not support XDP in native mode");
+			return -EOPNOTSUPP;
+		}
+
+		err = dev_xdp_install(dev, mode, bpf_op, extack, flags, new_prog);
+		if (err)
+			return err;
+	}
+
+	if (link)
+		dev_xdp_set_link(dev, mode, link);
+	else
+		dev_xdp_set_prog(dev, mode, new_prog);
+	if (cur_prog)
+		bpf_prog_put(cur_prog);
+
+	return 0;
+}
+
+static int dev_xdp_attach_link(struct net_device *dev,
+			       struct netlink_ext_ack *extack,
+			       struct bpf_xdp_link *link)
+{
+	return dev_xdp_attach(dev, extack, link, NULL, NULL, link->flags);
+}
+
+static int dev_xdp_detach_link(struct net_device *dev,
+			       struct netlink_ext_ack *extack,
+			       struct bpf_xdp_link *link)
+{
+	enum bpf_xdp_mode mode;
+	bpf_op_t bpf_op;
+
+	ASSERT_RTNL();
+
+	mode = dev_xdp_mode(link->flags);
+	if (dev_xdp_link(dev, mode) != link)
+		return -EINVAL;
+
+	bpf_op = dev_xdp_bpf_op(dev, mode);
+	WARN_ON(dev_xdp_install(dev, mode, bpf_op, NULL, 0, NULL));
+	dev_xdp_set_link(dev, mode, NULL);
+	return 0;
+}
+
+static void bpf_xdp_link_release(struct bpf_link *link)
+{
+	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+
+	rtnl_lock();
+
+	/* if racing with net_device's tear down, xdp_link->dev might be
+	 * already NULL, in which case link was already auto-detached
+	 */
+	if (xdp_link->dev) {
+		WARN_ON(dev_xdp_detach_link(xdp_link->dev, NULL, xdp_link));
+		xdp_link->dev = NULL;
+	}
+
+	rtnl_unlock();
+}
+
+static int bpf_xdp_link_detach(struct bpf_link *link)
+{
+	bpf_xdp_link_release(link);
+	return 0;
+}
+
+static void bpf_xdp_link_dealloc(struct bpf_link *link)
+{
+	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+
+	kfree(xdp_link);
+}
+
+static void bpf_xdp_link_show_fdinfo(const struct bpf_link *link,
+				     struct seq_file *seq)
+{
+	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	u32 ifindex = 0;
+
+	rtnl_lock();
+	if (xdp_link->dev)
+		ifindex = xdp_link->dev->ifindex;
+	rtnl_unlock();
+
+	seq_printf(seq, "ifindex:\t%u\n", ifindex);
+}
+
+static int bpf_xdp_link_fill_link_info(const struct bpf_link *link,
+				       struct bpf_link_info *info)
+{
+	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	u32 ifindex = 0;
+
+	rtnl_lock();
+	if (xdp_link->dev)
+		ifindex = xdp_link->dev->ifindex;
+	rtnl_unlock();
+
+	info->xdp.ifindex = ifindex;
+	return 0;
+}
+
+static int bpf_xdp_link_update(struct bpf_link *link, struct bpf_prog *new_prog,
+			       struct bpf_prog *old_prog)
+{
+	struct bpf_xdp_link *xdp_link = container_of(link, struct bpf_xdp_link, link);
+	enum bpf_xdp_mode mode;
+	bpf_op_t bpf_op;
+	int err = 0;
+
+	rtnl_lock();
+
+	/* link might have been auto-released already, so fail */
+	if (!xdp_link->dev) {
+		err = -ENOLINK;
+		goto out_unlock;
+	}
+
+	if (old_prog && link->prog != old_prog) {
+		err = -EPERM;
+		goto out_unlock;
+	}
+	old_prog = link->prog;
+	if (old_prog == new_prog) {
+		/* no-op, don't disturb drivers */
+		bpf_prog_put(new_prog);
+		goto out_unlock;
+	}
+
+	mode = dev_xdp_mode(xdp_link->flags);
+	bpf_op = dev_xdp_bpf_op(xdp_link->dev, mode);
+	err = dev_xdp_install(xdp_link->dev, mode, bpf_op, NULL,
+			      xdp_link->flags, new_prog);
+	if (err)
+		goto out_unlock;
+
+	old_prog = xchg(&link->prog, new_prog);
+	bpf_prog_put(old_prog);
+
+out_unlock:
+	rtnl_unlock();
+	return err;
+}
+
+static const struct bpf_link_ops bpf_xdp_link_lops = {
+	.release = bpf_xdp_link_release,
+	.dealloc = bpf_xdp_link_dealloc,
+	.detach = bpf_xdp_link_detach,
+	.show_fdinfo = bpf_xdp_link_show_fdinfo,
+	.fill_link_info = bpf_xdp_link_fill_link_info,
+	.update_prog = bpf_xdp_link_update,
+};
+
+int bpf_xdp_link_attach(const union bpf_attr *attr, struct bpf_prog *prog)
+{
+	struct net *net = current->nsproxy->net_ns;
+	struct bpf_link_primer link_primer;
+	struct bpf_xdp_link *link;
+	struct net_device *dev;
+	int err, fd;
+
+	dev = dev_get_by_index(net, attr->link_create.target_ifindex);
+	if (!dev)
+		return -EINVAL;
+
+	link = kzalloc(sizeof(*link), GFP_USER);
+	if (!link) {
+		err = -ENOMEM;
+		goto out_put_dev;
+	}
+
+	bpf_link_init(&link->link, BPF_LINK_TYPE_XDP, &bpf_xdp_link_lops, prog);
+	link->dev = dev;
+	link->flags = attr->link_create.flags;
+
+	err = bpf_link_prime(&link->link, &link_primer);
+	if (err) {
+		kfree(link);
+		goto out_put_dev;
+	}
+
+	rtnl_lock();
+	err = dev_xdp_attach_link(dev, NULL, link);
+	rtnl_unlock();
+
+	if (err) {
+		bpf_link_cleanup(&link_primer);
+		goto out_put_dev;
+	}
+
+	fd = bpf_link_settle(&link_primer);
+	/* link itself doesn't hold dev's refcnt to not complicate shutdown */
+	dev_put(dev);
+	return fd;
+
+out_put_dev:
+	dev_put(dev);
+	return err;
 }
 
 /**
@@ -8126,56 +8702,44 @@ static void dev_xdp_uninstall(struct net_device *dev)
  *	@dev: device
  *	@extack: netlink extended ack
  *	@fd: new program fd or negative value to clear
+ *	@expected_fd: old program fd that userspace expects to replace or clear
  *	@flags: xdp-related flags
  *
  *	Set or clear a bpf program for a device
  */
 int dev_change_xdp_fd(struct net_device *dev, struct netlink_ext_ack *extack,
-		      int fd, u32 flags)
+		      int fd, int expected_fd, u32 flags)
 {
-	const struct net_device_ops *ops = dev->netdev_ops;
-	enum bpf_netdev_command query;
-	struct bpf_prog *prog = NULL;
-	bpf_op_t bpf_op, bpf_chk;
+	enum bpf_xdp_mode mode = dev_xdp_mode(flags);
+	struct bpf_prog *new_prog = NULL, *old_prog = NULL;
 	int err;
 
 	ASSERT_RTNL();
 
-	query = flags & XDP_FLAGS_HW_MODE ? XDP_QUERY_PROG_HW : XDP_QUERY_PROG;
-
-	bpf_op = bpf_chk = ops->ndo_bpf;
-	if (!bpf_op && (flags & (XDP_FLAGS_DRV_MODE | XDP_FLAGS_HW_MODE)))
-		return -EOPNOTSUPP;
-	if (!bpf_op || (flags & XDP_FLAGS_SKB_MODE))
-		bpf_op = generic_xdp_install;
-	if (bpf_op == bpf_chk)
-		bpf_chk = generic_xdp_install;
-
 	if (fd >= 0) {
-		if (__dev_xdp_query(dev, bpf_chk, XDP_QUERY_PROG) ||
-		    __dev_xdp_query(dev, bpf_chk, XDP_QUERY_PROG_HW))
-			return -EEXIST;
-		if ((flags & XDP_FLAGS_UPDATE_IF_NOEXIST) &&
-		    __dev_xdp_query(dev, bpf_op, query))
-			return -EBUSY;
+		new_prog = bpf_prog_get_type_dev(fd, BPF_PROG_TYPE_XDP,
+						 mode != XDP_MODE_SKB);
+		if (IS_ERR(new_prog))
+			return PTR_ERR(new_prog);
+	}
 
-		prog = bpf_prog_get_type_dev(fd, BPF_PROG_TYPE_XDP,
-					     bpf_op == ops->ndo_bpf);
-		if (IS_ERR(prog))
-			return PTR_ERR(prog);
-
-		if (!(flags & XDP_FLAGS_HW_MODE) &&
-		    bpf_prog_is_dev_bound(prog->aux)) {
-			NL_SET_ERR_MSG(extack, "using device-bound program without HW_MODE flag is not supported");
-			bpf_prog_put(prog);
-			return -EINVAL;
+	if (expected_fd >= 0) {
+		old_prog = bpf_prog_get_type_dev(expected_fd, BPF_PROG_TYPE_XDP,
+						 mode != XDP_MODE_SKB);
+		if (IS_ERR(old_prog)) {
+			err = PTR_ERR(old_prog);
+			old_prog = NULL;
+			goto err_out;
 		}
 	}
 
-	err = dev_xdp_install(dev, bpf_op, extack, flags, prog);
-	if (err < 0 && prog)
-		bpf_prog_put(prog);
+	err = dev_xdp_attach(dev, extack, NULL, new_prog, old_prog, flags);
 
+err_out:
+	if (err && new_prog)
+		bpf_prog_put(new_prog);
+	if (old_prog)
+		bpf_prog_put(old_prog);
 	return err;
 }
 
@@ -9246,6 +9810,7 @@ struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name,
 	INIT_LIST_HEAD(&dev->adj_list.lower);
 	INIT_LIST_HEAD(&dev->ptype_all);
 	INIT_LIST_HEAD(&dev->ptype_specific);
+	INIT_LIST_HEAD(&dev->net_notifier_list);
 #ifdef CONFIG_NET_SCHED
 	hash_init(dev->qdisc_hash);
 #endif
@@ -9316,6 +9881,8 @@ void free_netdev(struct net_device *dev)
 
 	free_percpu(dev->pcpu_refcnt);
 	dev->pcpu_refcnt = NULL;
+	free_percpu(dev->xdp_bulkq);
+	dev->xdp_bulkq = NULL;
 
 	/*  Compatibility with error handling in drivers */
 	if (dev->reg_state == NETREG_UNINITIALIZED) {
@@ -9505,6 +10072,9 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 	kobject_uevent(&dev->dev.kobj, KOBJ_REMOVE);
 	netdev_adjacent_del_links(dev);
 
+	/* Move per-net netdevice notifiers that are following the netdevice */
+	move_netdevice_notifiers_dev_net(dev, net);
+
 	/* Actually switch the network namespace */
 	dev_net_set(dev, net);
 	dev->ifindex = new_ifindex;
@@ -9647,7 +10217,7 @@ static struct hlist_head * __net_init netdev_create_hash(void)
 static int __net_init netdev_init(struct net *net)
 {
 	BUILD_BUG_ON(GRO_HASH_BUCKETS >
-		     8 * FIELD_SIZEOF(struct napi_struct, gro_bitmask));
+		     8 * sizeof_field(struct napi_struct, gro_bitmask));
 
 	if (net != &init_net)
 		INIT_LIST_HEAD(&net->dev_base_head);
@@ -9659,6 +10229,8 @@ static int __net_init netdev_init(struct net *net)
 	net->dev_index_head = netdev_create_hash();
 	if (net->dev_index_head == NULL)
 		goto err_idx;
+
+	RAW_INIT_NOTIFIER_HEAD(&net->netdev_chain);
 
 	return 0;
 

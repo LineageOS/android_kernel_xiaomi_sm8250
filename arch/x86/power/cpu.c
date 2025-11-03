@@ -15,7 +15,7 @@
 #include <linux/tboot.h>
 #include <linux/dmi.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/proto.h>
 #include <asm/mtrr.h>
 #include <asm/page.h>

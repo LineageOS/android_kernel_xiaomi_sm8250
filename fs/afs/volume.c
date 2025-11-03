@@ -21,7 +21,7 @@ static const char *const afs_voltypes[] = { "R/W", "R/O", "BAK" };
 /*
  * Allocate a volume record and load it up from a vldb record.
  */
-static struct afs_volume *afs_alloc_volume(struct afs_mount_params *params,
+static struct afs_volume *afs_alloc_volume(struct afs_fs_context *params,
 					   struct afs_vldb_entry *vldb,
 					   unsigned long type_mask)
 {
@@ -150,7 +150,7 @@ error:
  * - Rule 3: If parent volume is R/W, then only mount R/W volume unless
  *           explicitly told otherwise
  */
-struct afs_volume *afs_create_volume(struct afs_mount_params *params)
+struct afs_volume *afs_create_volume(struct afs_fs_context *params)
 {
 	struct afs_vldb_entry *vldb;
 	struct afs_volume *volume;
@@ -271,7 +271,7 @@ static int afs_update_volume_status(struct afs_volume *volume, struct key *key)
 	/* We look up an ID by passing it as a decimal string in the
 	 * operation's name parameter.
 	 */
-	idsz = sprintf(idbuf, "%u", volume->vid);
+	idsz = sprintf(idbuf, "%llu", volume->vid);
 
 	vldb = afs_vl_lookup_vldb(volume->cell, key, idbuf, idsz);
 	if (IS_ERR(vldb)) {

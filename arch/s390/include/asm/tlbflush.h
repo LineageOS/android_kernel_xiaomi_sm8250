@@ -6,7 +6,7 @@
 #include <linux/sched.h>
 #include <asm/processor.h>
 #include <asm/pgalloc.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 /*
  * Flush all TLB entries on the local CPU.

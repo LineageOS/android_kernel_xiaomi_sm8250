@@ -121,7 +121,7 @@ int afs_open(struct inode *inode, struct file *file)
 	struct key *key;
 	int ret;
 
-	_enter("{%x:%u},", vnode->fid.vid, vnode->fid.vnode);
+	_enter("{%llx:%llu},", vnode->fid.vid, vnode->fid.vnode);
 
 	key = afs_request_key(vnode->volume->cell);
 	if (IS_ERR(key)) {
@@ -171,7 +171,7 @@ int afs_release(struct inode *inode, struct file *file)
 	struct afs_file *af = file->private_data;
 	int ret = 0;
 
-	_enter("{%x:%u},", vnode->fid.vid, vnode->fid.vnode);
+	_enter("{%llx:%llu},", vnode->fid.vid, vnode->fid.vnode);
 
 	if ((file->f_mode & FMODE_WRITE))
 		ret = vfs_fsync(file, 0);
@@ -231,7 +231,7 @@ int afs_fetch_data(struct afs_vnode *vnode, struct key *key, struct afs_read *de
 	struct afs_fs_cursor fc;
 	int ret;
 
-	_enter("%s{%x:%u.%u},%x,,,",
+	_enter("%s{%llx:%llu.%u},%x,,,",
 	       vnode->volume->name,
 	       vnode->fid.vid,
 	       vnode->fid.vnode,
@@ -643,7 +643,7 @@ static int afs_releasepage(struct page *page, gfp_t gfp_flags)
 	struct afs_vnode *vnode = AFS_FS_I(page->mapping->host);
 	unsigned long priv;
 
-	_enter("{{%x:%u}[%lu],%lx},%x",
+	_enter("{{%llx:%llu}[%lu],%lx},%x",
 	       vnode->fid.vid, vnode->fid.vnode, page->index, page->flags,
 	       gfp_flags);
 

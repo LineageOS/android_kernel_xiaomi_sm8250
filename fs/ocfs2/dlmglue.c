@@ -1678,7 +1678,7 @@ static void __ocfs2_cluster_unlock(struct ocfs2_super *osb,
 	spin_unlock_irqrestore(&lockres->l_lock, flags);
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 	if (lockres->l_lockdep_map.key != NULL)
-		rwsem_release(&lockres->l_lockdep_map, 1, caller_ip);
+		rwsem_release(&lockres->l_lockdep_map, caller_ip);
 #endif
 }
 
@@ -3097,6 +3097,7 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
 	struct ocfs2_lock_res *iter = v;
 	struct ocfs2_lock_res *dummy = &priv->p_iter_res;
 
+	(*pos)++;
 	spin_lock(&ocfs2_dlm_tracking_lock);
 	iter = ocfs2_dlm_next_res(iter, priv);
 	list_del_init(&dummy->l_debug_list);

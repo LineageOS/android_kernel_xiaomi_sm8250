@@ -41,7 +41,7 @@
 #include <asm/maar.h>
 #include <asm/mmu_context.h>
 #include <asm/sections.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <asm/tlb.h>
 #include <asm/fixmap.h>

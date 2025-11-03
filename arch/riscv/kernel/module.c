@@ -18,7 +18,7 @@
 #include <linux/moduleloader.h>
 #include <linux/vmalloc.h>
 #include <linux/sizes.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sections.h>
 
 /*

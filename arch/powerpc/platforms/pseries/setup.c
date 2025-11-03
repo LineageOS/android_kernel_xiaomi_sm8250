@@ -46,7 +46,7 @@
 #include <asm/mmu.h>
 #include <asm/processor.h>
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/prom.h>
 #include <asm/rtas.h>
 #include <asm/pci-bridge.h>

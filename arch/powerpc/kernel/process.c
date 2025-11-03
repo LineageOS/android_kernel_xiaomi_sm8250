@@ -44,7 +44,7 @@
 #include <linux/elf-randomize.h>
 #include <linux/pkeys.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/io.h>
 #include <asm/processor.h>
 #include <asm/mmu.h>

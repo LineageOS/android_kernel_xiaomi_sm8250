@@ -15,7 +15,7 @@
 #include <linux/cpumask.h>
 #include <asm/cpu.h>
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/time.h>
 #include <asm/sn/types.h>
 #include <asm/sn/sn0/addrs.h>

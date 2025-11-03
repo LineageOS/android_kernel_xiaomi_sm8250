@@ -136,6 +136,9 @@ static const u32 bbr_probe_rtt_mode_ms = 200;
 /* Skip TSO below the following bandwidth (bits/sec): */
 static const int bbr_min_tso_rate = 1200000;
 
+/* Pace at ~1% below estimated bw, on average, to reduce queue at bottleneck. */
+static const int bbr_pacing_marging_percent = 1;
+
 /* We use a high_gain value of 2/ln(2) because it's the smallest pacing gain
  * that will allow a smoothly increasing pacing rate that will double each RTT
  * and send the same number of packets per RTT that an un-paced, slow-starting
@@ -235,17 +238,15 @@ static u64 bbr_rate_bytes_per_sec(struct sock *sk, u64 rate, int gain)
 {
 	unsigned int mss = tcp_sk(sk)->mss_cache;
 
-	if (!tcp_needs_internal_pacing(sk))
-		mss = tcp_mss_to_mtu(sk, mss);
 	rate *= mss;
 	rate *= gain;
 	rate >>= BBR_SCALE;
-	rate *= USEC_PER_SEC;
+	rate *= USEC_PER_SEC / 100 * (100 - bbr_pacing_marging_percent);
 	return rate >> BW_SCALE;
 }
 
 /* Convert a BBR bw and gain factor to a pacing rate in bytes per second. */
-static u32 bbr_bw_to_pacing_rate(struct sock *sk, u32 bw, int gain)
+static unsigned long bbr_bw_to_pacing_rate(struct sock *sk, u32 bw, int gain)
 {
 	u64 rate = bw;
 
@@ -284,7 +285,7 @@ static void bbr_set_pacing_rate(struct sock *sk, u32 bw, int gain)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr *bbr = inet_csk_ca(sk);
-	u32 rate = bbr_bw_to_pacing_rate(sk, bw, gain);
+	unsigned long rate = bbr_bw_to_pacing_rate(sk, bw, gain);
 
 	if (unlikely(!bbr->has_seen_rtt && tp->srtt_us))
 		bbr_init_pacing_rate_from_rtt(sk);
@@ -306,7 +307,7 @@ static u32 bbr_tso_segs_goal(struct sock *sk)
 	/* Sort of tcp_tso_autosize() but ignoring
 	 * driver provided sk_gso_max_size.
 	 */
-	bytes = min_t(u32, sk->sk_pacing_rate >> sk->sk_pacing_shift,
+	bytes = min_t(unsigned long, sk->sk_pacing_rate >> sk->sk_pacing_shift,
 		      GSO_MAX_SIZE - 1 - MAX_TCP_HEADER);
 	segs = max_t(u32, bytes / tp->mss_cache, bbr_min_tso_segs(sk));
 

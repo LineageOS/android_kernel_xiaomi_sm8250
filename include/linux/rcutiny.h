@@ -90,6 +90,11 @@ static inline void kfree_call_rcu(struct rcu_head *head,
 	call_rcu(head, func);
 }
 
+static inline void rcu_softirq_qs(void)
+{
+	rcu_sched_qs();
+}
+
 #define rcu_note_context_switch(preempt) \
 	do { \
 		rcu_sched_qs(); \
@@ -115,6 +120,11 @@ static inline void rcu_irq_exit_irqson(void) { }
 static inline void rcu_irq_enter_irqson(void) { }
 static inline void rcu_irq_exit(void) { }
 static inline void exit_rcu(void) { }
+static inline bool rcu_preempt_need_deferred_qs(struct task_struct *t)
+{
+	return false;
+}
+static inline void rcu_preempt_deferred_qs(struct task_struct *t) { }
 #ifdef CONFIG_SRCU
 void rcu_scheduler_starting(void);
 #else /* #ifndef CONFIG_SRCU */

@@ -425,7 +425,6 @@ static inline void pgtable_cache_init(void)
 #define TASK_SIZE VMALLOC_START
 #endif
 
-#include <asm-generic/pgtable.h>
 
 #endif /* !__ASSEMBLY__ */
 

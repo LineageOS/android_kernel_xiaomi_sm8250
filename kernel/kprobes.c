@@ -907,7 +907,7 @@ static void unoptimize_all_kprobes(void)
 static DEFINE_MUTEX(kprobe_sysctl_mutex);
 int sysctl_kprobes_optimization;
 int proc_kprobes_optimization_handler(struct ctl_table *table, int write,
-				      void __user *buffer, size_t *length,
+				      void *buffer, size_t *length,
 				      loff_t *ppos)
 {
 	int ret;
@@ -1538,14 +1538,10 @@ static inline int check_kprobe_rereg(struct kprobe *p)
 
 int __weak arch_check_ftrace_location(struct kprobe *p)
 {
-	unsigned long ftrace_addr;
+	unsigned long addr = (unsigned long)p->addr;
 
-	ftrace_addr = ftrace_location((unsigned long)p->addr);
-	if (ftrace_addr) {
+	if (ftrace_location(addr) == addr) {
 #ifdef CONFIG_KPROBES_ON_FTRACE
-		/* Given address is not on the instruction boundary */
-		if ((unsigned long)p->addr != ftrace_addr)
-			return -EILSEQ;
 		p->flags |= KPROBE_FLAG_FTRACE;
 #else	/* !CONFIG_KPROBES_ON_FTRACE */
 		return -EINVAL;

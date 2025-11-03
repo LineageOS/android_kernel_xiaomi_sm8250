@@ -88,7 +88,7 @@ u64 cookie_init_timestamp(struct request_sock *req)
 		ts <<= TSBITS;
 		ts |= options;
 	}
-	return (u64)ts * (USEC_PER_SEC / TCP_TS_HZ);
+	return (u64)ts * (NSEC_PER_SEC / TCP_TS_HZ);
 }
 
 
@@ -302,7 +302,8 @@ struct sock *cookie_v4_check(struct sock *sk, struct sk_buff *skb)
 	struct flowi4 fl4;
 	u32 tsoff = 0;
 
-	if (!sock_net(sk)->ipv4.sysctl_tcp_syncookies || !th->ack || th->rst)
+	if (!READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_syncookies) ||
+	    !th->ack || th->rst)
 		goto out;
 
 	if (tcp_synq_no_recent_overflow(sk))

@@ -37,8 +37,10 @@ enum kernfs_node_type {
 	KERNFS_LINK		= 0x0004,
 };
 
-#define KERNFS_TYPE_MASK	0x000f
-#define KERNFS_FLAG_MASK	~KERNFS_TYPE_MASK
+#define KERNFS_TYPE_MASK		0x000f
+#define KERNFS_FLAG_MASK		~KERNFS_TYPE_MASK
+#define KERNFS_MAX_USER_XATTRS		128
+#define KERNFS_USER_XATTR_SIZE_LIMIT	(128 << 10)
 
 enum kernfs_node_flag {
 	KERNFS_ACTIVATED	= 0x0010,
@@ -78,6 +80,11 @@ enum kernfs_root_flag {
 	 * fhandle to access nodes of the fs.
 	 */
 	KERNFS_ROOT_SUPPORT_EXPORTOP		= 0x0004,
+
+	/*
+	 * Support user xattrs to be written to nodes rooted at this root.
+	 */
+	KERNFS_ROOT_SUPPORT_USER_XATTR		= 0x0008,
 };
 
 /* type-specific structures for kernfs_node union members */
@@ -102,21 +109,6 @@ struct kernfs_elem_attr {
 	struct kernfs_open_node	*open;
 	loff_t			size;
 	struct kernfs_node	*notify_next;	/* for kernfs_notify() */
-};
-
-/* represent a kernfs node */
-union kernfs_node_id {
-	struct {
-		/*
-		 * blktrace will export this struct as a simplified 'struct
-		 * fid' (which is a big data struction), so userspace can use
-		 * it to find kernfs node. The layout must match the first two
-		 * fields of 'struct fid' exactly.
-		 */
-		u32		ino;
-		u32		generation;
-	};
-	u64			id;
 };
 
 /*
@@ -155,7 +147,12 @@ struct kernfs_node {
 
 	void			*priv;
 
-	union kernfs_node_id	id;
+	/*
+	 * 64bit unique ID.  Lower 32bits carry the inode number and lower
+	 * generation.
+	 */
+	u64			id;
+
 	unsigned short		flags;
 	umode_t			mode;
 	struct kernfs_iattrs	*iattr;
@@ -289,6 +286,26 @@ static inline enum kernfs_node_type kernfs_type(struct kernfs_node *kn)
 	return kn->flags & KERNFS_TYPE_MASK;
 }
 
+static inline ino_t kernfs_id_ino(u64 id)
+{
+	return (u32)id;
+}
+
+static inline u32 kernfs_id_gen(u64 id)
+{
+	return id >> 32;
+}
+
+static inline ino_t kernfs_ino(struct kernfs_node *kn)
+{
+	return kernfs_id_ino(kn->id);
+}
+
+static inline ino_t kernfs_gen(struct kernfs_node *kn)
+{
+	return kernfs_id_gen(kn->id);
+}
+
 /**
  * kernfs_enable_ns - enable namespace under a directory
  * @kn: directory of interest, should be empty
@@ -368,6 +385,11 @@ __poll_t kernfs_generic_poll(struct kernfs_open_file *of,
 			     struct poll_table_struct *pt);
 void kernfs_notify(struct kernfs_node *kn);
 
+int kernfs_xattr_get(struct kernfs_node *kn, const char *name,
+		     void *value, size_t size);
+int kernfs_xattr_set(struct kernfs_node *kn, const char *name,
+		     const void *value, size_t size, int flags);
+
 const void *kernfs_super_ns(struct super_block *sb);
 struct dentry *kernfs_mount_ns(struct file_system_type *fs_type, int flags,
 			       struct kernfs_root *root, unsigned long magic,
@@ -377,8 +399,7 @@ struct super_block *kernfs_pin_sb(struct kernfs_root *root, const void *ns);
 
 void kernfs_init(void);
 
-struct kernfs_node *kernfs_get_node_by_id(struct kernfs_root *root,
-	const union kernfs_node_id *id);
+struct kernfs_node *kernfs_get_node_by_id(struct kernfs_root *root, u64 id);
 #else	/* CONFIG_KERNFS */
 
 static inline enum kernfs_node_type kernfs_type(struct kernfs_node *kn)
@@ -471,6 +492,14 @@ static inline int kernfs_setattr(struct kernfs_node *kn,
 { return -ENOSYS; }
 
 static inline void kernfs_notify(struct kernfs_node *kn) { }
+
+static inline int kernfs_xattr_get(struct kernfs_node *kn, const char *name,
+				   void *value, size_t size)
+{ return -ENOSYS; }
+
+static inline int kernfs_xattr_set(struct kernfs_node *kn, const char *name,
+				   const void *value, size_t size, int flags)
+{ return -ENOSYS; }
 
 static inline const void *kernfs_super_ns(struct super_block *sb)
 { return NULL; }

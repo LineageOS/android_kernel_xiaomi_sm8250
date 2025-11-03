@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /* tnum: tracked (or tristate) numbers
  *
  * A tnum tracks knowledge about the bits of a value.  Each bit can be either
@@ -192,4 +193,19 @@ int tnum_sbin(char *str, size_t size, struct tnum a)
 	}
 	str[min(size - 1, (size_t)64)] = 0;
 	return 64;
+}
+
+struct tnum tnum_subreg(struct tnum a)
+{
+	return tnum_cast(a, 4);
+}
+
+struct tnum tnum_clear_subreg(struct tnum a)
+{
+	return tnum_lshift(tnum_rshift(a, 32), 32);
+}
+
+struct tnum tnum_const_subreg(struct tnum a, u32 value)
+{
+	return tnum_or(tnum_clear_subreg(a), tnum_const(value));
 }

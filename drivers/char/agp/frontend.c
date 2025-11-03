@@ -39,7 +39,7 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include "agp.h"
 
 struct agp_front_data agp_fe;

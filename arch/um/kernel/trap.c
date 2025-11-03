@@ -10,7 +10,7 @@
 #include <linux/uaccess.h>
 #include <linux/sched/debug.h>
 #include <asm/current.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/tlbflush.h>
 #include <arch.h>
 #include <as-layout.h>
@@ -46,7 +46,7 @@ int handle_page_fault(unsigned long address, unsigned long ip,
 	if (is_user)
 		flags |= FAULT_FLAG_USER;
 retry:
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	vma = find_vma(mm, address);
 	if (!vma)
 		goto out;
@@ -122,7 +122,7 @@ good_area:
 #endif
 	flush_tlb_page(vma, address);
 out:
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 out_nosemaphore:
 	return err;
 
@@ -131,7 +131,7 @@ out_of_memory:
 	 * We ran out of memory, call the OOM killer, and return the userspace
 	 * (which will retry the fault, or kill us if we got oom-killed).
 	 */
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	if (!is_user)
 		goto out_nosemaphore;
 	pagefault_out_of_memory();

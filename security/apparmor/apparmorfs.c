@@ -15,7 +15,7 @@
 #include <linux/ctype.h>
 #include <linux/security.h>
 #include <linux/vmalloc.h>
-#include <linux/module.h>
+#include <linux/init.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 #include <linux/mount.h>
@@ -23,6 +23,7 @@
 #include <linux/capability.h>
 #include <linux/rcupdate.h>
 #include <linux/fs.h>
+#include <linux/fs_context.h>
 #include <linux/poll.h>
 #include <uapi/linux/major.h>
 #include <uapi/linux/magic.h>
@@ -142,7 +143,7 @@ static const struct super_operations aafs_super_ops = {
 	.show_path = aafs_show_path,
 };
 
-static int fill_super(struct super_block *sb, void *data, int silent)
+static int apparmorfs_fill_super(struct super_block *sb, struct fs_context *fc)
 {
 	static struct tree_descr files[] = { {""} };
 	int error;
@@ -155,16 +156,25 @@ static int fill_super(struct super_block *sb, void *data, int silent)
 	return 0;
 }
 
-static struct dentry *aafs_mount(struct file_system_type *fs_type,
-				 int flags, const char *dev_name, void *data)
+static int apparmorfs_get_tree(struct fs_context *fc)
 {
-	return mount_single(fs_type, flags, data, fill_super);
+	return get_tree_single(fc, apparmorfs_fill_super);
+}
+
+static const struct fs_context_operations apparmorfs_context_ops = {
+	.get_tree	= apparmorfs_get_tree,
+};
+
+static int apparmorfs_init_fs_context(struct fs_context *fc)
+{
+	fc->ops = &apparmorfs_context_ops;
+	return 0;
 }
 
 static struct file_system_type aafs_ops = {
 	.owner = THIS_MODULE,
 	.name = AAFS_NAME,
-	.mount = aafs_mount,
+	.init_fs_context = apparmorfs_init_fs_context,
 	.kill_sb = kill_anon_super,
 };
 

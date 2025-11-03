@@ -1885,6 +1885,15 @@ static QDF_STATUS util_scan_parse_mbssid(struct wlan_objmgr_pdev *pdev,
 		if (!tmp)
 			break;
 
+		/*
+		 * The max_bssid_indicator field is mandatory, therefore the
+		 * length of the MBSSID element should atleast be 1.
+		 */
+		if (!tmp[1]) {
+			scm_debug_rl("MBSSID IE is of length zero");
+			break;
+		}
+
 		mbssid_info.profile_count = 1 << tmp[2];
 		mbssid_end_pos = tmp + tmp[1] + 2;
 		/* Skip Element ID, Len, MaxBSSID Indicator */

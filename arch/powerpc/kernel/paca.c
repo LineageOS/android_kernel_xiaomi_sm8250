@@ -15,7 +15,7 @@
 #include <asm/lppaca.h>
 #include <asm/paca.h>
 #include <asm/sections.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/kexec.h>
 
 #include "setup.h"

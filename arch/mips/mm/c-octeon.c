@@ -20,7 +20,7 @@
 #include <asm/cpu-features.h>
 #include <asm/cpu-type.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/r4kcache.h>
 #include <asm/traps.h>
 #include <asm/mmu_context.h>
@@ -137,10 +137,10 @@ static void octeon_flush_cache_sigtramp(unsigned long addr)
 {
 	struct vm_area_struct *vma;
 
-	down_read(&current->mm->mmap_sem);
+	mmap_read_lock(current->mm);
 	vma = find_vma(current->mm, addr);
 	octeon_flush_icache_all_cores(vma);
-	up_read(&current->mm->mmap_sem);
+	mmap_read_unlock(current->mm);
 }
 
 

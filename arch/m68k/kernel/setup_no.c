@@ -39,7 +39,7 @@
 #include <asm/bootinfo.h>
 #include <asm/irq.h>
 #include <asm/machdep.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sections.h>
 
 unsigned long memory_start;

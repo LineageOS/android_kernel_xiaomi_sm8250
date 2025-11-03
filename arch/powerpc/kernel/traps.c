@@ -43,7 +43,7 @@
 #include <linux/kmsg_dump.h>
 
 #include <asm/emulated_ops.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <linux/uaccess.h>
 #include <asm/debugfs.h>
 #include <asm/io.h>

@@ -33,7 +33,7 @@
 
 #include <asm/text-patching.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/setup.h>
 #include <asm/unwind.h>
 

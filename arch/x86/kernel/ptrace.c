@@ -27,7 +27,7 @@
 #include <linux/nospec.h>
 
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/processor.h>
 #include <asm/fpu/internal.h>
 #include <asm/fpu/signal.h>

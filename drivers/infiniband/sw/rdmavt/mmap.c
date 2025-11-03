@@ -48,7 +48,7 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/mm.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include "mmap.h"
 
 /**

@@ -16,7 +16,7 @@
 #include <linux/list.h>
 
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/dvma.h>
 
 #undef DVMA_DEBUG

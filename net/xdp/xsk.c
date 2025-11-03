@@ -27,13 +27,11 @@
 
 #include "xsk_queue.h"
 #include "xdp_umem.h"
+#include "xsk.h"
 
 #define TX_BATCH_SIZE 16
 
-static struct xdp_sock *xdp_sk(struct sock *sk)
-{
-	return (struct xdp_sock *)sk;
-}
+static DEFINE_PER_CPU(struct list_head, xskmap_flush_list);
 
 bool xsk_is_setup_for_bpf_map(struct xdp_sock *xs)
 {
@@ -90,7 +88,7 @@ static int __xsk_rcv_zc(struct xdp_sock *xs, struct xdp_buff *xdp, u32 len)
 	return err;
 }
 
-int xsk_rcv(struct xdp_sock *xs, struct xdp_buff *xdp)
+static int xsk_rcv(struct xdp_sock *xs, struct xdp_buff *xdp)
 {
 	u32 len;
 
@@ -103,7 +101,7 @@ int xsk_rcv(struct xdp_sock *xs, struct xdp_buff *xdp)
 		__xsk_rcv_zc(xs, xdp, len) : __xsk_rcv(xs, xdp, len);
 }
 
-void xsk_flush(struct xdp_sock *xs)
+static void xsk_flush(struct xdp_sock *xs)
 {
 	xskq_produce_flush_desc(xs->rx);
 	xs->sk.sk_data_ready(&xs->sk);
@@ -138,6 +136,32 @@ int xsk_generic_rcv(struct xdp_sock *xs, struct xdp_buff *xdp)
 
 	xs->rx_dropped++;
 	return err;
+}
+
+int __xsk_map_redirect(struct xdp_sock *xs, struct xdp_buff *xdp)
+{
+	struct list_head *flush_list = this_cpu_ptr(&xskmap_flush_list);
+	int err;
+
+	err = xsk_rcv(xs, xdp);
+	if (err)
+		return err;
+
+	if (!xs->flush_node.prev)
+		list_add(&xs->flush_node, flush_list);
+
+	return 0;
+}
+
+void __xsk_map_flush(void)
+{
+	struct list_head *flush_list = this_cpu_ptr(&xskmap_flush_list);
+	struct xdp_sock *xs, *tmp;
+
+	list_for_each_entry_safe(xs, tmp, flush_list, flush_node) {
+		xsk_flush(xs);
+		__list_del_clearprev(&xs->flush_node);
+	}
 }
 
 void xsk_umem_complete_tx(struct xdp_umem *umem, u32 nb_entries)
@@ -190,7 +214,8 @@ static int xsk_zc_xmit(struct sock *sk)
 	struct xdp_sock *xs = xdp_sk(sk);
 	struct net_device *dev = xs->dev;
 
-	return dev->netdev_ops->ndo_xsk_async_xmit(dev, xs->queue_id);
+	return dev->netdev_ops->ndo_xsk_wakeup(dev, xs->queue_id,
+					       XDP_WAKEUP_TX);
 }
 
 static void xsk_destruct_skb(struct sk_buff *skb)
@@ -322,6 +347,68 @@ static int xsk_init_queue(u32 entries, struct xsk_queue **queue,
 	return 0;
 }
 
+static void xsk_unbind_dev(struct xdp_sock *xs)
+{
+	struct net_device *dev = xs->dev;
+
+	if (!dev || xs->state != XSK_BOUND)
+		return;
+
+	xs->state = XSK_UNBOUND;
+
+	/* Wait for driver to stop using the xdp socket. */
+	xdp_del_sk_umem(xs->umem, xs);
+	xs->dev = NULL;
+	synchronize_net();
+	dev_put(dev);
+}
+
+static struct xsk_map *xsk_get_map_list_entry(struct xdp_sock *xs,
+					      struct xdp_sock ***map_entry)
+{
+	struct xsk_map *map = NULL;
+	struct xsk_map_node *node;
+
+	*map_entry = NULL;
+
+	spin_lock_bh(&xs->map_list_lock);
+	node = list_first_entry_or_null(&xs->map_list, struct xsk_map_node,
+					node);
+	if (node) {
+		WARN_ON(xsk_map_inc(node->map));
+		map = node->map;
+		*map_entry = node->map_entry;
+	}
+	spin_unlock_bh(&xs->map_list_lock);
+	return map;
+}
+
+static void xsk_delete_from_maps(struct xdp_sock *xs)
+{
+	/* This function removes the current XDP socket from all the
+	 * maps it resides in. We need to take extra care here, due to
+	 * the two locks involved. Each map has a lock synchronizing
+	 * updates to the entries, and each socket has a lock that
+	 * synchronizes access to the list of maps (map_list). For
+	 * deadlock avoidance the locks need to be taken in the order
+	 * "map lock"->"socket map list lock". We start off by
+	 * accessing the socket map list, and take a reference to the
+	 * map to guarantee existence between the
+	 * xsk_get_map_list_entry() and xsk_map_try_sock_delete()
+	 * calls. Then we ask the map to remove the socket, which
+	 * tries to remove the socket from the map. Note that there
+	 * might be updates to the map between
+	 * xsk_get_map_list_entry() and xsk_map_try_sock_delete().
+	 */
+	struct xdp_sock **map_entry = NULL;
+	struct xsk_map *map;
+
+	while ((map = xsk_get_map_list_entry(xs, &map_entry))) {
+		xsk_map_try_sock_delete(map, xs, map_entry);
+		xsk_map_put(map);
+	}
+}
+
 static int xsk_release(struct socket *sock)
 {
 	struct sock *sk = sock->sk;
@@ -333,19 +420,16 @@ static int xsk_release(struct socket *sock)
 
 	net = sock_net(sk);
 
+	mutex_lock(&net->xdp.lock);
+	sk_del_node_init_rcu(sk);
+	mutex_unlock(&net->xdp.lock);
+
 	local_bh_disable();
 	sock_prot_inuse_add(net, sk->sk_prot, -1);
 	local_bh_enable();
 
-	if (xs->dev) {
-		struct net_device *dev = xs->dev;
-
-		/* Wait for driver to stop using the xdp socket. */
-		xdp_del_sk_umem(xs->umem, xs);
-		xs->dev = NULL;
-		synchronize_net();
-		dev_put(dev);
-	}
+	xsk_delete_from_maps(xs);
+	xsk_unbind_dev(xs);
 
 	xskq_destroy(xs->rx);
 	xskq_destroy(xs->tx);
@@ -391,7 +475,7 @@ static int xsk_bind(struct socket *sock, struct sockaddr *addr, int addr_len)
 		return -EINVAL;
 
 	mutex_lock(&xs->mutex);
-	if (xs->dev) {
+	if (xs->state != XSK_READY) {
 		err = -EBUSY;
 		goto out_release;
 	}
@@ -408,13 +492,6 @@ static int xsk_bind(struct socket *sock, struct sockaddr *addr, int addr_len)
 	}
 
 	qid = sxdp->sxdp_queue_id;
-
-	if ((xs->rx && qid >= dev->real_num_rx_queues) ||
-	    (xs->tx && qid >= dev->real_num_tx_queues)) {
-		err = -EINVAL;
-		goto out_unlock;
-	}
-
 	flags = sxdp->sxdp_flags;
 
 	if (flags & XDP_SHARED_UMEM) {
@@ -477,6 +554,8 @@ static int xsk_bind(struct socket *sock, struct sockaddr *addr, int addr_len)
 out_unlock:
 	if (err)
 		dev_put(dev);
+	else
+		xs->state = XSK_BOUND;
 out_release:
 	mutex_unlock(&xs->mutex);
 	return err;
@@ -505,6 +584,10 @@ static int xsk_setsockopt(struct socket *sock, int level, int optname,
 			return -EFAULT;
 
 		mutex_lock(&xs->mutex);
+		if (xs->state != XSK_READY) {
+			mutex_unlock(&xs->mutex);
+			return -EBUSY;
+		}
 		q = (optname == XDP_TX_RING) ? &xs->tx : &xs->rx;
 		err = xsk_init_queue(entries, q, false);
 		mutex_unlock(&xs->mutex);
@@ -521,7 +604,7 @@ static int xsk_setsockopt(struct socket *sock, int level, int optname,
 			return -EFAULT;
 
 		mutex_lock(&xs->mutex);
-		if (xs->umem) {
+		if (xs->state != XSK_READY || xs->umem) {
 			mutex_unlock(&xs->mutex);
 			return -EBUSY;
 		}
@@ -550,6 +633,10 @@ static int xsk_setsockopt(struct socket *sock, int level, int optname,
 			return -EFAULT;
 
 		mutex_lock(&xs->mutex);
+		if (xs->state != XSK_READY) {
+			mutex_unlock(&xs->mutex);
+			return -EBUSY;
+		}
 		if (!xs->umem) {
 			mutex_unlock(&xs->mutex);
 			return -EINVAL;
@@ -651,6 +738,9 @@ static int xsk_mmap(struct file *file, struct socket *sock,
 	unsigned long pfn;
 	struct page *qpg;
 
+	if (xs->state != XSK_READY)
+		return -EBUSY;
+
 	if (offset == XDP_PGOFF_RX_RING) {
 		q = READ_ONCE(xs->rx);
 	} else if (offset == XDP_PGOFF_TX_RING) {
@@ -680,6 +770,38 @@ static int xsk_mmap(struct file *file, struct socket *sock,
 	pfn = virt_to_phys(q->ring) >> PAGE_SHIFT;
 	return remap_pfn_range(vma, vma->vm_start, pfn,
 			       size, vma->vm_page_prot);
+}
+
+static int xsk_notifier(struct notifier_block *this,
+			unsigned long msg, void *ptr)
+{
+	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
+	struct net *net = dev_net(dev);
+	struct sock *sk;
+
+	switch (msg) {
+	case NETDEV_UNREGISTER:
+		mutex_lock(&net->xdp.lock);
+		sk_for_each(sk, &net->xdp.list) {
+			struct xdp_sock *xs = xdp_sk(sk);
+
+			mutex_lock(&xs->mutex);
+			if (xs->dev == dev) {
+				sk->sk_err = ENETDOWN;
+				if (!sock_flag(sk, SOCK_DEAD))
+					sk->sk_error_report(sk);
+
+				xsk_unbind_dev(xs);
+
+				/* Clear device references in umem. */
+				xdp_umem_clear_dev(xs->umem);
+			}
+			mutex_unlock(&xs->mutex);
+		}
+		mutex_unlock(&net->xdp.lock);
+		break;
+	}
+	return NOTIFY_DONE;
 }
 
 static struct proto xsk_proto = {
@@ -753,8 +875,16 @@ static int xsk_create(struct net *net, struct socket *sock, int protocol,
 	sock_set_flag(sk, SOCK_RCU_FREE);
 
 	xs = xdp_sk(sk);
+	xs->state = XSK_READY;
 	mutex_init(&xs->mutex);
 	spin_lock_init(&xs->tx_completion_lock);
+
+	INIT_LIST_HEAD(&xs->map_list);
+	spin_lock_init(&xs->map_list_lock);
+
+	mutex_lock(&net->xdp.lock);
+	sk_add_node_rcu(sk, &net->xdp.list);
+	mutex_unlock(&net->xdp.lock);
 
 	local_bh_disable();
 	sock_prot_inuse_add(net, &xsk_proto, 1);
@@ -769,9 +899,30 @@ static const struct net_proto_family xsk_family_ops = {
 	.owner	= THIS_MODULE,
 };
 
+static struct notifier_block xsk_netdev_notifier = {
+	.notifier_call	= xsk_notifier,
+};
+
+static int __net_init xsk_net_init(struct net *net)
+{
+	mutex_init(&net->xdp.lock);
+	INIT_HLIST_HEAD(&net->xdp.list);
+	return 0;
+}
+
+static void __net_exit xsk_net_exit(struct net *net)
+{
+	WARN_ON_ONCE(!hlist_empty(&net->xdp.list));
+}
+
+static struct pernet_operations xsk_net_ops = {
+	.init = xsk_net_init,
+	.exit = xsk_net_exit,
+};
+
 static int __init xsk_init(void)
 {
-	int err;
+	int err, cpu;
 
 	err = proto_register(&xsk_proto, 0 /* no slab */);
 	if (err)
@@ -781,8 +932,22 @@ static int __init xsk_init(void)
 	if (err)
 		goto out_proto;
 
+	err = register_pernet_subsys(&xsk_net_ops);
+	if (err)
+		goto out_sk;
+
+	err = register_netdevice_notifier(&xsk_netdev_notifier);
+	if (err)
+		goto out_pernet;
+
+	for_each_possible_cpu(cpu)
+		INIT_LIST_HEAD(&per_cpu(xskmap_flush_list, cpu));
 	return 0;
 
+out_pernet:
+	unregister_pernet_subsys(&xsk_net_ops);
+out_sk:
+	sock_unregister(PF_XDP);
 out_proto:
 	proto_unregister(&xsk_proto);
 out:

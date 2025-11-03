@@ -24,7 +24,7 @@
 #include <linux/irq.h>
 #include <linux/ioport.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/prom.h>
 #include <asm/io.h>
 

@@ -28,7 +28,7 @@
 #include <linux/tracehook.h>
 #include <linux/unistd.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/traps.h>
 
 #define CREATE_TRACE_POINTS

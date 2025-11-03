@@ -20,7 +20,7 @@
 #include <asm/oplib.h>
 #include <asm/irq.h>
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #define UCTRL_MINOR	174
 

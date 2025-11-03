@@ -47,7 +47,7 @@
 #include <asm/processor.h>
 #include <asm/sections.h>
 #include <asm/prom.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/io.h>
 #include <asm/pci-bridge.h>
 #include <asm/iommu.h>

@@ -243,6 +243,8 @@ struct scatterlist;
 struct pipe_inode_info;
 struct iov_iter;
 struct napi_struct;
+struct bpf_prog;
+union bpf_attr;
 
 #if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
 struct nf_conntrack {
@@ -688,7 +690,7 @@ struct sk_buff {
 
 	union {
 		ktime_t		tstamp;
-		u64		skb_mstamp;
+		u64		skb_mstamp_ns; /* earliest departure time */
 	};
 	/*
 	 * This is the control buffer. It is free to use for every
@@ -989,6 +991,16 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t priority, int flags,
 			    int node);
 struct sk_buff *__build_skb(void *data, unsigned int frag_size);
 struct sk_buff *build_skb(void *data, unsigned int frag_size);
+struct sk_buff *build_skb_around(struct sk_buff *skb,
+				 void *data, unsigned int frag_size);
+
+/**
+ * alloc_skb - allocate a network buffer
+ * @size: size to allocate
+ * @priority: allocation mask
+ *
+ * This function is a convenient wrapper around __alloc_skb().
+ */
 static inline struct sk_buff *alloc_skb(unsigned int size,
 					gfp_t priority)
 {
@@ -1192,7 +1204,12 @@ void skb_flow_dissector_init(struct flow_dissector *flow_dissector,
 			     const struct flow_dissector_key *key,
 			     unsigned int key_count);
 
-bool __skb_flow_dissect(const struct sk_buff *skb,
+struct bpf_flow_dissector;
+bool bpf_flow_dissect(struct bpf_prog *prog, struct bpf_flow_dissector *ctx,
+		      __be16 proto, int nhoff, int hlen, unsigned int flags);
+
+bool __skb_flow_dissect(const struct net *net,
+			const struct sk_buff *skb,
 			struct flow_dissector *flow_dissector,
 			void *target_container,
 			void *data, __be16 proto, int nhoff, int hlen,
@@ -1202,8 +1219,8 @@ static inline bool skb_flow_dissect(const struct sk_buff *skb,
 				    struct flow_dissector *flow_dissector,
 				    void *target_container, unsigned int flags)
 {
-	return __skb_flow_dissect(skb, flow_dissector, target_container,
-				  NULL, 0, 0, 0, flags);
+	return __skb_flow_dissect(NULL, skb, flow_dissector,
+				  target_container, NULL, 0, 0, 0, flags);
 }
 
 static inline bool skb_flow_dissect_flow_keys(const struct sk_buff *skb,
@@ -1211,20 +1228,25 @@ static inline bool skb_flow_dissect_flow_keys(const struct sk_buff *skb,
 					      unsigned int flags)
 {
 	memset(flow, 0, sizeof(*flow));
-	return __skb_flow_dissect(skb, &flow_keys_dissector, flow,
-				  NULL, 0, 0, 0, flags);
+	return __skb_flow_dissect(NULL, skb, &flow_keys_dissector,
+				  flow, NULL, 0, 0, 0, flags);
 }
 
 static inline bool
-skb_flow_dissect_flow_keys_basic(const struct sk_buff *skb,
+skb_flow_dissect_flow_keys_basic(const struct net *net,
+				 const struct sk_buff *skb,
 				 struct flow_keys_basic *flow, void *data,
 				 __be16 proto, int nhoff, int hlen,
 				 unsigned int flags)
 {
 	memset(flow, 0, sizeof(*flow));
-	return __skb_flow_dissect(skb, &flow_keys_basic_dissector, flow,
+	return __skb_flow_dissect(net, skb, &flow_keys_basic_dissector, flow,
 				  data, proto, nhoff, hlen, flags);
 }
+
+void skb_flow_dissect_meta(const struct sk_buff *skb,
+			   struct flow_dissector *flow_dissector,
+			   void *target_container);
 
 void
 skb_flow_dissect_tunnel_info(const struct sk_buff *skb,
@@ -2077,6 +2099,14 @@ static inline void skb_set_tail_pointer(struct sk_buff *skb, const int offset)
 
 #endif /* NET_SKBUFF_DATA_USES_OFFSET */
 
+static inline void skb_assert_len(struct sk_buff *skb)
+{
+#ifdef CONFIG_DEBUG_NET
+	if (WARN_ONCE(!skb->len, "%s\n", __func__))
+		DO_ONCE_LITE(skb_dump, KERN_ERR, skb, false);
+#endif /* CONFIG_DEBUG_NET */
+}
+
 /*
  *	Add data to an sk_buff
  */
@@ -2360,6 +2390,29 @@ static inline void skb_reset_transport_header(struct sk_buff *skb)
 	skb->transport_header = skb->data - skb->head;
 }
 
+/**
+ * skb_reset_transport_header_careful - conditionally reset transport header
+ * @skb: buffer to alter
+ *
+ * Hardened version of skb_reset_transport_header().
+ *
+ * Returns: true if the operation was a success.
+ */
+static inline bool __must_check
+skb_reset_transport_header_careful(struct sk_buff *skb)
+{
+	long offset = skb->data - skb->head;
+
+	if (unlikely(offset != (typeof(skb->transport_header))offset))
+		return false;
+
+	if (unlikely(offset == (typeof(skb->transport_header))~0U))
+		return false;
+
+	skb->transport_header = offset;
+	return true;
+}
+
 static inline void skb_set_transport_header(struct sk_buff *skb,
 					    const int offset)
 {
@@ -2403,6 +2456,11 @@ static inline int skb_mac_header_was_set(const struct sk_buff *skb)
 	return skb->mac_header != (typeof(skb->mac_header))~0U;
 }
 
+static inline void skb_unset_mac_header(struct sk_buff *skb)
+{
+	skb->mac_header = (typeof(skb->mac_header))~0U;
+}
+
 static inline void skb_reset_mac_header(struct sk_buff *skb)
 {
 	skb->mac_header = skb->data - skb->head;
@@ -2427,7 +2485,8 @@ static inline void skb_probe_transport_header(struct sk_buff *skb,
 	if (skb_transport_header_was_set(skb))
 		return;
 
-	if (skb_flow_dissect_flow_keys_basic(skb, &keys, NULL, 0, 0, 0, 0))
+	if (skb_flow_dissect_flow_keys_basic(NULL, skb, &keys,
+					     NULL, 0, 0, 0, 0))
 		skb_set_transport_header(skb, keys.control.thoff);
 	else if (offset_hint >= 0)
 		skb_set_transport_header(skb, offset_hint);
@@ -2875,7 +2934,13 @@ static inline void *skb_frag_address(const skb_frag_t *frag)
  */
 static inline void *skb_frag_address_safe(const skb_frag_t *frag)
 {
-	void *ptr = page_address(skb_frag_page(frag));
+	struct page *page = skb_frag_page(frag);
+	void *ptr;
+
+	if (!page)
+		return NULL;
+
+	ptr = page_address(page);
 	if (unlikely(!ptr))
 		return NULL;
 
@@ -3714,6 +3779,14 @@ static inline void __skb_incr_checksum_unnecessary(struct sk_buff *skb)
 			skb->csum_level++;
 	} else if (skb->ip_summed == CHECKSUM_NONE) {
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
+		skb->csum_level = 0;
+	}
+}
+
+static inline void __skb_reset_checksum_unnecessary(struct sk_buff *skb)
+{
+	if (skb->ip_summed == CHECKSUM_UNNECESSARY) {
+		skb->ip_summed = CHECKSUM_NONE;
 		skb->csum_level = 0;
 	}
 }

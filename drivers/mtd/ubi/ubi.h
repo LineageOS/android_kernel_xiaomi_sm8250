@@ -39,7 +39,7 @@
 #include <linux/notifier.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/ubi.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #include "ubi-media.h"
 

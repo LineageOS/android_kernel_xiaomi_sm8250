@@ -195,6 +195,7 @@ struct rcu_data {
 	bool		core_needs_qs;	/* Core waits for quiesc state. */
 	bool		beenonline;	/* CPU online at least once. */
 	bool		gpwrap;		/* Possible ->gp_seq wrap. */
+	bool		deferred_qs;	/* This CPU awaiting a deferred QS? */
 	struct rcu_node *mynode;	/* This CPU's leaf of hierarchy */
 	unsigned long grpmask;		/* Mask to apply to leaf qsmask. */
 	unsigned long	ticks_this_gp;	/* The number of scheduling-clock */
@@ -432,6 +433,7 @@ DECLARE_PER_CPU(char, rcu_cpu_has_work);
 
 /* Forward declarations for rcutree_plugin.h */
 static void rcu_bootup_announce(void);
+static void rcu_preempt_qs(void);
 static void rcu_preempt_note_context_switch(bool preempt);
 static int rcu_preempt_blocked_readers_cgp(struct rcu_node *rnp);
 #ifdef CONFIG_HOTPLUG_CPU
@@ -461,6 +463,8 @@ static void rcu_cleanup_after_idle(void);
 static void rcu_prepare_for_idle(void);
 static void rcu_idle_count_callbacks_posted(void);
 static bool rcu_preempt_has_tasks(struct rcu_node *rnp);
+static bool rcu_preempt_need_deferred_qs(struct task_struct *t);
+static void rcu_preempt_deferred_qs(struct task_struct *t);
 static void print_cpu_stall_info_begin(void);
 static void print_cpu_stall_info(struct rcu_state *rsp, int cpu);
 static void print_cpu_stall_info_end(void);

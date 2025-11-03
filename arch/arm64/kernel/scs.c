@@ -7,7 +7,7 @@
 
 #include <linux/percpu.h>
 #include <linux/vmalloc.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/scs.h>
 
 DEFINE_PER_CPU(unsigned long *, irq_shadow_call_stack_ptr);

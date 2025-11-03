@@ -15,7 +15,7 @@
 #include <asm/addrspace.h>
 #include <asm/jazz.h>
 #include <asm/jazzdma.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 static inline unsigned char fd_inb(unsigned int port)
 {

@@ -21,7 +21,7 @@
 #include <asm/prom.h>
 #include <asm/dbdma.h>
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/macio.h>
 
 #include "mace.h"

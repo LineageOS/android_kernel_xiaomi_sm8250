@@ -29,7 +29,7 @@
 #include <linux/pagemap.h>
 #include <asm/io.h>
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sn/addrs.h>
 #include <asm/sn/intr.h>
 #include <asm/sn/tiocx.h>

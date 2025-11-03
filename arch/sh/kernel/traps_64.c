@@ -30,7 +30,7 @@
 #include <asm/io.h>
 #include <asm/alignment.h>
 #include <asm/processor.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/fpu.h>
 
 static int read_opcode(reg_size_t pc, insn_size_t *result_opcode, int from_user_mode)

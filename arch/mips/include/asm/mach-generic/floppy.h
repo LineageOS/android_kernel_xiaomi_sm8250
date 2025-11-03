@@ -21,7 +21,7 @@
 #include <asm/floppy.h>
 #include <asm/io.h>
 #include <asm/irq.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 /*
  * How to access the FDC's registers.

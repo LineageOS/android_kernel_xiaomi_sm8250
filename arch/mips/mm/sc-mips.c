@@ -12,7 +12,7 @@
 #include <asm/bcache.h>
 #include <asm/cacheops.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/mmu_context.h>
 #include <asm/r4kcache.h>
 #include <asm/mips-cps.h>

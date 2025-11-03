@@ -10,7 +10,7 @@
 #include <linux/init.h>
 #include <linux/mm.h>
 #include <asm/fixmap.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <asm/tlbflush.h>
 

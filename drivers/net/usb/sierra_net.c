@@ -706,6 +706,10 @@ static int sierra_net_bind(struct usbnet *dev, struct usb_interface *intf)
 			status);
 		return -ENODEV;
 	}
+	if (!dev->status) {
+		dev_err(&dev->udev->dev, "No status endpoint found");
+		return -ENODEV;
+	}
 	/* Initialize sierra private data */
 	priv = kzalloc(sizeof *priv, GFP_KERNEL);
 	if (!priv)
@@ -879,7 +883,7 @@ static struct sk_buff *sierra_net_tx_fixup(struct usbnet *dev,
 	u16 len;
 	bool need_tail;
 
-	BUILD_BUG_ON(FIELD_SIZEOF(struct usbnet, data)
+	BUILD_BUG_ON(sizeof_field(struct usbnet, data)
 				< sizeof(struct cdc_state));
 
 	dev_dbg(&dev->udev->dev, "%s", __func__);

@@ -21,7 +21,7 @@
 
 #include <linux/mm.h>
 #include <asm/processor.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <asm/current.h>
 #include <linux/sched.h>

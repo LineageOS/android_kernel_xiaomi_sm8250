@@ -21,7 +21,7 @@
 
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/io.h>
 
 static void __init zone_sizes_init(void)

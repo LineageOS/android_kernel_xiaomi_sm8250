@@ -14,7 +14,7 @@
 #include <linux/bootmem.h>
 #include <linux/list.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sun3mmu.h>
 #include <asm/dvma.h>
 

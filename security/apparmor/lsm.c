@@ -23,6 +23,8 @@
 #include <linux/sysctl.h>
 #include <linux/audit.h>
 #include <linux/user_namespace.h>
+#include <linux/netfilter_ipv4.h>
+#include <linux/netfilter_ipv6.h>
 #include <net/sock.h>
 
 #include "include/apparmor.h"
@@ -57,7 +59,7 @@ DEFINE_PER_CPU(struct aa_buffers, aa_buffers);
 static void apparmor_cred_free(struct cred *cred)
 {
 	aa_put_label(cred_label(cred));
-	cred_label(cred) = NULL;
+	set_cred_label(cred, NULL);
 }
 
 /*
@@ -65,7 +67,7 @@ static void apparmor_cred_free(struct cred *cred)
  */
 static int apparmor_cred_alloc_blank(struct cred *cred, gfp_t gfp)
 {
-	cred_label(cred) = NULL;
+	set_cred_label(cred, NULL);
 	return 0;
 }
 
@@ -75,7 +77,7 @@ static int apparmor_cred_alloc_blank(struct cred *cred, gfp_t gfp)
 static int apparmor_cred_prepare(struct cred *new, const struct cred *old,
 				 gfp_t gfp)
 {
-	cred_label(new) = aa_get_newest_label(cred_label(old));
+	set_cred_label(new, aa_get_newest_label(cred_label(old)));
 	return 0;
 }
 
@@ -84,26 +86,21 @@ static int apparmor_cred_prepare(struct cred *new, const struct cred *old,
  */
 static void apparmor_cred_transfer(struct cred *new, const struct cred *old)
 {
-	cred_label(new) = aa_get_newest_label(cred_label(old));
+	set_cred_label(new, aa_get_newest_label(cred_label(old)));
 }
 
 static void apparmor_task_free(struct task_struct *task)
 {
 
 	aa_free_task_ctx(task_ctx(task));
-	task_ctx(task) = NULL;
 }
 
 static int apparmor_task_alloc(struct task_struct *task,
 			       unsigned long clone_flags)
 {
-	struct aa_task_ctx *new = aa_alloc_task_ctx(GFP_KERNEL);
-
-	if (!new)
-		return -ENOMEM;
+	struct aa_task_ctx *new = task_ctx(task);
 
 	aa_dup_task_ctx(new, task_ctx(current));
-	task_ctx(task) = new;
 
 	return 0;
 }
@@ -431,21 +428,21 @@ static int apparmor_file_open(struct file *file)
 
 static int apparmor_file_alloc_security(struct file *file)
 {
-	int error = 0;
-
-	/* freed by apparmor_file_free_security */
+	struct aa_file_ctx *ctx = file_ctx(file);
 	struct aa_label *label = begin_current_label_crit_section();
-	file->f_security = aa_alloc_file_ctx(label, GFP_KERNEL);
-	if (!file_ctx(file))
-		error = -ENOMEM;
-	end_current_label_crit_section(label);
 
-	return error;
+	spin_lock_init(&ctx->lock);
+	rcu_assign_pointer(ctx->label, aa_get_label(label));
+	end_current_label_crit_section(label);
+	return 0;
 }
 
 static void apparmor_file_free_security(struct file *file)
 {
-	aa_free_file_ctx(file_ctx(file));
+	struct aa_file_ctx *ctx = file_ctx(file);
+
+	if (ctx)
+		aa_put_label(rcu_access_pointer(ctx->label));
 }
 
 static int common_file_perm(const char *op, struct file *file, u32 mask)
@@ -1035,7 +1032,13 @@ static int apparmor_socket_shutdown(struct socket *sock, int how)
  */
 static int apparmor_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 {
-	return 0;
+	struct aa_sk_ctx *ctx = SK_CTX(sk);
+
+	if (!skb->secmark)
+		return 0;
+
+	return apparmor_secmark_check(ctx->label, OP_RECVMSG, AA_MAY_RECEIVE,
+				      skb->secmark, sk);
 }
 
 
@@ -1055,11 +1058,10 @@ static struct aa_label *sk_peer_label(struct sock *sk)
  * Note: for tcp only valid if using ipsec or cipso on lan
  */
 static int apparmor_socket_getpeersec_stream(struct socket *sock,
-					     char __user *optval,
-					     int __user *optlen,
+					     sockptr_t optval, sockptr_t optlen,
 					     unsigned int len)
 {
-	char *name;
+	char *name = NULL;
 	int slen, error = 0;
 	struct aa_label *label;
 	struct aa_label *peer;
@@ -1076,23 +1078,21 @@ static int apparmor_socket_getpeersec_stream(struct socket *sock,
 	/* don't include terminating \0 in slen, it breaks some apps */
 	if (slen < 0) {
 		error = -ENOMEM;
-	} else {
-		if (slen > len) {
-			error = -ERANGE;
-		} else if (copy_to_user(optval, name, slen)) {
-			error = -EFAULT;
-			goto out;
-		}
-		if (put_user(slen, optlen))
-			error = -EFAULT;
-out:
-		kfree(name);
-
+		goto done;
+	}
+	if (slen > len) {
+		error = -ERANGE;
+		goto done_len;
 	}
 
+	if (copy_to_sockptr(optval, name, slen))
+		error = -EFAULT;
+done_len:
+	if (copy_to_sockptr(optlen, &slen, sizeof(slen)))
+		error = -EFAULT;
 done:
 	end_current_label_crit_section(label);
-
+	kfree(name);
 	return error;
 }
 
@@ -1130,6 +1130,27 @@ static void apparmor_sock_graft(struct sock *sk, struct socket *parent)
 	if (!ctx->label)
 		ctx->label = aa_get_current_label();
 }
+
+static int apparmor_inet_conn_request(struct sock *sk, struct sk_buff *skb,
+				      struct request_sock *req)
+{
+	struct aa_sk_ctx *ctx = SK_CTX(sk);
+
+	if (!skb->secmark)
+		return 0;
+
+	return apparmor_secmark_check(ctx->label, OP_CONNECT, AA_MAY_CONNECT,
+				      skb->secmark, sk);
+}
+
+/*
+ * The cred blob is a pointer to, not an instance of, an aa_label.
+ */
+struct lsm_blob_sizes apparmor_blob_sizes __lsm_ro_after_init = {
+	.lbs_cred = sizeof(struct aa_label *),
+	.lbs_file = sizeof(struct aa_file_ctx),
+	.lbs_task = sizeof(struct aa_task_ctx),
+};
 
 static struct security_hook_list apparmor_hooks[] __lsm_ro_after_init = {
 	LSM_HOOK_INIT(ptrace_access_check, apparmor_ptrace_access_check),
@@ -1188,6 +1209,7 @@ static struct security_hook_list apparmor_hooks[] __lsm_ro_after_init = {
 	LSM_HOOK_INIT(socket_getpeersec_dgram,
 		      apparmor_socket_getpeersec_dgram),
 	LSM_HOOK_INIT(sock_graft, apparmor_sock_graft),
+	LSM_HOOK_INIT(inet_conn_request, apparmor_inet_conn_request),
 
 	LSM_HOOK_INIT(cred_alloc_blank, apparmor_cred_alloc_blank),
 	LSM_HOOK_INIT(cred_free, apparmor_cred_free),
@@ -1308,8 +1330,8 @@ bool aa_g_paranoid_load = true;
 module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
 
 /* Boot time disable flag */
-static bool apparmor_enabled = CONFIG_SECURITY_APPARMOR_BOOTPARAM_VALUE;
-module_param_named(enabled, apparmor_enabled, bool, S_IRUGO);
+static int apparmor_enabled __lsm_ro_after_init = 1;
+module_param_named(enabled, apparmor_enabled, int, 0444);
 
 static int __init apparmor_enabled_setup(char *str)
 {
@@ -1454,14 +1476,8 @@ static int param_set_mode(const char *val, const struct kernel_param *kp)
 static int __init set_init_ctx(void)
 {
 	struct cred *cred = (struct cred *)current->real_cred;
-	struct aa_task_ctx *ctx;
 
-	ctx = aa_alloc_task_ctx(GFP_KERNEL);
-	if (!ctx)
-		return -ENOMEM;
-
-	cred_label(cred) = aa_get_label(ns_unconfined(root_ns));
-	task_ctx(current) = ctx;
+	set_cred_label(cred, aa_get_label(ns_unconfined(root_ns)));
 
 	return 0;
 }
@@ -1505,7 +1521,7 @@ static int __init alloc_buffers(void)
 
 #ifdef CONFIG_SYSCTL
 static int apparmor_dointvec(struct ctl_table *table, int write,
-			     void __user *buffer, size_t *lenp, loff_t *ppos)
+			     void *buffer, size_t *lenp, loff_t *ppos)
 {
 	if (!policy_admin_capable(NULL))
 		return -EPERM;
@@ -1543,15 +1559,98 @@ static inline int apparmor_init_sysctl(void)
 }
 #endif /* CONFIG_SYSCTL */
 
+static unsigned int apparmor_ip_postroute(void *priv,
+					  struct sk_buff *skb,
+					  const struct nf_hook_state *state)
+{
+	struct aa_sk_ctx *ctx;
+	struct sock *sk;
+
+	if (!skb->secmark)
+		return NF_ACCEPT;
+
+	sk = skb_to_full_sk(skb);
+	if (sk == NULL)
+		return NF_ACCEPT;
+
+	ctx = SK_CTX(sk);
+	if (!apparmor_secmark_check(ctx->label, OP_SENDMSG, AA_MAY_SEND,
+				    skb->secmark, sk))
+		return NF_ACCEPT;
+
+	return NF_DROP_ERR(-ECONNREFUSED);
+
+}
+
+static unsigned int apparmor_ipv4_postroute(void *priv,
+					    struct sk_buff *skb,
+					    const struct nf_hook_state *state)
+{
+	return apparmor_ip_postroute(priv, skb, state);
+}
+
+static unsigned int apparmor_ipv6_postroute(void *priv,
+					    struct sk_buff *skb,
+					    const struct nf_hook_state *state)
+{
+	return apparmor_ip_postroute(priv, skb, state);
+}
+
+static const struct nf_hook_ops apparmor_nf_ops[] = {
+	{
+		.hook =         apparmor_ipv4_postroute,
+		.pf =           NFPROTO_IPV4,
+		.hooknum =      NF_INET_POST_ROUTING,
+		.priority =     NF_IP_PRI_SELINUX_FIRST,
+	},
+#if IS_ENABLED(CONFIG_IPV6)
+	{
+		.hook =         apparmor_ipv6_postroute,
+		.pf =           NFPROTO_IPV6,
+		.hooknum =      NF_INET_POST_ROUTING,
+		.priority =     NF_IP6_PRI_SELINUX_FIRST,
+	},
+#endif
+};
+
+static int __net_init apparmor_nf_register(struct net *net)
+{
+	int ret;
+
+	ret = nf_register_net_hooks(net, apparmor_nf_ops,
+				    ARRAY_SIZE(apparmor_nf_ops));
+	return ret;
+}
+
+static void __net_exit apparmor_nf_unregister(struct net *net)
+{
+	nf_unregister_net_hooks(net, apparmor_nf_ops,
+				ARRAY_SIZE(apparmor_nf_ops));
+}
+
+static struct pernet_operations apparmor_net_ops = {
+	.init = apparmor_nf_register,
+	.exit = apparmor_nf_unregister,
+};
+
+static int __init apparmor_nf_ip_init(void)
+{
+	int err;
+
+	if (!apparmor_enabled)
+		return 0;
+
+	err = register_pernet_subsys(&apparmor_net_ops);
+	if (err)
+		panic("Apparmor: register_pernet_subsys: error %d\n", err);
+
+	return 0;
+}
+__initcall(apparmor_nf_ip_init);
+
 static int __init apparmor_init(void)
 {
 	int error;
-
-	if (!apparmor_enabled || !security_module_enable("apparmor")) {
-		aa_info_message("AppArmor disabled by boot time parameter");
-		apparmor_enabled = false;
-		return 0;
-	}
 
 	aa_secids_init();
 
@@ -1611,4 +1710,10 @@ alloc_out:
 	return error;
 }
 
-security_initcall(apparmor_init);
+DEFINE_LSM(apparmor) = {
+	.name = "apparmor",
+	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+	.enabled = &apparmor_enabled,
+	.blobs = &apparmor_blob_sizes,
+	.init = apparmor_init,
+};

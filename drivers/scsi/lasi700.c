@@ -43,7 +43,7 @@
 #include <linux/slab.h>
 
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/irq.h>
 #include <asm/hardware.h>
 #include <asm/parisc-device.h>

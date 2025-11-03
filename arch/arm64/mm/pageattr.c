@@ -16,7 +16,7 @@
 #include <linux/sched.h>
 #include <linux/vmalloc.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/set_memory.h>
 #include <asm/tlbflush.h>
 

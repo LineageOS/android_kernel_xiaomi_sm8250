@@ -10,7 +10,7 @@
  *	- initialize default measure policy rules
  *
  */
-#include <linux/module.h>
+#include <linux/init.h>
 #include <linux/list.h>
 #include <linux/fs.h>
 #include <linux/security.h>
@@ -45,7 +45,7 @@
 #define DONT_HASH	0x0200
 
 #define INVALID_PCR(a) (((a) < 0) || \
-	(a) >= (FIELD_SIZEOF(struct integrity_iint_cache, measured_pcrs) * 8))
+	(a) >= (sizeof_field(struct integrity_iint_cache, measured_pcrs) * 8))
 
 int ima_policy_flag;
 static int temp_ima_appraise;

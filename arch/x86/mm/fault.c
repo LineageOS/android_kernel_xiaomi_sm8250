@@ -205,9 +205,8 @@ static void fill_sig_info_pkey(int si_signo, int si_code, siginfo_t *info,
 
 static void
 force_sig_info_fault(int si_signo, int si_code, unsigned long address,
-		     struct task_struct *tsk, u32 *pkey, int fault)
+		     struct task_struct *tsk, u32 *pkey)
 {
-	unsigned lsb = 0;
 	siginfo_t info;
 
 	clear_siginfo(&info);
@@ -215,11 +214,6 @@ force_sig_info_fault(int si_signo, int si_code, unsigned long address,
 	info.si_errno	= 0;
 	info.si_code	= si_code;
 	info.si_addr	= (void __user *)address;
-	if (fault & VM_FAULT_HWPOISON_LARGE)
-		lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault)); 
-	if (fault & VM_FAULT_HWPOISON)
-		lsb = PAGE_SHIFT;
-	info.si_addr_lsb = lsb;
 
 	fill_sig_info_pkey(si_signo, si_code, &info, pkey);
 
@@ -748,7 +742,7 @@ no_context(struct pt_regs *regs, unsigned long error_code,
 
 			/* XXX: hwpoison faults will set the wrong code. */
 			force_sig_info_fault(signal, si_code, address,
-					     tsk, NULL, 0);
+					     tsk, NULL);
 		}
 
 		/*
@@ -907,7 +901,7 @@ __bad_area_nosemaphore(struct pt_regs *regs, unsigned long error_code,
 		tsk->thread.error_code	= error_code;
 		tsk->thread.trap_nr	= X86_TRAP_PF;
 
-		force_sig_info_fault(SIGSEGV, si_code, address, tsk, pkey, 0);
+		force_sig_info_fault(SIGSEGV, si_code, address, tsk, pkey);
 
 		return;
 	}
@@ -939,7 +933,7 @@ __bad_area(struct pt_regs *regs, unsigned long error_code,
 	 * Something tried to access memory that isn't in our memory map..
 	 * Fix it, but check if it's kernel or user first..
 	 */
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 
 	__bad_area_nosemaphore(regs, error_code, address,
 			       (vma) ? &pkey : NULL, si_code);
@@ -985,10 +979,9 @@ bad_area_access_error(struct pt_regs *regs, unsigned long error_code,
 
 static void
 do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
-	  u32 *pkey, unsigned int fault)
+	  vm_fault_t fault)
 {
 	struct task_struct *tsk = current;
-	int code = BUS_ADRERR;
 
 	/* Kernel mode? Handle exceptions or die: */
 	if (!(error_code & X86_PF_USER)) {
@@ -1006,13 +999,20 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
 
 #ifdef CONFIG_MEMORY_FAILURE
 	if (fault & (VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
-		printk(KERN_ERR
+		unsigned lsb = 0;
+
+		pr_err(
 	"MCE: Killing %s:%d due to hardware memory corruption fault at %lx\n",
 			tsk->comm, tsk->pid, address);
-		code = BUS_MCEERR_AR;
+		if (fault & VM_FAULT_HWPOISON_LARGE)
+			lsb = hstate_index_to_shift(VM_FAULT_GET_HINDEX(fault));
+		if (fault & VM_FAULT_HWPOISON)
+			lsb = PAGE_SHIFT;
+		force_sig_mceerr(BUS_MCEERR_AR, (void __user *)address, lsb, tsk);
+		return;
 	}
 #endif
-	force_sig_info_fault(SIGBUS, code, address, tsk, pkey, fault);
+	force_sig_info_fault(SIGBUS, BUS_ADRERR, address, tsk, NULL);
 }
 
 static noinline void
@@ -1041,7 +1041,7 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
 	} else {
 		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
 			     VM_FAULT_HWPOISON_LARGE))
-			do_sigbus(regs, error_code, address, pkey, fault);
+			do_sigbus(regs, error_code, address, fault);
 		else if (fault & VM_FAULT_SIGSEGV)
 			bad_area_nosemaphore(regs, error_code, address, pkey);
 		else
@@ -1338,14 +1338,14 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 	 * validate the source. If this is invalid we can skip the address
 	 * space check, thus avoiding the deadlock:
 	 */
-	if (unlikely(!down_read_trylock(&mm->mmap_sem))) {
+	if (unlikely(!mmap_read_trylock(mm))) {
 		if (!(error_code & X86_PF_USER) &&
 		    !search_exception_tables(regs->ip)) {
 			bad_area_nosemaphore(regs, error_code, address, NULL);
 			return;
 		}
 retry:
-		down_read(&mm->mmap_sem);
+		mmap_read_lock(mm);
 	} else {
 		/*
 		 * The above down_read_trylock() might have succeeded in
@@ -1435,7 +1435,7 @@ good_area:
 		return;
 	}
 
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	if (unlikely(fault & VM_FAULT_ERROR)) {
 		mm_fault_error(regs, error_code, address, &pkey, fault);
 		return;

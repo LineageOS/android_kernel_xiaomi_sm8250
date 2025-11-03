@@ -63,9 +63,6 @@ nfp_map_ptr_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 	struct nfp_bpf_neutral_map *record;
 	int err;
 
-	/* Map record paths are entered via ndo, update side is protected. */
-	ASSERT_RTNL();
-
 	/* Reuse path - other offloaded program is already tracking this map. */
 	record = rhashtable_lookup_fast(&bpf->maps_neutral, &map->id,
 					nfp_bpf_maps_neutral_params);
@@ -78,9 +75,7 @@ nfp_map_ptr_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 	/* Grab a single ref to the map for our record.  The prog destroy ndo
 	 * happens after free_used_maps().
 	 */
-	map = bpf_map_inc(map, false);
-	if (IS_ERR(map))
-		return PTR_ERR(map);
+	bpf_map_inc(map);
 
 	record = kmalloc(sizeof(*record), GFP_KERNEL);
 	if (!record) {
@@ -114,8 +109,6 @@ nfp_map_ptrs_forget(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog)
 	bool freed = false;
 	int i;
 
-	ASSERT_RTNL();
-
 	for (i = 0; i < nfp_prog->map_records_cnt; i++) {
 		if (--nfp_prog->map_records[i]->count) {
 			nfp_prog->map_records[i] = NULL;
@@ -147,7 +140,9 @@ static int
 nfp_map_ptrs_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 		    struct bpf_prog *prog)
 {
-	int i, cnt, err;
+	int i, cnt, err = 0;
+
+	mutex_lock(&prog->aux->used_maps_mutex);
 
 	/* Quickly count the maps we will have to remember */
 	cnt = 0;
@@ -155,13 +150,15 @@ nfp_map_ptrs_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 		if (bpf_map_offload_neutral(prog->aux->used_maps[i]))
 			cnt++;
 	if (!cnt)
-		return 0;
+		goto out;
 
 	nfp_prog->map_records = kmalloc_array(cnt,
 					      sizeof(nfp_prog->map_records[0]),
 					      GFP_KERNEL);
-	if (!nfp_prog->map_records)
-		return -ENOMEM;
+	if (!nfp_prog->map_records) {
+		err = -ENOMEM;
+		goto out;
+	}
 
 	for (i = 0; i < prog->aux->used_map_cnt; i++)
 		if (bpf_map_offload_neutral(prog->aux->used_maps[i])) {
@@ -169,12 +166,14 @@ nfp_map_ptrs_record(struct nfp_app_bpf *bpf, struct nfp_prog *nfp_prog,
 						 prog->aux->used_maps[i]);
 			if (err) {
 				nfp_map_ptrs_forget(bpf, nfp_prog);
-				return err;
+				goto out;
 			}
 		}
 	WARN_ON(cnt != nfp_prog->map_records_cnt);
 
-	return 0;
+out:
+	mutex_unlock(&prog->aux->used_maps_mutex);
+	return err;
 }
 
 static int
@@ -215,11 +214,8 @@ static void nfp_prog_free(struct nfp_prog *nfp_prog)
 	kfree(nfp_prog);
 }
 
-static int
-nfp_bpf_verifier_prep(struct nfp_app *app, struct nfp_net *nn,
-		      struct netdev_bpf *bpf)
+static int nfp_bpf_verifier_prep(struct bpf_prog *prog)
 {
-	struct bpf_prog *prog = bpf->verifier.prog;
 	struct nfp_prog *nfp_prog;
 	int ret;
 
@@ -230,14 +226,13 @@ nfp_bpf_verifier_prep(struct nfp_app *app, struct nfp_net *nn,
 
 	INIT_LIST_HEAD(&nfp_prog->insns);
 	nfp_prog->type = prog->type;
-	nfp_prog->bpf = app->priv;
+	nfp_prog->bpf = bpf_offload_dev_priv(prog->aux->offload->offdev);
 
 	ret = nfp_prog_prepare(nfp_prog, prog->insnsi, prog->len);
 	if (ret)
 		goto err_free;
 
 	nfp_prog->verifier_meta = nfp_prog_first_meta(nfp_prog);
-	bpf->verifier.ops = &nfp_bpf_analyzer_ops;
 
 	return 0;
 
@@ -247,8 +242,9 @@ err_free:
 	return ret;
 }
 
-static int nfp_bpf_translate(struct nfp_net *nn, struct bpf_prog *prog)
+static int nfp_bpf_translate(struct bpf_prog *prog)
 {
+	struct nfp_net *nn = netdev_priv(prog->aux->offload->netdev);
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
 	unsigned int stack_size;
 	unsigned int max_instr;
@@ -279,15 +275,13 @@ static int nfp_bpf_translate(struct nfp_net *nn, struct bpf_prog *prog)
 	return nfp_map_ptrs_record(nfp_prog->bpf, nfp_prog, prog);
 }
 
-static int nfp_bpf_destroy(struct nfp_net *nn, struct bpf_prog *prog)
+static void nfp_bpf_destroy(struct bpf_prog *prog)
 {
 	struct nfp_prog *nfp_prog = prog->aux->offload->dev_priv;
 
 	kvfree(nfp_prog->prog);
 	nfp_map_ptrs_forget(nfp_prog->bpf, nfp_prog);
 	nfp_prog_free(nfp_prog);
-
-	return 0;
 }
 
 /* Atomic engine requires values to be in big endian, we need to byte swap
@@ -417,7 +411,7 @@ nfp_bpf_map_alloc(struct nfp_app_bpf *bpf, struct bpf_offloaded_map *offmap)
 	}
 
 	use_map_size = DIV_ROUND_UP(offmap->map.value_size, 4) *
-		       FIELD_SIZEOF(struct nfp_bpf_map, use_map[0]);
+		       sizeof_field(struct nfp_bpf_map, use_map[0]);
 
 	nfp_map = kzalloc(sizeof(*nfp_map) + use_map_size, GFP_USER);
 	if (!nfp_map)
@@ -459,12 +453,6 @@ nfp_bpf_map_free(struct nfp_app_bpf *bpf, struct bpf_offloaded_map *offmap)
 int nfp_ndo_bpf(struct nfp_app *app, struct nfp_net *nn, struct netdev_bpf *bpf)
 {
 	switch (bpf->command) {
-	case BPF_OFFLOAD_VERIFIER_PREP:
-		return nfp_bpf_verifier_prep(app, nn, bpf);
-	case BPF_OFFLOAD_TRANSLATE:
-		return nfp_bpf_translate(nn, bpf->offload.prog);
-	case BPF_OFFLOAD_DESTROY:
-		return nfp_bpf_destroy(nn, bpf->offload.prog);
 	case BPF_OFFLOAD_MAP_ALLOC:
 		return nfp_bpf_map_alloc(app->priv, bpf->offmap);
 	case BPF_OFFLOAD_MAP_FREE:
@@ -498,7 +486,8 @@ int nfp_bpf_event_output(struct nfp_app_bpf *bpf, const void *data,
 	map_id_full = be64_to_cpu(cbe->map_ptr);
 	map_id = map_id_full;
 
-	if (len < sizeof(struct cmsg_bpf_event) + pkt_size + data_size)
+	if (size_add(pkt_size, data_size) > INT_MAX ||
+	    len < sizeof(struct cmsg_bpf_event) + pkt_size + data_size)
 		return -EINVAL;
 	if (cbe->hdr.ver != CMSG_MAP_ABI_VERSION)
 		return -EINVAL;
@@ -625,3 +614,9 @@ int nfp_net_bpf_offload(struct nfp_net *nn, struct bpf_prog *prog,
 
 	return 0;
 }
+
+const struct bpf_prog_offload_ops nfp_bpf_dev_ops = {
+	.prepare	= nfp_bpf_verifier_prep,
+	.translate	= nfp_bpf_translate,
+	.destroy	= nfp_bpf_destroy,
+};

@@ -31,7 +31,7 @@
 #include <asm/bootinfo-amiga.h>
 #include <asm/byteorder.h>
 #include <asm/setup.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/amigahw.h>
 #include <asm/amigaints.h>
 #include <asm/irq.h>

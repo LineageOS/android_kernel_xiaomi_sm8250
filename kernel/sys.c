@@ -521,7 +521,7 @@ long __sys_setreuid(uid_t ruid, uid_t euid)
 		new->uid = kruid;
 		if (!uid_eq(old->uid, kruid) &&
 		    !uid_eq(old->euid, kruid) &&
-		    !ns_capable(old->user_ns, CAP_SETUID))
+		    !ns_capable_setid(old->user_ns, CAP_SETUID))
 			goto error;
 	}
 
@@ -530,7 +530,7 @@ long __sys_setreuid(uid_t ruid, uid_t euid)
 		if (!uid_eq(old->uid, keuid) &&
 		    !uid_eq(old->euid, keuid) &&
 		    !uid_eq(old->suid, keuid) &&
-		    !ns_capable(old->user_ns, CAP_SETUID))
+		    !ns_capable_setid(old->user_ns, CAP_SETUID))
 			goto error;
 	}
 
@@ -589,7 +589,7 @@ long __sys_setuid(uid_t uid)
 	old = current_cred();
 
 	retval = -EPERM;
-	if (ns_capable(old->user_ns, CAP_SETUID)) {
+	if (ns_capable_setid(old->user_ns, CAP_SETUID)) {
 		new->suid = new->uid = kuid;
 		if (!uid_eq(kuid, old->uid)) {
 			retval = set_user(new);
@@ -651,7 +651,7 @@ long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 	old = current_cred();
 
 	retval = -EPERM;
-	if (!ns_capable(old->user_ns, CAP_SETUID)) {
+	if (!ns_capable_setid(old->user_ns, CAP_SETUID)) {
 		if (ruid != (uid_t) -1        && !uid_eq(kruid, old->uid) &&
 		    !uid_eq(kruid, old->euid) && !uid_eq(kruid, old->suid))
 			goto error;
@@ -819,7 +819,7 @@ long __sys_setfsuid(uid_t uid)
 
 	if (uid_eq(kuid, old->uid)  || uid_eq(kuid, old->euid)  ||
 	    uid_eq(kuid, old->suid) || uid_eq(kuid, old->fsuid) ||
-	    ns_capable(old->user_ns, CAP_SETUID)) {
+	    ns_capable_setid(old->user_ns, CAP_SETUID)) {
 		if (!uid_eq(kuid, old->fsuid)) {
 			new->fsuid = kuid;
 			if (security_task_fix_setuid(new, old, LSM_SETID_FS) == 0)
@@ -1873,7 +1873,7 @@ static int prctl_set_mm_exe_file(struct mm_struct *mm, unsigned int fd)
 	if (exe_file) {
 		struct vm_area_struct *vma;
 
-		down_read(&mm->mmap_sem);
+		mmap_read_lock(mm);
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
 			if (!vma->vm_file)
 				continue;
@@ -1882,7 +1882,7 @@ static int prctl_set_mm_exe_file(struct mm_struct *mm, unsigned int fd)
 				goto exit_err;
 		}
 
-		up_read(&mm->mmap_sem);
+		mmap_read_unlock(mm);
 		fput(exe_file);
 	}
 
@@ -1896,7 +1896,7 @@ exit:
 	fdput(exe);
 	return err;
 exit_err:
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	fput(exe_file);
 	goto exit;
 }
@@ -2032,7 +2032,7 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
 	 * arg_lock protects concurent updates but we still need mmap_sem for
 	 * read to exclude races with sys_brk.
 	 */
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 
 	/*
 	 * We don't validate if these members are pointing to
@@ -2071,7 +2071,7 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
 	if (prctl_map.auxv_size)
 		memcpy(mm->saved_auxv, user_auxv, sizeof(user_auxv));
 
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	return 0;
 }
 #endif /* CONFIG_CHECKPOINT_RESTORE */
@@ -2138,7 +2138,7 @@ static int prctl_set_mm(int opt, unsigned long addr,
 
 	error = -EINVAL;
 
-	down_write(&mm->mmap_sem);
+	mmap_write_lock(mm);
 	vma = find_vma(mm, addr);
 
 	prctl_map.start_code	= mm->start_code;
@@ -2231,7 +2231,7 @@ static int prctl_set_mm(int opt, unsigned long addr,
 
 	error = 0;
 out:
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 	return error;
 }
 
@@ -2401,7 +2401,7 @@ static int prctl_set_vma(unsigned long opt, unsigned long start,
 	if (end == start)
 		return 0;
 
-	down_write(&mm->mmap_sem);
+	mmap_write_lock(mm);
 
 	switch (opt) {
 	case PR_SET_VMA_ANON_NAME:
@@ -2411,7 +2411,7 @@ static int prctl_set_vma(unsigned long opt, unsigned long start,
 		error = -EINVAL;
 	}
 
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 
 	return error;
 }
@@ -2601,13 +2601,13 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 	case PR_SET_THP_DISABLE:
 		if (arg3 || arg4 || arg5)
 			return -EINVAL;
-		if (down_write_killable(&me->mm->mmap_sem))
+		if (mmap_write_lock_killable(me->mm))
 			return -EINTR;
 		if (arg2)
 			set_bit(MMF_DISABLE_THP, &me->mm->flags);
 		else
 			clear_bit(MMF_DISABLE_THP, &me->mm->flags);
-		up_write(&me->mm->mmap_sem);
+		mmap_write_unlock(me->mm);
 		break;
 	case PR_MPX_ENABLE_MANAGEMENT:
 		if (arg2 || arg3 || arg4 || arg5)

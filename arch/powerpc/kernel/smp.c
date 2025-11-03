@@ -42,7 +42,7 @@
 #include <asm/kvm_ppc.h>
 #include <asm/dbell.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/prom.h>
 #include <asm/smp.h>
 #include <asm/time.h>

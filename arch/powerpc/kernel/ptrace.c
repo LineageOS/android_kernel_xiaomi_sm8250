@@ -37,7 +37,7 @@
 #include <linux/uaccess.h>
 #include <linux/pkeys.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/switch_to.h>
 #include <asm/tm.h>
 #include <asm/asm-prototypes.h>

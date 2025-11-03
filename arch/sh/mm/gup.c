@@ -13,7 +13,7 @@
 #include <linux/mm.h>
 #include <linux/vmstat.h>
 #include <linux/highmem.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 static inline pte_t gup_get_pte(pte_t *ptep)
 {

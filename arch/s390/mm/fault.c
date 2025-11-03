@@ -33,7 +33,7 @@
 #include <linux/hugetlb.h>
 #include <asm/asm-offsets.h>
 #include <asm/diag.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/gmap.h>
 #include <asm/irq.h>
 #include <asm/mmu_context.h>
@@ -459,7 +459,7 @@ static inline vm_fault_t do_exception(struct pt_regs *regs, int access)
 		access = VM_WRITE;
 	if (access == VM_WRITE)
 		flags |= FAULT_FLAG_WRITE;
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 
 	gmap = NULL;
 	if (IS_ENABLED(CONFIG_PGSTE) && type == GMAP_FAULT) {
@@ -505,8 +505,7 @@ retry:
 	 * the fault.
 	 */
 	fault = handle_mm_fault(vma, address, flags);
-	/* No reason to continue if interrupted by SIGKILL. */
-	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current)) {
+	if (fault_signal_pending(fault, regs)) {
 		fault = VM_FAULT_SIGNAL;
 		if (flags & FAULT_FLAG_RETRY_NOWAIT)
 			goto out_up;
@@ -544,7 +543,7 @@ retry:
 			flags &= ~(FAULT_FLAG_ALLOW_RETRY |
 				   FAULT_FLAG_RETRY_NOWAIT);
 			flags |= FAULT_FLAG_TRIED;
-			down_read(&mm->mmap_sem);
+			mmap_read_lock(mm);
 			goto retry;
 		}
 	}
@@ -562,7 +561,7 @@ retry:
 	}
 	fault = 0;
 out_up:
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 out:
 	return fault;
 }

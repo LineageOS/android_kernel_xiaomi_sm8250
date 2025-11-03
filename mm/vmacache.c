@@ -6,7 +6,7 @@
 #include <linux/sched/task.h>
 #include <linux/mm.h>
 #include <linux/vmacache.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 /*
  * Hash based on the pmd of addr if configured with MMU, which provides a good

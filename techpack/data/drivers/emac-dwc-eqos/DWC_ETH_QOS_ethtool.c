@@ -58,7 +58,7 @@ struct DWC_ETH_QOS_stats {
 };
 
 #define DWC_ETH_QOS_IPA(m) \
-	{#m, FIELD_SIZEOF(struct DWC_ETH_QOS_ipa_stats, m), \
+	{#m, sizeof_field(struct DWC_ETH_QOS_ipa_stats, m), \
 	offsetof(struct DWC_ETH_QOS_prv_data, ipa_stats.m)}
 
 static const struct DWC_ETH_QOS_stats DWC_ETH_QOS_ipa_gstrings_stats[] = {
@@ -108,7 +108,7 @@ static const struct DWC_ETH_QOS_stats DWC_ETH_QOS_ipa_gstrings_stats[] = {
 
 /* HW extra status */
 #define DWC_ETH_QOS_EXTRA_STAT(m) \
-	{#m, FIELD_SIZEOF(struct DWC_ETH_QOS_extra_stats, m), \
+	{#m, sizeof_field(struct DWC_ETH_QOS_extra_stats, m), \
 	offsetof(struct DWC_ETH_QOS_prv_data, xstats.m)}
 
 static const struct DWC_ETH_QOS_stats DWC_ETH_QOS_gstrings_stats[] = {
@@ -263,7 +263,7 @@ static const struct DWC_ETH_QOS_stats DWC_ETH_QOS_gstrings_stats[] = {
 
 /* HW MAC Management counters (if supported) */
 #define DWC_ETH_QOS_MMC_STAT(m)	\
-	{ #m, FIELD_SIZEOF(struct DWC_ETH_QOS_mmc_counters, m),	\
+	{ #m, sizeof_field(struct DWC_ETH_QOS_mmc_counters, m),	\
 	offsetof(struct DWC_ETH_QOS_prv_data, mmc.m)}
 
 static const struct DWC_ETH_QOS_stats DWC_ETH_QOS_mmc[] = {

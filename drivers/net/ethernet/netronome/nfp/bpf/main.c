@@ -45,7 +45,7 @@
 
 const struct rhashtable_params nfp_bpf_maps_neutral_params = {
 	.nelem_hint		= 4,
-	.key_len		= FIELD_SIZEOF(struct bpf_map, id),
+	.key_len		= sizeof_field(struct bpf_map, id),
 	.key_offset		= offsetof(struct nfp_bpf_neutral_map, map_id),
 	.head_offset		= offsetof(struct nfp_bpf_neutral_map, l),
 	.automatic_shrinking	= true,
@@ -451,7 +451,7 @@ static int nfp_bpf_init(struct nfp_app *app)
 	if (err)
 		goto err_free_neutral_maps;
 
-	bpf->bpf_dev = bpf_offload_dev_create();
+	bpf->bpf_dev = bpf_offload_dev_create(&nfp_bpf_dev_ops, bpf);
 	err = PTR_ERR_OR_ZERO(bpf->bpf_dev);
 	if (err)
 		goto err_free_neutral_maps;

@@ -42,6 +42,7 @@
 #include <linux/ramfs.h>
 #include <linux/percpu-refcount.h>
 #include <linux/mount.h>
+#include <linux/pseudo_fs.h>
 
 #include <asm/kmap_types.h>
 #include <linux/uaccess.h>
@@ -245,15 +246,12 @@ static struct file *aio_private_file(struct kioctx *ctx, loff_t nr_pages)
 	return file;
 }
 
-static struct dentry *aio_mount(struct file_system_type *fs_type,
-				int flags, const char *dev_name, void *data)
+static int aio_init_fs_context(struct fs_context *fc)
 {
-	struct dentry *root = mount_pseudo(fs_type, "aio:", NULL, NULL,
-					   AIO_RING_MAGIC);
-
-	if (!IS_ERR(root))
-		root->d_sb->s_iflags |= SB_I_NOEXEC;
-	return root;
+	if (!init_pseudo(fc, AIO_RING_MAGIC))
+		return -ENOMEM;
+	fc->s_iflags |= SB_I_NOEXEC;
+	return 0;
 }
 
 /* aio_setup
@@ -264,7 +262,7 @@ static int __init aio_setup(void)
 {
 	static struct file_system_type aio_fs = {
 		.name		= "aio",
-		.mount		= aio_mount,
+		.init_fs_context = aio_init_fs_context,
 		.kill_sb	= kill_anon_super,
 	};
 	aio_mnt = kern_mount(&aio_fs);
@@ -521,7 +519,7 @@ static int aio_setup_ring(struct kioctx *ctx, unsigned int nr_events)
 	ctx->mmap_size = nr_pages * PAGE_SIZE;
 	pr_debug("attempting mmap of %lu bytes\n", ctx->mmap_size);
 
-	if (down_write_killable(&mm->mmap_sem)) {
+	if (mmap_write_lock_killable(mm)) {
 		ctx->mmap_size = 0;
 		aio_free_ring(ctx);
 		return -EINTR;
@@ -530,7 +528,7 @@ static int aio_setup_ring(struct kioctx *ctx, unsigned int nr_events)
 	ctx->mmap_base = do_mmap_pgoff(ctx->aio_ring_file, 0, ctx->mmap_size,
 				       PROT_READ | PROT_WRITE,
 				       MAP_SHARED, 0, &unused, NULL);
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 	if (IS_ERR((void *)ctx->mmap_base)) {
 		ctx->mmap_size = 0;
 		aio_free_ring(ctx);

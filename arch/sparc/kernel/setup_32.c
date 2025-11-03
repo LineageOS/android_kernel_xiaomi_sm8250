@@ -39,7 +39,7 @@
 #include <asm/processor.h>
 #include <asm/oplib.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/traps.h>
 #include <asm/vaddrs.h>
 #include <asm/mbus.h>

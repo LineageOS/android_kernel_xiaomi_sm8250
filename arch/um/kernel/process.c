@@ -25,7 +25,7 @@
 #include <linux/threads.h>
 #include <linux/tracehook.h>
 #include <asm/current.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/mmu_context.h>
 #include <linux/uaccess.h>
 #include <as-layout.h>

@@ -11,7 +11,7 @@
  */
 
 #include <linux/linkage.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/page.h>
 #include <asm/processor-flags.h>
 #include <asm/msr-index.h>

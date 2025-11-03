@@ -2816,6 +2816,11 @@ F:	include/uapi/linux/if_bonding.h
 BPF (Safe dynamic programs and tools)
 M:	Alexei Starovoitov <ast@kernel.org>
 M:	Daniel Borkmann <daniel@iogearbox.net>
+R:	Martin KaFai Lau <kafai@fb.com>
+R:	Song Liu <songliubraving@fb.com>
+R:	Yonghong Song <yhs@fb.com>
+R:	Andrii Nakryiko <andriin@fb.com>
+R:	KP Singh <kpsingh@chromium.org>
 L:	netdev@vger.kernel.org
 L:	linux-kernel@vger.kernel.org
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf.git
@@ -10512,6 +10517,7 @@ M:	Josh Poimboeuf <jpoimboe@redhat.com>
 M:	Peter Zijlstra <peterz@infradead.org>
 S:	Supported
 F:	tools/objtool/
+F:	include/linux/objtool.h
 
 OCXL (Open Coherent Accelerator Processor Interface OpenCAPI) DRIVER
 M:	Frederic Barrat <fbarrat@linux.vnet.ibm.com>
@@ -13145,6 +13151,7 @@ F:	include/linux/selinux*
 F:	security/selinux/
 F:	scripts/selinux/
 F:	Documentation/admin-guide/LSM/SELinux.rst
+F:	Documentation/ABI/obsolete/sysfs-selinux-disable
 
 SENSABLE PHANTOM
 M:	Jiri Slaby <jirislaby@gmail.com>
@@ -13610,6 +13617,14 @@ L:	linux-wireless@vger.kernel.org
 S:	Maintained
 F:	drivers/ssb/
 F:	include/linux/ssb/
+
+SONY IMX219 SENSOR DRIVER
+M:	Dave Stevenson <dave.stevenson@raspberrypi.com>
+L:	linux-media@vger.kernel.org
+T:	git git://linuxtv.org/media_tree.git
+S:	Maintained
+F:	drivers/media/i2c/imx219.c
+F:	Documentation/devicetree/bindings/media/i2c/imx219.yaml
 
 SONY IMX258 SENSOR DRIVER
 M:	Sakari Ailus <sakari.ailus@linux.intel.com>

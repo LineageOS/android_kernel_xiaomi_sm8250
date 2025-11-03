@@ -42,7 +42,7 @@
 #include <net/neighbour.h>
 #include <net/route.h>
 #include <net/netevent.h>
-#include <net/addrconf.h>
+#include <net/ipv6_stub.h>
 #include <net/ip6_route.h>
 #include <rdma/ib_addr.h>
 #include <rdma/ib.h>
@@ -337,7 +337,7 @@ static bool has_gateway(const struct dst_entry *dst, sa_family_t family)
 
 	if (family == AF_INET) {
 		rt = container_of(dst, struct rtable, dst);
-		return rt->rt_uses_gateway;
+		return rt->rt_gw_family == AF_INET;
 	}
 
 	rt6 = container_of(dst, struct rt6_info, dst);

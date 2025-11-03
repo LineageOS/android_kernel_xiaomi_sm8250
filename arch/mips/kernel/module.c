@@ -33,7 +33,7 @@
 #include <linux/spinlock.h>
 #include <linux/jump_label.h>
 
-#include <asm/pgtable.h>	/* MODULE_START */
+#include <linux/pgtable.h>	/* MODULE_START */
 
 struct mips_hi16 {
 	struct mips_hi16 *next;

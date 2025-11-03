@@ -34,7 +34,7 @@
 #include <linux/uaccess.h>
 #include <linux/security.h>
 #include <linux/prefetch.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include "gru.h"
 #include "grutables.h"
 #include "grulib.h"
@@ -82,14 +82,14 @@ static struct gru_thread_state *gru_find_lock_gts(unsigned long vaddr)
 	struct vm_area_struct *vma;
 	struct gru_thread_state *gts = NULL;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 	vma = gru_find_vma(vaddr);
 	if (vma)
 		gts = gru_find_thread_state(vma, TSID(vaddr, vma));
 	if (gts)
 		mutex_lock(&gts->ts_ctxlock);
 	else
-		up_read(&mm->mmap_sem);
+		mmap_read_unlock(mm);
 	return gts;
 }
 
@@ -99,7 +99,7 @@ static struct gru_thread_state *gru_alloc_locked_gts(unsigned long vaddr)
 	struct vm_area_struct *vma;
 	struct gru_thread_state *gts = ERR_PTR(-EINVAL);
 
-	down_write(&mm->mmap_sem);
+	mmap_write_lock(mm);
 	vma = gru_find_vma(vaddr);
 	if (!vma)
 		goto err;
@@ -108,11 +108,11 @@ static struct gru_thread_state *gru_alloc_locked_gts(unsigned long vaddr)
 	if (IS_ERR(gts))
 		goto err;
 	mutex_lock(&gts->ts_ctxlock);
-	downgrade_write(&mm->mmap_sem);
+	mmap_write_downgrade(mm);
 	return gts;
 
 err:
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 	return gts;
 }
 
@@ -122,7 +122,7 @@ err:
 static void gru_unlock_gts(struct gru_thread_state *gts)
 {
 	mutex_unlock(&gts->ts_ctxlock);
-	up_read(&current->mm->mmap_sem);
+	mmap_read_unlock(current->mm);
 }
 
 /*
@@ -588,9 +588,9 @@ static irqreturn_t gru_intr(int chiplet, int blade)
 		 */
 		gts->ustats.fmm_tlbmiss++;
 		if (!gts->ts_force_cch_reload &&
-					down_read_trylock(&gts->ts_mm->mmap_sem)) {
+					mmap_read_trylock(gts->ts_mm)) {
 			gru_try_dropin(gru, gts, tfh, NULL);
-			up_read(&gts->ts_mm->mmap_sem);
+			mmap_read_unlock(gts->ts_mm);
 		} else {
 			tfh_user_polling_mode(tfh);
 			STAT(intr_mm_lock_failed);

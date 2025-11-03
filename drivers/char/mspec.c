@@ -45,7 +45,7 @@
 #include <linux/numa.h>
 #include <linux/refcount.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <linux/atomic.h>
 #include <asm/tlbflush.h>
 #include <asm/uncached.h>

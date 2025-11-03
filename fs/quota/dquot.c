@@ -680,6 +680,8 @@ int dquot_writeback_dquots(struct super_block *sb, int type)
 
 	WARN_ON_ONCE(!rwsem_is_locked(&sb->s_umount));
 
+	flush_delayed_work(&quota_release_work);
+
 	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
 		if (type != -1 && cnt != type)
 			continue;
@@ -2944,7 +2946,7 @@ const struct quotactl_ops dquot_quotactl_sysfile_ops = {
 EXPORT_SYMBOL(dquot_quotactl_sysfile_ops);
 
 static int do_proc_dqstats(struct ctl_table *table, int write,
-		     void __user *buffer, size_t *lenp, loff_t *ppos)
+		     void *buffer, size_t *lenp, loff_t *ppos)
 {
 	unsigned int type = (unsigned long *)table->data - dqstats.stat;
 	s64 value = percpu_counter_sum(&dqstats.counter[type]);

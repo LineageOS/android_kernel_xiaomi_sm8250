@@ -19,7 +19,7 @@
 #ifndef __ARM64_S2_PGTABLE_H_
 #define __ARM64_S2_PGTABLE_H_
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 /*
  * The hardware supports concatenation of up to 16 tables at stage2 entry level

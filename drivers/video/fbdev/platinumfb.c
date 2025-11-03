@@ -34,7 +34,7 @@
 #include <linux/of_platform.h>
 #include <asm/io.h>
 #include <asm/prom.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #include "macmodes.h"
 #include "platinumfb.h"

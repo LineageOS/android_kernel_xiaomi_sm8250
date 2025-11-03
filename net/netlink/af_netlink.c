@@ -64,6 +64,7 @@
 #include <linux/genetlink.h>
 #include <linux/net_namespace.h>
 #include <linux/nospec.h>
+#include <linux/btf_ids.h>
 
 #include <net/net_namespace.h>
 #include <net/netns/generic.h>
@@ -387,7 +388,6 @@ static void netlink_skb_set_owner_r(struct sk_buff *skb, struct sock *sk)
 	WARN_ON(skb->sk != NULL);
 	skb->sk = sk;
 	skb->destructor = netlink_skb_destructor;
-	atomic_add(skb->truesize, &sk->sk_rmem_alloc);
 	sk_mem_charge(sk, skb->truesize);
 }
 
@@ -1216,41 +1216,48 @@ static struct sk_buff *netlink_alloc_large_skb(unsigned int size,
 int netlink_attachskb(struct sock *sk, struct sk_buff *skb,
 		      long *timeo, struct sock *ssk)
 {
+	DECLARE_WAITQUEUE(wait, current);
 	struct netlink_sock *nlk;
+	unsigned int rmem;
 
 	nlk = nlk_sk(sk);
+	rmem = atomic_add_return(skb->truesize, &sk->sk_rmem_alloc);
 
-	if ((atomic_read(&sk->sk_rmem_alloc) > sk->sk_rcvbuf ||
-	     test_bit(NETLINK_S_CONGESTED, &nlk->state))) {
-		DECLARE_WAITQUEUE(wait, current);
-		if (!*timeo) {
-			if (!ssk || netlink_is_kernel(ssk))
-				netlink_overrun(sk);
-			sock_put(sk);
-			kfree_skb(skb);
-			return -EAGAIN;
-		}
-
-		__set_current_state(TASK_INTERRUPTIBLE);
-		add_wait_queue(&nlk->wait, &wait);
-
-		if ((atomic_read(&sk->sk_rmem_alloc) > sk->sk_rcvbuf ||
-		     test_bit(NETLINK_S_CONGESTED, &nlk->state)) &&
-		    !sock_flag(sk, SOCK_DEAD))
-			*timeo = schedule_timeout(*timeo);
-
-		__set_current_state(TASK_RUNNING);
-		remove_wait_queue(&nlk->wait, &wait);
-		sock_put(sk);
-
-		if (signal_pending(current)) {
-			kfree_skb(skb);
-			return sock_intr_errno(*timeo);
-		}
-		return 1;
+	if ((rmem == skb->truesize || rmem <= READ_ONCE(sk->sk_rcvbuf)) &&
+	    !test_bit(NETLINK_S_CONGESTED, &nlk->state)) {
+		netlink_skb_set_owner_r(skb, sk);
+		return 0;
 	}
-	netlink_skb_set_owner_r(skb, sk);
-	return 0;
+
+	atomic_sub(skb->truesize, &sk->sk_rmem_alloc);
+
+	if (!*timeo) {
+		if (!ssk || netlink_is_kernel(ssk))
+			netlink_overrun(sk);
+		sock_put(sk);
+		kfree_skb(skb);
+		return -EAGAIN;
+	}
+
+	__set_current_state(TASK_INTERRUPTIBLE);
+	add_wait_queue(&nlk->wait, &wait);
+	rmem = atomic_read(&sk->sk_rmem_alloc);
+
+	if (((rmem && rmem + skb->truesize > READ_ONCE(sk->sk_rcvbuf)) ||
+	     test_bit(NETLINK_S_CONGESTED, &nlk->state)) &&
+	    !sock_flag(sk, SOCK_DEAD))
+		*timeo = schedule_timeout(*timeo);
+
+	__set_current_state(TASK_RUNNING);
+	remove_wait_queue(&nlk->wait, &wait);
+	sock_put(sk);
+
+	if (signal_pending(current)) {
+		kfree_skb(skb);
+		return sock_intr_errno(*timeo);
+	}
+
+	return 1;
 }
 
 static int __netlink_sendskb(struct sock *sk, struct sk_buff *skb)
@@ -1310,6 +1317,7 @@ static int netlink_unicast_kernel(struct sock *sk, struct sk_buff *skb,
 	ret = -ECONNREFUSED;
 	if (nlk->netlink_rcv != NULL) {
 		ret = skb->len;
+		atomic_add(skb->truesize, &sk->sk_rmem_alloc);
 		netlink_skb_set_owner_r(skb, sk);
 		NETLINK_CB(skb).sk = ssk;
 		netlink_deliver_tap_kernel(sk, ssk, skb);
@@ -1380,13 +1388,19 @@ EXPORT_SYMBOL_GPL(netlink_has_listeners);
 static int netlink_broadcast_deliver(struct sock *sk, struct sk_buff *skb)
 {
 	struct netlink_sock *nlk = nlk_sk(sk);
+	unsigned int rmem, rcvbuf;
 
-	if (atomic_read(&sk->sk_rmem_alloc) <= sk->sk_rcvbuf &&
+	rmem = atomic_add_return(skb->truesize, &sk->sk_rmem_alloc);
+	rcvbuf = READ_ONCE(sk->sk_rcvbuf);
+
+	if ((rmem == skb->truesize || rmem <= rcvbuf) &&
 	    !test_bit(NETLINK_S_CONGESTED, &nlk->state)) {
 		netlink_skb_set_owner_r(skb, sk);
 		__netlink_sendskb(sk, skb);
-		return atomic_read(&sk->sk_rmem_alloc) > (sk->sk_rcvbuf >> 1);
+		return rmem > (rcvbuf >> 1);
 	}
+
+	atomic_sub(skb->truesize, &sk->sk_rmem_alloc);
 	return -1;
 }
 
@@ -2164,6 +2178,7 @@ static int netlink_dump(struct sock *sk)
 	struct netlink_sock *nlk = nlk_sk(sk);
 	struct netlink_callback *cb;
 	struct sk_buff *skb = NULL;
+	unsigned int rmem, rcvbuf;
 	struct nlmsghdr *nlh;
 	struct module *module;
 	int err = -ENOBUFS;
@@ -2175,9 +2190,6 @@ static int netlink_dump(struct sock *sk)
 		err = -EINVAL;
 		goto errout_skb;
 	}
-
-	if (atomic_read(&sk->sk_rmem_alloc) >= sk->sk_rcvbuf)
-		goto errout_skb;
 
 	/* NLMSG_GOODSIZE is small to avoid high order allocations being
 	 * required, but it makes sense to _attempt_ a 16K bytes allocation
@@ -2199,6 +2211,13 @@ static int netlink_dump(struct sock *sk)
 	}
 	if (!skb)
 		goto errout_skb;
+
+	rcvbuf = READ_ONCE(sk->sk_rcvbuf);
+	rmem = atomic_add_return(skb->truesize, &sk->sk_rmem_alloc);
+	if (rmem != skb->truesize && rmem >= rcvbuf) {
+		atomic_sub(skb->truesize, &sk->sk_rmem_alloc);
+		goto errout_skb;
+	}
 
 	/* Trim skb to allocated size. User is expected to provide buffer as
 	 * large as max(min_dump_alloc, 16KiB (mac_recvmsg_len capped at
@@ -2590,7 +2609,7 @@ static void *netlink_seq_next(struct seq_file *seq, void *v, loff_t *pos)
 	return __netlink_seq_next(seq);
 }
 
-static void netlink_seq_stop(struct seq_file *seq, void *v)
+static void netlink_native_seq_stop(struct seq_file *seq, void *v)
 {
 	struct nl_seq_iter *iter = seq->private;
 
@@ -2601,7 +2620,7 @@ static void netlink_seq_stop(struct seq_file *seq, void *v)
 }
 
 
-static int netlink_seq_show(struct seq_file *seq, void *v)
+static int netlink_native_seq_show(struct seq_file *seq, void *v)
 {
 	if (v == SEQ_START_TOKEN) {
 		seq_puts(seq,
@@ -2627,6 +2646,68 @@ static int netlink_seq_show(struct seq_file *seq, void *v)
 	}
 	return 0;
 }
+
+#ifdef CONFIG_BPF_SYSCALL
+struct bpf_iter__netlink {
+	__bpf_md_ptr(struct bpf_iter_meta *, meta);
+	__bpf_md_ptr(struct netlink_sock *, sk);
+};
+
+DEFINE_BPF_ITER_FUNC(netlink, struct bpf_iter_meta *meta, struct netlink_sock *sk)
+
+static int netlink_prog_seq_show(struct bpf_prog *prog,
+				  struct bpf_iter_meta *meta,
+				  void *v)
+{
+	struct bpf_iter__netlink ctx;
+
+	meta->seq_num--;  /* skip SEQ_START_TOKEN */
+	ctx.meta = meta;
+	ctx.sk = nlk_sk((struct sock *)v);
+	return bpf_iter_run_prog(prog, &ctx);
+}
+
+static int netlink_seq_show(struct seq_file *seq, void *v)
+{
+	struct bpf_iter_meta meta;
+	struct bpf_prog *prog;
+
+	meta.seq = seq;
+	prog = bpf_iter_get_info(&meta, false);
+	if (!prog)
+		return netlink_native_seq_show(seq, v);
+
+	if (v != SEQ_START_TOKEN)
+		return netlink_prog_seq_show(prog, &meta, v);
+
+	return 0;
+}
+
+static void netlink_seq_stop(struct seq_file *seq, void *v)
+{
+	struct bpf_iter_meta meta;
+	struct bpf_prog *prog;
+
+	if (!v) {
+		meta.seq = seq;
+		prog = bpf_iter_get_info(&meta, true);
+		if (prog)
+			(void)netlink_prog_seq_show(prog, &meta, v);
+	}
+
+	netlink_native_seq_stop(seq, v);
+}
+#else
+static int netlink_seq_show(struct seq_file *seq, void *v)
+{
+	return netlink_native_seq_show(seq, v);
+}
+
+static void netlink_seq_stop(struct seq_file *seq, void *v)
+{
+	netlink_native_seq_stop(seq, v);
+}
+#endif
 
 static const struct seq_operations netlink_seq_ops = {
 	.start  = netlink_seq_start,
@@ -2734,6 +2815,34 @@ static const struct rhashtable_params netlink_rhashtable_params = {
 	.automatic_shrinking = true,
 };
 
+#if defined(CONFIG_BPF_SYSCALL) && defined(CONFIG_PROC_FS)
+BTF_ID_LIST(btf_netlink_sock_id)
+BTF_ID(struct, netlink_sock)
+
+static const struct bpf_iter_seq_info netlink_seq_info = {
+	.seq_ops		= &netlink_seq_ops,
+	.init_seq_private	= bpf_iter_init_seq_net,
+	.fini_seq_private	= bpf_iter_fini_seq_net,
+	.seq_priv_size		= sizeof(struct nl_seq_iter),
+};
+
+static struct bpf_iter_reg netlink_reg_info = {
+	.target			= "netlink",
+	.ctx_arg_info_size	= 1,
+	.ctx_arg_info		= {
+		{ offsetof(struct bpf_iter__netlink, sk),
+		  PTR_TO_BTF_ID_OR_NULL },
+	},
+	.seq_info		= &netlink_seq_info,
+};
+
+static int __init bpf_iter_register(void)
+{
+	netlink_reg_info.ctx_arg_info[0].btf_id = *btf_netlink_sock_id;
+	return bpf_iter_reg_target(&netlink_reg_info);
+}
+#endif
+
 static int __init netlink_proto_init(void)
 {
 	int i;
@@ -2742,7 +2851,13 @@ static int __init netlink_proto_init(void)
 	if (err != 0)
 		goto out;
 
-	BUILD_BUG_ON(sizeof(struct netlink_skb_parms) > FIELD_SIZEOF(struct sk_buff, cb));
+#if defined(CONFIG_BPF_SYSCALL) && defined(CONFIG_PROC_FS)
+	err = bpf_iter_register();
+	if (err)
+		goto out;
+#endif
+
+	BUILD_BUG_ON(sizeof(struct netlink_skb_parms) > sizeof_field(struct sk_buff, cb));
 
 	nl_table = kcalloc(MAX_LINKS, sizeof(*nl_table), GFP_KERNEL);
 	if (!nl_table)

@@ -21,7 +21,7 @@
 #include <linux/ioport.h>
 #include <asm/diag.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/ebcdic.h>
 #include <asm/errno.h>
 #include <asm/extmem.h>

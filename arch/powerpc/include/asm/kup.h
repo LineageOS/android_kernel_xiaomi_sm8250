@@ -4,7 +4,7 @@
 
 #ifndef __ASSEMBLY__
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #ifdef CONFIG_PPC_BOOK3S_64
 #include <asm/book3s/64/kup-radix.h>

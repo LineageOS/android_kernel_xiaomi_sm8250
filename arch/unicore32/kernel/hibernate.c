@@ -16,7 +16,7 @@
 #include <linux/bootmem.h>
 
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <asm/sections.h>
 #include <asm/suspend.h>

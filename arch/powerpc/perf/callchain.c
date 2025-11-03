@@ -15,7 +15,7 @@
 #include <linux/uaccess.h>
 #include <linux/mm.h>
 #include <asm/ptrace.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sigcontext.h>
 #include <asm/ucontext.h>
 #include <asm/vdso.h>

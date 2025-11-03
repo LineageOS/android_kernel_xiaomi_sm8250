@@ -23,7 +23,7 @@
 #include <asm/io.h>
 #include <linux/uaccess.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/gio_device.h>
 
 #include <video/newport.h>

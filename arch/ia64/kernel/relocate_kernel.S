@@ -13,7 +13,7 @@
 #include <asm/asmmacro.h>
 #include <asm/kregs.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/mca_asm.h>
 
        /* Must be relocatable PIC code callable as a C function

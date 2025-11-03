@@ -406,7 +406,7 @@ void tcp_ca_openreq_child(struct sock *sk, const struct dst_entry *dst)
 
 		rcu_read_lock();
 		ca = tcp_ca_find_key(ca_key);
-		if (likely(ca && try_module_get(ca->owner))) {
+		if (likely(ca && bpf_try_module_get(ca, ca->owner))) {
 			icsk->icsk_ca_dst_locked = tcp_ca_dst_locked(dst);
 			icsk->icsk_ca_ops = ca;
 			ca_got_dst = true;
@@ -417,7 +417,7 @@ void tcp_ca_openreq_child(struct sock *sk, const struct dst_entry *dst)
 	/* If no valid choice made yet, assign current system default ca. */
 	if (!ca_got_dst &&
 	    (!icsk->icsk_ca_setsockopt ||
-	     !try_module_get(icsk->icsk_ca_ops->owner)))
+	     !bpf_try_module_get(icsk->icsk_ca_ops, icsk->icsk_ca_ops->owner)))
 		tcp_assign_congestion_control(sk);
 
 	tcp_set_ca_state(sk, TCP_CA_Open);
@@ -485,7 +485,6 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
 	newtp->srtt_us = 0;
 	newtp->mdev_us = jiffies_to_usecs(TCP_TIMEOUT_INIT);
 	minmax_reset(&newtp->rtt_min, tcp_jiffies32, ~0U);
-	newicsk->icsk_rto = TCP_TIMEOUT_INIT;
 	newicsk->icsk_ack.lrcvtime = tcp_jiffies32;
 
 	newtp->packets_out = 0;
@@ -511,13 +510,6 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
 
 	tcp_init_xmit_timers(newsk);
 	WRITE_ONCE(newtp->write_seq, newtp->pushed_seq = treq->snt_isn + 1);
-
-	newtp->rx_opt.saw_tstamp = 0;
-
-	newtp->rx_opt.dsack = 0;
-	newtp->rx_opt.num_sacks = 0;
-
-	newtp->urg_data = 0;
 
 	if (sock_flag(newsk, SOCK_KEEPOPEN))
 		inet_csk_reset_keepalive_timer(newsk,
@@ -547,6 +539,11 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
 		newtp->rx_opt.ts_recent_stamp = 0;
 		newtp->tcp_header_len = sizeof(struct tcphdr);
 	}
+	if (req->num_timeout) {
+		newtp->undo_marker = treq->snt_isn;
+		newtp->retrans_stamp = div_u64(treq->snt_synack,
+					       USEC_PER_SEC / TCP_TS_HZ);
+	}
 	newtp->tsoffset = treq->ts_off;
 #ifdef CONFIG_TCP_MD5SIG
 	newtp->md5sig_info = NULL;	/*XXX*/
@@ -558,14 +555,10 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
 	newtp->rx_opt.mss_clamp = req->mss;
 	tcp_ecn_openreq_child(newtp, req);
 	newtp->fastopen_req = NULL;
-	newtp->fastopen_rsk = NULL;
-	newtp->syn_data_acked = 0;
-	newtp->rack.mstamp = 0;
-	newtp->rack.advanced = 0;
-	newtp->rack.reo_wnd_steps = 1;
-	newtp->rack.last_delivered = 0;
-	newtp->rack.reo_wnd_persist = 0;
-	newtp->rack.dsack_seen = 0;
+	RCU_INIT_POINTER(newtp->fastopen_rsk, NULL);
+
+	bpf_skops_init_child(sk, newsk);
+	tcp_bpf_clone(sk, newsk);
 
 	__TCP_INC_STATS(sock_net(sk), TCP_MIB_PASSIVEOPENS);
 

@@ -24,11 +24,10 @@
  *
  */
 
-
+#include <linux/objtool.h>
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/frame.h>
 #include <asm/hypervisor.h>
 #include <drm/drmP.h>
 #include "vmwgfx_drv.h"

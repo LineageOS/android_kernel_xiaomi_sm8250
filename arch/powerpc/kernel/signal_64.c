@@ -29,7 +29,7 @@
 #include <asm/sigcontext.h>
 #include <asm/ucontext.h>
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/unistd.h>
 #include <asm/cacheflush.h>
 #include <asm/syscalls.h>

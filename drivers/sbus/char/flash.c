@@ -16,7 +16,7 @@
 #include <linux/of_device.h>
 
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/io.h>
 #include <asm/upa.h>
 

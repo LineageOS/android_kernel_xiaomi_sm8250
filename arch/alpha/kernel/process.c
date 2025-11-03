@@ -37,7 +37,7 @@
 #include <asm/reg.h>
 #include <linux/uaccess.h>
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/hwrpb.h>
 #include <asm/fpu.h>
 

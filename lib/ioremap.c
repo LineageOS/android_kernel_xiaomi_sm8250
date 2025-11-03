@@ -12,7 +12,7 @@
 #include <linux/io.h>
 #include <linux/export.h>
 #include <asm/cacheflush.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
 static int __read_mostly ioremap_p4d_capable;

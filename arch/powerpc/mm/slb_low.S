@@ -20,7 +20,7 @@
 #include <asm/cputable.h>
 #include <asm/page.h>
 #include <asm/mmu.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/firmware.h>
 #include <asm/feature-fixups.h>
 

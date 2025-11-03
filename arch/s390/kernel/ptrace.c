@@ -26,7 +26,7 @@
 #include <trace/syscall.h>
 #include <asm/segment.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pgalloc.h>
 #include <linux/uaccess.h>
 #include <asm/unistd.h>

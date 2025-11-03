@@ -4,7 +4,7 @@
 #include <linux/sched.h>
 #include <linux/mm.h>
 #include <asm/sections.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 static unsigned long max_addr;
 

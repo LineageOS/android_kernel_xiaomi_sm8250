@@ -22,7 +22,7 @@
 #include <linux/pci.h>
 
 #include <asm/e820/types.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 /*
  * The dumper groups pagetable entries of the same type into one, and for

@@ -72,6 +72,5 @@ extern unsigned long empty_zero_page;
  */
 #define pgprot_writecombine pgprot_noncached
 
-#include <asm-generic/pgtable.h>
 
 #endif /* _ASM_C6X_PGTABLE_H */

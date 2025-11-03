@@ -1661,7 +1661,7 @@ static int three = 3;
 
 static int
 proc_do_defense_mode(struct ctl_table *table, int write,
-		     void __user *buffer, size_t *lenp, loff_t *ppos)
+		     void *buffer, size_t *lenp, loff_t *ppos)
 {
 	struct netns_ipvs *ipvs = table->extra2;
 	int *valp = table->data;
@@ -1688,7 +1688,7 @@ proc_do_defense_mode(struct ctl_table *table, int write,
 
 static int
 proc_do_sync_threshold(struct ctl_table *table, int write,
-		       void __user *buffer, size_t *lenp, loff_t *ppos)
+		       void *buffer, size_t *lenp, loff_t *ppos)
 {
 	struct netns_ipvs *ipvs = table->extra2;
 	int *valp = table->data;
@@ -1716,7 +1716,7 @@ proc_do_sync_threshold(struct ctl_table *table, int write,
 
 static int
 proc_do_sync_ports(struct ctl_table *table, int write,
-		   void __user *buffer, size_t *lenp, loff_t *ppos)
+		   void *buffer, size_t *lenp, loff_t *ppos)
 {
 	int *valp = table->data;
 	int val = *valp;
@@ -2739,13 +2739,13 @@ do_ip_vs_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
 	case IP_VS_SO_GET_SERVICES:
 	{
 		struct ip_vs_get_services *get;
-		int size;
+		size_t size;
 
 		get = (struct ip_vs_get_services *)arg;
 		size = sizeof(*get) +
 			sizeof(struct ip_vs_service_entry) * get->num_services;
 		if (*len != size) {
-			pr_err("length: %u != %u\n", *len, size);
+			pr_err("length: %u != %zu\n", *len, size);
 			ret = -EINVAL;
 			goto out;
 		}
@@ -2781,13 +2781,13 @@ do_ip_vs_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
 	case IP_VS_SO_GET_DESTS:
 	{
 		struct ip_vs_get_dests *get;
-		int size;
+		size_t size;
 
 		get = (struct ip_vs_get_dests *)arg;
 		size = sizeof(*get) +
 			sizeof(struct ip_vs_dest_entry) * get->num_dests;
 		if (*len != size) {
-			pr_err("length: %u != %u\n", *len, size);
+			pr_err("length: %u != %zu\n", *len, size);
 			ret = -EINVAL;
 			goto out;
 		}

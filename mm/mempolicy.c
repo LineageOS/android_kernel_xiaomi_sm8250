@@ -379,13 +379,10 @@ void mpol_rebind_mm(struct mm_struct *mm, nodemask_t *new)
 {
 	struct vm_area_struct *vma;
 
-	down_write(&mm->mmap_sem);
-	for (vma = mm->mmap; vma; vma = vma->vm_next) {
-		vm_write_begin(vma);
+	mmap_write_lock(mm);
+	for (vma = mm->mmap; vma; vma = vma->vm_next)
 		mpol_rebind_policy(vma->vm_policy, new);
-		vm_write_end(vma);
-	}
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 }
 
 static const struct mempolicy_operations mpol_ops[MPOL_MAX] = {
@@ -716,7 +713,6 @@ static int vma_replace_policy(struct vm_area_struct *vma,
 	if (IS_ERR(new))
 		return PTR_ERR(new);
 
-	vm_write_begin(vma);
 	if (vma->vm_ops && vma->vm_ops->set_policy) {
 		err = vma->vm_ops->set_policy(vma, new);
 		if (err)
@@ -724,17 +720,11 @@ static int vma_replace_policy(struct vm_area_struct *vma,
 	}
 
 	old = vma->vm_policy;
-	/*
-	 * The speculative page fault handler accesses this field without
-	 * hodling the mmap_sem.
-	 */
-	WRITE_ONCE(vma->vm_policy,  new);
-	vm_write_end(vma);
+	vma->vm_policy = new; /* protected by mmap_sem */
 	mpol_put(old);
 
 	return 0;
  err_out:
-	vm_write_end(vma);
 	mpol_put(new);
 	return err;
 }
@@ -860,11 +850,11 @@ static void get_policy_nodemask(struct mempolicy *p, nodemask_t *nodes)
 
 static int lookup_node(unsigned long addr)
 {
-	struct page *p;
+	struct page *p = NULL;
 	int err;
 
 	err = get_user_pages(addr & PAGE_MASK, 1, 0, &p, NULL);
-	if (err >= 0) {
+	if (err > 0) {
 		err = page_to_nid(p);
 		put_page(p);
 	}
@@ -900,10 +890,10 @@ static long do_get_mempolicy(int *policy, nodemask_t *nmask,
 		 * vma/shared policy at addr is NULL.  We
 		 * want to return MPOL_DEFAULT in this case.
 		 */
-		down_read(&mm->mmap_sem);
+		mmap_read_lock(mm);
 		vma = find_vma_intersection(mm, addr, addr+1);
 		if (!vma) {
-			up_read(&mm->mmap_sem);
+			mmap_read_unlock(mm);
 			return -EFAULT;
 		}
 		if (vma->vm_ops && vma->vm_ops->get_policy)
@@ -953,7 +943,7 @@ static long do_get_mempolicy(int *policy, nodemask_t *nmask,
  out:
 	mpol_cond_put(pol);
 	if (vma)
-		up_read(&current->mm->mmap_sem);
+		mmap_read_unlock(current->mm);
 	return err;
 }
 
@@ -1060,7 +1050,7 @@ int do_migrate_pages(struct mm_struct *mm, const nodemask_t *from,
 	if (err)
 		return err;
 
-	down_read(&mm->mmap_sem);
+	mmap_read_lock(mm);
 
 	/*
 	 * Find a 'source' bit set in 'tmp' whose corresponding 'dest'
@@ -1141,7 +1131,7 @@ int do_migrate_pages(struct mm_struct *mm, const nodemask_t *from,
 		if (err < 0)
 			break;
 	}
-	up_read(&mm->mmap_sem);
+	mmap_read_unlock(mm);
 	if (err < 0)
 		return err;
 	return busy;
@@ -1264,12 +1254,12 @@ static long do_mbind(unsigned long start, unsigned long len,
 	{
 		NODEMASK_SCRATCH(scratch);
 		if (scratch) {
-			down_write(&mm->mmap_sem);
+			mmap_write_lock(mm);
 			task_lock(current);
 			err = mpol_set_nodemask(new, nmask, scratch);
 			task_unlock(current);
 			if (err)
-				up_write(&mm->mmap_sem);
+				mmap_write_unlock(mm);
 		} else
 			err = -ENOMEM;
 		NODEMASK_SCRATCH_FREE(scratch);
@@ -1306,7 +1296,7 @@ up_out:
 			putback_movable_pages(&pagelist);
 	}
 
-	up_write(&mm->mmap_sem);
+	mmap_write_unlock(mm);
 mpol_out:
 	mpol_put(new);
 	return err;
@@ -1699,28 +1689,23 @@ COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
 struct mempolicy *__get_vma_policy(struct vm_area_struct *vma,
 						unsigned long addr)
 {
-	struct mempolicy *pol;
+	struct mempolicy *pol = NULL;
 
-	if (!vma)
-		return NULL;
+	if (vma) {
+		if (vma->vm_ops && vma->vm_ops->get_policy) {
+			pol = vma->vm_ops->get_policy(vma, addr);
+		} else if (vma->vm_policy) {
+			pol = vma->vm_policy;
 
-	if (vma->vm_ops && vma->vm_ops->get_policy)
-		return vma->vm_ops->get_policy(vma, addr);
-
-	/*
-	 * This could be called without holding the mmap_sem in the
-	 * speculative page fault handler's path.
-	 */
-	pol = READ_ONCE(vma->vm_policy);
-	if (pol) {
-		/*
-		 * shmem_alloc_page() passes MPOL_F_SHARED policy with
-		 * a pseudo vma whose vma->vm_ops=NULL. Take a reference
-		 * count on these policies which will be dropped by
-		 * mpol_cond_put() later
-		 */
-		if (mpol_needs_cond_ref(pol))
-			mpol_get(pol);
+			/*
+			 * shmem_alloc_page() passes MPOL_F_SHARED policy with
+			 * a pseudo vma whose vma->vm_ops=NULL. Take a reference
+			 * count on these policies which will be dropped by
+			 * mpol_cond_put() later
+			 */
+			if (mpol_needs_cond_ref(pol))
+				mpol_get(pol);
+		}
 	}
 
 	return pol;

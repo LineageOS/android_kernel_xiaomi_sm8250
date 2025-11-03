@@ -1,18 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright(c) 2017 Intel Corporation. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
  */
 #include <linux/pagemap.h>
 #include <linux/module.h>
 #include <linux/mount.h>
+#include <linux/pseudo_fs.h>
 #include <linux/magic.h>
 #include <linux/genhd.h>
 #include <linux/pfn_t.h>
@@ -417,16 +410,19 @@ static const struct super_operations dax_sops = {
 	.drop_inode = generic_delete_inode,
 };
 
-static struct dentry *dax_mount(struct file_system_type *fs_type,
-		int flags, const char *dev_name, void *data)
+static int dax_init_fs_context(struct fs_context *fc)
 {
-	return mount_pseudo(fs_type, "dax:", &dax_sops, NULL, DAXFS_MAGIC);
+	struct pseudo_fs_context *ctx = init_pseudo(fc, DAXFS_MAGIC);
+	if (!ctx)
+		return -ENOMEM;
+	ctx->ops = &dax_sops;
+	return 0;
 }
 
 static struct file_system_type dax_fs_type = {
-	.name = "dax",
-	.mount = dax_mount,
-	.kill_sb = kill_anon_super,
+	.name		= "dax",
+	.init_fs_context = dax_init_fs_context,
+	.kill_sb	= kill_anon_super,
 };
 
 static int dax_test(struct inode *inode, void *data)

@@ -26,7 +26,7 @@
 
 #include <asm/atarihw.h>
 #include <asm/irq.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/atariints.h>
 
 

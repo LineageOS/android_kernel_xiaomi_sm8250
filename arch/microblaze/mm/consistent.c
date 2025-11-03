@@ -41,7 +41,7 @@
 #include <linux/mmu_context.h>
 #include <asm/mmu.h>
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/cpuinfo.h>
 #include <asm/tlbflush.h>
 

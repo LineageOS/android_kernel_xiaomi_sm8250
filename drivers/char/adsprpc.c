@@ -780,6 +780,10 @@ static int fastrpc_mmap_find(struct fastrpc_file *fl, int fd,
 	if ((va + len) < va)
 		return -EOVERFLOW;
 
+	if ((mflags == ADSP_MMAP_HEAP_ADDR) ||
+		(mflags == ADSP_MMAP_REMOTE_HEAP_ADDR))
+		return -EFAULT;
+
 	hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
 		if (va >= map->va &&
 			va + len <= map->va + map->len &&
@@ -2181,12 +2185,12 @@ static void inv_args(struct smq_invoke_ctx *ctx)
 					uint64_t inv_len;
 					struct vm_area_struct *vma;
 
-					down_read(&current->mm->mmap_sem);
+					mmap_read_lock(current->mm);
 					VERIFY(err, NULL != (vma = find_vma(
 						current->mm,
 						rpra[over].buf.pv)));
 					if (err) {
-						up_read(&current->mm->mmap_sem);
+						mmap_read_unlock(current->mm);
 						goto bail;
 					}
 					if (ctx->overps[i]->do_cmo) {
@@ -2201,7 +2205,7 @@ static void inv_args(struct smq_invoke_ctx *ctx)
 							ctx->overps[i]->mend -
 							ctx->overps[i]->mstart;
 					}
-					up_read(&current->mm->mmap_sem);
+					mmap_read_unlock(current->mm);
 					dma_buf_begin_cpu_access_partial(
 						map->buf, DMA_TO_DEVICE, offset,
 						inv_len);

@@ -23,7 +23,7 @@
 #include <linux/skbuff.h>
 
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #include "hplance.h"
 

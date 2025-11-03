@@ -35,7 +35,7 @@
 #include <mach/hardware.h>
 #include <mach/io.h>
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/page.h>
 #include <asm/irq.h>
 #include <asm/system_misc.h>

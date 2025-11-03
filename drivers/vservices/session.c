@@ -1117,7 +1117,7 @@ static void service_rx_tasklet(unsigned long data)
 	if (resched)
 		tasklet_schedule(&service->rx_tasklet);
 
-	spin_release(&service->state_spinlock.dep_map, 0, _THIS_IP_);
+	spin_release(&service->state_spinlock.dep_map, _THIS_IP_);
 	__release(service);
 }
 

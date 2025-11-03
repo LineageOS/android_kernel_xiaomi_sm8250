@@ -17,7 +17,7 @@
 #include <linux/vmalloc.h>
 #include <linux/io.h>
 
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 /*
  * Remap an arbitrary physical address space into the kernel virtual

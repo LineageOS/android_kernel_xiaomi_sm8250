@@ -1638,6 +1638,5 @@ extern void s390_reset_cmma(struct mm_struct *mm);
 static inline void pgtable_cache_init(void) { }
 static inline void check_pgt_cache(void) { }
 
-#include <asm-generic/pgtable.h>
 
 #endif /* _S390_PAGE_H */

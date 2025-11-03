@@ -7,7 +7,7 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <asm/compiler.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/machvec.h>
 #include <asm/hwrpb.h>
 

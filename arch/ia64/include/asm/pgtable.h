@@ -592,6 +592,5 @@ extern struct page *zero_page_memmap_ptr;
 #include <asm-generic/pgtable-nopud.h>
 #endif
 #include <asm-generic/5level-fixup.h>
-#include <asm-generic/pgtable.h>
 
 #endif /* _ASM_IA64_PGTABLE_H */

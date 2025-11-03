@@ -62,7 +62,7 @@
 
 #include <asm/page.h>
 #include <asm/pgalloc.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/tlb.h>
 
 #include <asm/xen/hypervisor.h>

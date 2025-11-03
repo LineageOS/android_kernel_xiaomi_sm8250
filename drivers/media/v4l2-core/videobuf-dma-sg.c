@@ -30,7 +30,7 @@
 #include <linux/pagemap.h>
 #include <linux/scatterlist.h>
 #include <asm/page.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #include <media/videobuf-dma-sg.h>
 
@@ -203,9 +203,9 @@ static int videobuf_dma_init_user(struct videobuf_dmabuf *dma, int direction,
 {
 	int ret;
 
-	down_read(&current->mm->mmap_sem);
+	mmap_read_lock(current->mm);
 	ret = videobuf_dma_init_user_locked(dma, direction, data, size);
-	up_read(&current->mm->mmap_sem);
+	mmap_read_unlock(current->mm);
 
 	return ret;
 }

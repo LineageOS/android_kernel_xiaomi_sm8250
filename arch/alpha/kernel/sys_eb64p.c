@@ -22,7 +22,7 @@
 #include <asm/irq.h>
 #include <asm/mmu_context.h>
 #include <asm/io.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/core_apecs.h>
 #include <asm/core_lca.h>
 #include <asm/hwrpb.h>

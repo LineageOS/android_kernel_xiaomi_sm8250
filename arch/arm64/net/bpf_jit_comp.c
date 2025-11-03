@@ -27,6 +27,7 @@
 #include <asm/cacheflush.h>
 #include <asm/debug-monitors.h>
 #include <asm/set_memory.h>
+#include <trace/hooks/memory.h>
 
 #include "bpf_jit.h"
 
@@ -942,6 +943,8 @@ skip_init_ctx:
 			goto out_off;
 		}
 		bpf_jit_binary_lock_ro(header);
+		trace_android_vh_set_memory_ro((unsigned long)header, header->pages);
+		trace_android_vh_set_memory_x((unsigned long)header, header->pages);
 	} else {
 		jit_data->ctx = ctx;
 		jit_data->image = image_ptr;
@@ -976,14 +979,3 @@ void bpf_jit_free_exec(void *addr)
 {
 	return vfree(addr);
 }
-
-#ifdef CONFIG_CFI_CLANG
-bool arch_bpf_jit_check_func(const struct bpf_prog *prog)
-{
-	const uintptr_t func = (const uintptr_t)prog->bpf_func;
-
-	/* bpf_func must be correctly aligned and within the BPF JIT region */
-	return (func >= BPF_JIT_REGION_START && func < BPF_JIT_REGION_END &&
-		IS_ALIGNED(func, sizeof(u32)));
-}
-#endif

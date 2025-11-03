@@ -19,7 +19,7 @@
 #include <asm/kernel-pgtable.h>
 #include <asm/memory.h>
 #include <asm/mmu.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/sections.h>
 
 u64 __ro_after_init module_alloc_base;

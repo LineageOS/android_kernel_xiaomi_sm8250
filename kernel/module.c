@@ -2975,8 +2975,7 @@ static int copy_module_from_user(const void __user *umod, unsigned long len,
 		return err;
 
 	/* Suck in entire file: we'll want most of it. */
-	info->hdr = __vmalloc(info->len,
-			GFP_KERNEL | __GFP_NOWARN, PAGE_KERNEL);
+	info->hdr = __vmalloc(info->len, GFP_KERNEL | __GFP_NOWARN);
 	if (!info->hdr)
 		return -ENOMEM;
 
@@ -3183,6 +3182,11 @@ static int find_module_sections(struct module *mod, struct load_info *info)
 	mod->tracepoints_ptrs = section_objs(info, "__tracepoints_ptrs",
 					     sizeof(*mod->tracepoints_ptrs),
 					     &mod->num_tracepoints);
+#endif
+#ifdef CONFIG_BPF_EVENTS
+	mod->bpf_raw_events = section_objs(info, "__bpf_raw_tp_map",
+					   sizeof(*mod->bpf_raw_events),
+					   &mod->num_bpf_raw_events);
 #endif
 #ifdef CONFIG_JUMP_LABEL
 	mod->jump_entries = section_objs(info, "__jump_table",

@@ -665,7 +665,6 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
 
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
-#include <asm-generic/pgtable.h>
 
 /*
  * uncached accelerated TLB map for video memory access

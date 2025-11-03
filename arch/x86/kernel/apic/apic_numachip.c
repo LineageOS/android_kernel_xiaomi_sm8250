@@ -17,7 +17,7 @@
 #include <asm/numachip/numachip_csr.h>
 #include <asm/ipi.h>
 #include <asm/apic_flat_64.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/pci_x86.h>
 
 u8 numachip_system __read_mostly;

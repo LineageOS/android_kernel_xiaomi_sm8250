@@ -81,7 +81,7 @@ int afs_write_begin(struct file *file, struct address_space *mapping,
 	pgoff_t index = pos >> PAGE_SHIFT;
 	int ret;
 
-	_enter("{%x:%u},{%lx},%u,%u",
+	_enter("{%llx:%llu},{%lx},%u,%u",
 	       vnode->fid.vid, vnode->fid.vnode, index, from, to);
 
 	/* We want to store information about how much of a page is altered in
@@ -181,7 +181,7 @@ int afs_write_end(struct file *file, struct address_space *mapping,
 	loff_t i_size, maybe_i_size;
 	int ret;
 
-	_enter("{%x:%u},{%lx}",
+	_enter("{%llx:%llu},{%lx}",
 	       vnode->fid.vid, vnode->fid.vnode, page->index);
 
 	maybe_i_size = pos + copied;
@@ -230,7 +230,7 @@ static void afs_kill_pages(struct address_space *mapping,
 	struct pagevec pv;
 	unsigned count, loop;
 
-	_enter("{%x:%u},%lx-%lx",
+	_enter("{%llx:%llu},%lx-%lx",
 	       vnode->fid.vid, vnode->fid.vnode, first, last);
 
 	pagevec_init(&pv);
@@ -273,7 +273,7 @@ static void afs_redirty_pages(struct writeback_control *wbc,
 	struct pagevec pv;
 	unsigned count, loop;
 
-	_enter("{%x:%u},%lx-%lx",
+	_enter("{%llx:%llu},%lx-%lx",
 	       vnode->fid.vid, vnode->fid.vnode, first, last);
 
 	pagevec_init(&pv);
@@ -315,7 +315,7 @@ static int afs_store_data(struct address_space *mapping,
 	struct list_head *p;
 	int ret = -ENOKEY, ret2;
 
-	_enter("%s{%x:%u.%u},%lx,%lx,%x,%x",
+	_enter("%s{%llx:%llu.%u},%lx,%lx,%x,%x",
 	       vnode->volume->name,
 	       vnode->fid.vid,
 	       vnode->fid.vnode,
@@ -534,6 +534,7 @@ no_more:
 	case -ENOENT:
 	case -ENOMEDIUM:
 	case -ENXIO:
+		trace_afs_file_error(vnode, ret, afs_file_error_writeback_fail);
 		afs_kill_pages(mapping, first, last);
 		mapping_set_error(mapping, ret);
 		break;
@@ -676,7 +677,7 @@ void afs_pages_written_back(struct afs_vnode *vnode, struct afs_call *call)
 	unsigned count, loop;
 	pgoff_t first = call->first, last = call->last;
 
-	_enter("{%x:%u},{%lx-%lx}",
+	_enter("{%llx:%llu},{%lx-%lx}",
 	       vnode->fid.vid, vnode->fid.vnode, first, last);
 
 	pagevec_init(&pv);
@@ -715,7 +716,7 @@ ssize_t afs_file_write(struct kiocb *iocb, struct iov_iter *from)
 	ssize_t result;
 	size_t count = iov_iter_count(from);
 
-	_enter("{%x.%u},{%zu},",
+	_enter("{%llx:%llu},{%zu},",
 	       vnode->fid.vid, vnode->fid.vnode, count);
 
 	if (IS_SWAPFILE(&vnode->vfs_inode)) {
@@ -743,7 +744,7 @@ int afs_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 	struct inode *inode = file_inode(file);
 	struct afs_vnode *vnode = AFS_FS_I(inode);
 
-	_enter("{%x:%u},{n=%pD},%d",
+	_enter("{%llx:%llu},{n=%pD},%d",
 	       vnode->fid.vid, vnode->fid.vnode, file,
 	       datasync);
 
@@ -761,7 +762,7 @@ vm_fault_t afs_page_mkwrite(struct vm_fault *vmf)
 	struct afs_vnode *vnode = AFS_FS_I(inode);
 	unsigned long priv;
 
-	_enter("{{%x:%u}},{%lx}",
+	_enter("{{%llx:%llu}},{%lx}",
 	       vnode->fid.vid, vnode->fid.vnode, vmf->page->index);
 
 	sb_start_pagefault(inode->i_sb);

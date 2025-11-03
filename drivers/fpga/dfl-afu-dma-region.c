@@ -51,7 +51,7 @@ static int afu_dma_adjust_locked_vm(struct device *dev, long npages, bool incr)
 	if (!current->mm)
 		return 0;
 
-	down_write(&current->mm->mmap_sem);
+	mmap_write_lock(current->mm);
 
 	if (incr) {
 		locked = current->mm->locked_vm + npages;
@@ -72,7 +72,7 @@ static int afu_dma_adjust_locked_vm(struct device *dev, long npages, bool incr)
 		current->mm->locked_vm << PAGE_SHIFT, rlimit(RLIMIT_MEMLOCK),
 		ret ? "- execeeded" : "");
 
-	up_write(&current->mm->mmap_sem);
+	mmap_write_unlock(current->mm);
 
 	return ret;
 }

@@ -31,7 +31,7 @@
 #include <asm/uv/uv_mmrs.h>
 #include <asm/uv/uv_hub.h>
 #include <asm/current.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/uv/bios.h>
 #include <asm/uv/uv.h>
 #include <asm/apic.h>

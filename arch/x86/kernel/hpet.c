@@ -71,7 +71,7 @@ static inline void hpet_writel(unsigned int d, unsigned int a)
 }
 
 #ifdef CONFIG_X86_64
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #endif
 
 static inline void hpet_set_mapping(void)

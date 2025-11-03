@@ -55,7 +55,7 @@ static struct notifier_block alpha_panic_block = {
 };
 
 #include <linux/uaccess.h>
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 #include <asm/hwrpb.h>
 #include <asm/dma.h>
 #include <asm/mmu_context.h>

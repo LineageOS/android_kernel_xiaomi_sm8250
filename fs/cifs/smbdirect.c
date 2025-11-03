@@ -594,7 +594,6 @@ static void recv_done(struct ib_cq *cq, struct ib_wc *wc)
 	if (wc->status != IB_WC_SUCCESS || wc->opcode != IB_WC_RECV) {
 		log_rdma_recv(INFO, "wc->status=%d opcode=%d\n",
 			wc->status, wc->opcode);
-		smbd_disconnect_rdma_connection(info);
 		goto error;
 	}
 
@@ -611,8 +610,9 @@ static void recv_done(struct ib_cq *cq, struct ib_wc *wc)
 		info->full_packet_received = true;
 		info->negotiate_done =
 			process_negotiation_response(response, wc->byte_len);
+		put_receive_buffer(info, response);
 		complete(&info->negotiate_completion);
-		break;
+		return;
 
 	/* SMBD data transfer packet */
 	case SMBD_TRANSFER_DATA:
@@ -664,14 +664,16 @@ static void recv_done(struct ib_cq *cq, struct ib_wc *wc)
 
 		queue_work(info->workqueue, &info->recv_done_work);
 		return;
-
-	default:
-		log_rdma_recv(ERR,
-			"unexpected response type=%d\n", response->type);
 	}
 
+	/*
+	 * This is an internal error!
+	 */
+	log_rdma_recv(ERR, "unexpected response type=%d\n", response->type);
+	WARN_ON_ONCE(response->type != SMBD_TRANSFER_DATA);
 error:
 	put_receive_buffer(info, response);
+	smbd_disconnect_rdma_connection(info);
 }
 
 static struct rdma_cm_id *smbd_create_id(
@@ -2142,14 +2144,22 @@ int smbd_recv(struct smbd_connection *info, struct msghdr *msg)
 
 	info->smbd_recv_pending++;
 
-	switch (msg->msg_iter.type) {
-	case READ | ITER_KVEC:
+	if (iov_iter_rw(&msg->msg_iter) == WRITE) {
+		/* It's a bug in upper layer to get there */
+		cifs_dbg(VFS, "CIFS: invalid msg iter dir %u\n",
+			 iov_iter_rw(&msg->msg_iter));
+		rc = -EINVAL;
+		goto out;
+	}
+
+	switch (iov_iter_type(&msg->msg_iter)) {
+	case ITER_KVEC:
 		buf = msg->msg_iter.kvec->iov_base;
 		to_read = msg->msg_iter.kvec->iov_len;
 		rc = smbd_recv_buf(info, buf, to_read);
 		break;
 
-	case READ | ITER_BVEC:
+	case ITER_BVEC:
 		page = msg->msg_iter.bvec->bv_page;
 		page_offset = msg->msg_iter.bvec->bv_offset;
 		to_read = msg->msg_iter.bvec->bv_len;
@@ -2159,10 +2169,11 @@ int smbd_recv(struct smbd_connection *info, struct msghdr *msg)
 	default:
 		/* It's a bug in upper layer to get there */
 		cifs_dbg(VFS, "CIFS: invalid msg type %d\n",
-			msg->msg_iter.type);
+			 iov_iter_type(&msg->msg_iter));
 		rc = -EINVAL;
 	}
 
+out:
 	info->smbd_recv_pending--;
 	wake_up(&info->wait_smbd_recv_pending);
 

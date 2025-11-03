@@ -60,7 +60,7 @@
 #else
 #include <asm/prom.h>
 #endif
-#include <asm/pgtable.h>
+#include <linux/pgtable.h>
 
 #include "macmodes.h"
 #include "valkyriefb.h"
