@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "84851966_7bfa24aa",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2025-11-05T18:55:08Z",
+      "side": 1,
+      "message": "I\u0027ve already been on merged HEAD `UPSTREAM: bpf: Fix L4 csum update on IPv6 in CHECKSUM_COMPLETE` for some time",
+      "revId": "b008e282bf06247ce35a005d9178b8e150604230",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
