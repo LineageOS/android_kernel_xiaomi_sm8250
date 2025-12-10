@@ -229,6 +229,23 @@
       "message": "Why would we need this?",
       "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "664b8c1d_b0f3cef6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2025-12-10T00:43:43Z",
+      "side": 1,
+      "message": "Please take a look at the user feedback on the XDA forums. A lot of people are complaining that the signal drops on certain LTE bands, and the only way to get it back is to completely reboot the phone.\nThese two kernel patches make the modem recover by itself after a crash, so you don’t need to restart the whole device.\nPlease consider merging them, because without these patches my apollon is basically unusable.",
+      "revId": "b15897ec95d5453509885fbc20c5d7dfa0db4294",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
