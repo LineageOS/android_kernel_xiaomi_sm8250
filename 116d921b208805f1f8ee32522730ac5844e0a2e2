@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4cff2660_cc8d4371",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3917
+      },
+      "writtenOn": "2025-12-14T21:55:47Z",
+      "side": 1,
+      "message": "I cannot see traces of this on modem crash dmesgs provided by XDA users - so this might be unrelated. It is also printed in the dmesg of sony AFTER crash.",
+      "revId": "116d921b208805f1f8ee32522730ac5844e0a2e2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
