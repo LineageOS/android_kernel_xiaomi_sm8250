@@ -16,6 +16,23 @@
       "message": "...this is still needed",
       "revId": "4a9e95a02d51c590e23599c89ca9e00d3446e3db",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "50d3e9fa_aa678935",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3917
+      },
+      "writtenOn": "2025-12-15T21:31:48Z",
+      "side": 1,
+      "message": "Seems this indeed fixes modem restart (but is it a good patch?).\n\nApplying this fixes the modem not getting restarted. Before the fix:\n[  579.885486] ext-mdm soc:qcom,mdm0: mdm_errfatal: mdm sent errfatal interrupt\n[  579.885688] [E][mhi_control_error] mhi:esoc0 sfr: ssr:MP:rflte_dm_rx.c:8779:rflte_dm_rxagc_config_update_switchpoints_and_lna_offsets_in_dm: Rx cal data is NULL for rfm dev 8, s\n[  580.577973] ext-mdm soc:qcom,mdm0: unexpected reset external modem\n[  583.905852] subsys-restart: subsystem_powerup(): [kworker/u17:1:3752]: Powering up esoc0\n[  584.060867] msm_pcie_enable: PCIe: Assert the reset of endpoint of RC2.\n[  584.064268] msm_pcie_enable: PCIe: RC2: PCIE20_PARF_INT_ALL_MASK: 0x7f80d202\n[  584.066484] pcie_phy_init: PCIe RC2 PHY is ready!\n[  584.076515] msm_pcie_enable: PCIe: Release the reset of endpoint of RC2.\n[  584.092958] msm_pcie_link_train: PCIe RC2 link initialized\n[  584.093632] mhi 0002:01:00.0: BAR 0: assigned [mem 0x64300000-0x64300fff 64bit]\n[  584.093717] mhi 0002:01:00.0: enabling device (0000 -\u003e 0002)\n[  584.094413] [E][mhi_init_pci_dev] Failed to enable MSI, ret:-28\n[  685.792075] mdm-4x esoc0: booting failed\n[  685.792102] subsys-restart: subsystem_powerup(): Powerup failure on esoc0\n\nAfter applying the patch:\n[ 2983.393927] subsys-restart: subsystem_powerup(): [kworker/u17:4:28368]: Powering up esoc0\n[ 2983.550027] msm_pcie_enable: PCIe: Assert the reset of endpoint of RC2.\n[ 2983.553434] msm_pcie_enable: PCIe: RC2: PCIE20_PARF_INT_ALL_MASK: 0x7f80d202\n[ 2983.555647] pcie_phy_init: PCIe RC2 PHY is ready!\n[ 2983.565682] msm_pcie_enable: PCIe: Release the reset of endpoint of RC2.\n[ 2983.582136] msm_pcie_link_train: PCIe RC2 link initialized\n[ 2983.582809] mhi 0002:01:00.0: BAR 0: assigned [mem 0x64300000-0x64300fff 64bit]\n[ 2983.582897] mhi 0002:01:00.0: enabling device (0000 -\u003e 0002)\n[ 2983.584374] mhi 0002:01:00.0: Falling back to syfs fallback for: sdx55m/sbl1.mbn\n[ 2983.591695] ueventd: firmware: loading \u0027sdx55m/sbl1.mbn\u0027 for \u0027/devices/platform/soc/1c10000.qcom,pcie/pci0002:00/0002:00:00.0/0002:01:00.0/firmware/sdx55m!sbl1.mbn\u0027\n[ 2983.592451] ueventd: found /vendor/firmware_mnt/image/sdx55m/sbl1.mbn for /devices/platform/soc/1c10000.qcom,pcie/pci0002:00/0002:00:00.0/0002:01:00.0/firmware/sdx55m!sbl1.mbn\n[ 2983.594483] ueventd: loading /devices/platform/soc/1c10000.qcom,pcie/pci0002:00/0002:00:00.0/0002:01:00.0/firmware/sdx55m!sbl1.mbn took 2ms\n[ 2983.979631] type\u003d1400 audit(1765832173.945:360): avc:  denied  { fsetid } for  comm\u003d\"ks\" capability\u003d4  scontext\u003du:r:vendor_mdm_helper:s0 tcontext\u003du:r:vendor_mdm_helper:s0 tclass\u003dcapability permissive\u003d0\n\n[ 2991.145693] subsys-restart: subsystem_restart_wq_func(): [kworker/u17:4:28368]: Restart sequence for esoc0 completed.",
+      "revId": "4a9e95a02d51c590e23599c89ca9e00d3446e3db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
