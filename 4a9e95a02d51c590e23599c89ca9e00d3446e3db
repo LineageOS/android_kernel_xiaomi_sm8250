@@ -51,6 +51,23 @@
       "parentUuid": "50d3e9fa_aa678935",
       "revId": "4a9e95a02d51c590e23599c89ca9e00d3446e3db",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1e148aa8_4d497f51",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3917
+      },
+      "writtenOn": "2025-12-15T22:07:06Z",
+      "side": 1,
+      "message": "I do not find a better upstream fix right now and it doesn\u0027t seem to have any negative impact. It allows the modem to recover without intervention (or restart). \n\nSeems like people think that the root cause is a crash on band 66 or 7 (apparently also on stock)\n\nhttps://xdaforums.com/t/poco-f3-in-the-usa-cell-connectivity-is-inconsistent.4483271/page-3#post-89336206",
+      "revId": "4a9e95a02d51c590e23599c89ca9e00d3446e3db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ],
   "submitRequirementResults": []
