@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fc6dd398_56409562",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 3917
+      },
+      "writtenOn": "2025-12-23T22:56:58Z",
+      "side": 1,
+      "message": "Compiles ok - but boot test must wait until early Jan unless someone of the reviewers can ACK",
+      "revId": "e6a50a8beb81fe11a21096b609959e376ebaa1c8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
