@@ -16,6 +16,24 @@
       "message": "I am unable to push the merged qcom_8250 kernel tree to the xiaomi_8250 kernel tree. I hope to resolve the existing random reboot issue as soon as possible, and I request that you merge the qcom_sm8250 kernel tree.\n```\nremote: Resolving deltas: 100% (1078/1078)\nremote: Processing changes: refs: 1, done    \nremote: ERROR: commit d2980df: email address uli@kernel.org is not registered in your account, and you lack \u0027forge committer\u0027 permission.\nremote: The following addresses are currently registered:\nremote:    amktiao030215@gmail.com\nremote: To register an email address, visit:\nremote: https://review.lineageos.org/settings#EmailAddresses\n```",
       "revId": "2255388153fa60b70bfb1660fd4462239ecfece8",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "66bd39ab_f3747919",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2025-12-23T10:23:04Z",
+      "side": 1,
+      "message": "use git-push-merge-review from lineage/scripts",
+      "parentUuid": "83e6ee64_00e2e028",
+      "revId": "2255388153fa60b70bfb1660fd4462239ecfece8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
