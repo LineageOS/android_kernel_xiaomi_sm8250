@@ -33,6 +33,23 @@
       "message": "It boots normally on a Redmi K40 (alioth) and my Xiaomi Pad 6 with a local kernel tree, and stability tests are normal.",
       "revId": "e6a50a8beb81fe11a21096b609959e376ebaa1c8",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a6b5138a_839d6c3e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2025-12-25T10:31:42Z",
+      "side": 1,
+      "message": "Already have it merged on my umi for many days",
+      "revId": "e6a50a8beb81fe11a21096b609959e376ebaa1c8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
