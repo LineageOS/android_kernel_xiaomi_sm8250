@@ -3041,7 +3041,7 @@ And public attribution of xiaomi platforms(like pipa and so and)
 &sde_dsi {
 	/delete-property/ vdd-supply;
 	/delete-property/ avdd-supply;
-	qcom,dsi-default-panel = <&dsi_k81_42_02_0a_dual_cphy_video>;
+	qcom,dsi-default-panel = <&dsi_m82_42_02_0b_dual_dphy_video>;
 };
 
 &pm8150a_l11 {
