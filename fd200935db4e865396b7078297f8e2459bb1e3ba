@@ -33,6 +33,23 @@
       "message": "pipa boot",
       "revId": "fd200935db4e865396b7078297f8e2459bb1e3ba",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "eed1e93a_05a92ba6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-01-04T15:27:34Z",
+      "side": 1,
+      "message": "Feel free to push to refs/heads/lineage-23.0",
+      "revId": "fd200935db4e865396b7078297f8e2459bb1e3ba",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
