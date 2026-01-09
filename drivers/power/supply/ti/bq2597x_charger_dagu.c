@@ -1103,10 +1103,8 @@ static int bq2597x_get_adc_data(struct bq2597x *bq, int channel, int *result)
 		*result = t;
 		/* vbat need calibration read by NU2105 */
 		if (channel == ADC_VBAT) {
-			kernel_neon_begin();
-			t = t * (1 + 1.803 * 0.001);
+			t = t * (1 + 1803 / 1000000);
 			*result = t;
-			kernel_neon_end();
 		}
 	} else {
 		ret = bq2597x_read_word(bq, ADC_REG_BASE + (channel << 1),
@@ -1491,9 +1489,9 @@ static int bq2597x_get_dev_role(struct i2c_client *client)
 	}
 
 	dev_info(&client->dev, "%s: matched to %s, dev_role: %d.\n", __func__,
-		 of_id->compatible, (int)of_id->data);
+		 of_id->compatible, (uintptr_t)of_id->data);
 
-	return (int)of_id->data;
+	return (uintptr_t)of_id->data;
 }
 
 static int bq2597x_parse_dt(struct bq2597x *bq, struct device *dev)
