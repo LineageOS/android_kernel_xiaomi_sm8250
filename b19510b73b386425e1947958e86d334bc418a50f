@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "06b2abfd_19886281",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 4550
+      },
+      "writtenOn": "2026-01-24T09:43:03Z",
+      "side": 1,
+      "message": "You shouldn\u0027t even need to include vendor/debugfs.config anymore FYI, it was merged in kona-perf_defconfig",
+      "revId": "b19510b73b386425e1947958e86d334bc418a50f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
