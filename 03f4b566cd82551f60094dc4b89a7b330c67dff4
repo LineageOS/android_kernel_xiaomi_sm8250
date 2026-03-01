@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "57494c03_5e7cdf22",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-01T22:09:04Z",
+      "side": 1,
+      "message": "Please squash the next commit and cleanup the imports",
+      "revId": "03f4b566cd82551f60094dc4b89a7b330c67dff4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
