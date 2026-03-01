@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf40e1f8_5f7567ab",
+        "filename": "arch/arm64/configs/vendor/xiaomi/pipa.config",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-01T22:17:34Z",
+      "side": 1,
+      "message": "fixup original commit",
+      "revId": "e6729065c9987e94e7fb17f0e8b672805db82484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2cba8f44_fcd0528b",
+        "filename": "arch/arm64/configs/vendor/xiaomi/pipa.config",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-01T22:17:34Z",
+      "side": 1,
+      "message": "\u003dn?",
+      "revId": "e6729065c9987e94e7fb17f0e8b672805db82484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
