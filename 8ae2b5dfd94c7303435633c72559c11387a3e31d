@@ -16,6 +16,23 @@
       "message": "...what?",
       "revId": "8ae2b5dfd94c7303435633c72559c11387a3e31d",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bef3d00d_8d00079f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 34491
+      },
+      "writtenOn": "2026-03-01T22:21:37Z",
+      "side": 1,
+      "message": "It was removed in commit I2d5961521043932a767f828432f28e3418d7a77f",
+      "revId": "8ae2b5dfd94c7303435633c72559c11387a3e31d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
