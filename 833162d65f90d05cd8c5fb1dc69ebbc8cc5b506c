@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0bab81e4_f8788318",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-01T22:13:15Z",
+      "side": 1,
+      "message": "You can just change the minimum brightness value with device tree overlays",
+      "revId": "833162d65f90d05cd8c5fb1dc69ebbc8cc5b506c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
