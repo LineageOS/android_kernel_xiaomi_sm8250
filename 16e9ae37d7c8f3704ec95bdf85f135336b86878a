@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a0de9503_2b35cc84",
+        "filename": "drivers/usb/dwc3/dwc3-msm.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 519,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-01T22:20:05Z",
+      "side": 1,
+      "message": "Not needed",
+      "revId": "16e9ae37d7c8f3704ec95bdf85f135336b86878a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
