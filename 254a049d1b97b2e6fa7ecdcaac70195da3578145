@@ -1,6 +1,23 @@
 {
   "comments": [
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "5d4d2908_338307f7",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 34491
+      },
+      "writtenOn": "2026-03-01T22:01:54Z",
+      "side": 1,
+      "message": "Missing colon here",
+      "revId": "254a049d1b97b2e6fa7ecdcaac70195da3578145",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "51653fdd_8cf75b65",
