@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1379099c_06b98b5d",
+        "filename": "include/soc/qcom/socinfo.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-01T22:08:11Z",
+      "side": 1,
+      "message": "Move it here",
+      "revId": "1d59cbf949d1e60b5a489043326cbf102d559efe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
