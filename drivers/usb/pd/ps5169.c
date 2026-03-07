@@ -246,7 +246,7 @@ void ps5169_cfg_usb(void)
 {
 	int ret = 0;
 
-	if (!ps5169_present_check(g_info))
+	if (!g_info || !ps5169_present_check(g_info))
 		return;
 
 	msleep(50);
