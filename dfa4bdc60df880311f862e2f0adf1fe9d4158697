@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "6832f1f2_8cd64cc9",
+        "filename": "drivers/platform/xiaomi/Kconfig",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-03-07T23:56:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ed095b0f_386c95a8",
+      "revId": "dfa4bdc60df880311f862e2f0adf1fe9d4158697",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "15c56ee4_2c2ad58c",
         "filename": "drivers/platform/xiaomi/Kconfig",
         "patchSetId": 1
