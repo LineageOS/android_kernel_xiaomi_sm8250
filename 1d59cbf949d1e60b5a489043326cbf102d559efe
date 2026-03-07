@@ -16,6 +16,24 @@
       "message": "Move it here",
       "revId": "1d59cbf949d1e60b5a489043326cbf102d559efe",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bcab7658_30fceb3d",
+        "filename": "include/soc/qcom/socinfo.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-03-07T23:57:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1379099c_06b98b5d",
+      "revId": "1d59cbf949d1e60b5a489043326cbf102d559efe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
