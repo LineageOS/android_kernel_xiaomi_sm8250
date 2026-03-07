@@ -16,6 +16,24 @@
       "message": "I don\u0027t remember if I imported this driver with clang-format, please do so to reduce the diff",
       "revId": "8d0bc3596704a69fd071ab6a9be5d34b0e63a7e0",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1aff0213_99bf2c40",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-03-07T23:58:23Z",
+      "side": 1,
+      "message": "Yes, you imported it with clang-format. I have applied clang format on the new import.",
+      "parentUuid": "6be4fdef_daecd175",
+      "revId": "8d0bc3596704a69fd071ab6a9be5d34b0e63a7e0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
