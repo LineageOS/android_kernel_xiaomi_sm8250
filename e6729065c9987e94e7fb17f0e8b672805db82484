@@ -36,6 +36,24 @@
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d18a030b_0f326a8a",
+        "filename": "arch/arm64/configs/vendor/xiaomi/pipa.config",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:16:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fcd56de6_035a55b2",
+      "revId": "e6729065c9987e94e7fb17f0e8b672805db82484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2cba8f44_fcd0528b",
@@ -67,6 +85,24 @@
       "side": 1,
       "message": "Fixed the typo",
       "parentUuid": "2cba8f44_fcd0528b",
+      "revId": "e6729065c9987e94e7fb17f0e8b672805db82484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d1b08fb5_e16754f1",
+        "filename": "arch/arm64/configs/vendor/xiaomi/pipa.config",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:16:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "07df492c_3493de07",
       "revId": "e6729065c9987e94e7fb17f0e8b672805db82484",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
