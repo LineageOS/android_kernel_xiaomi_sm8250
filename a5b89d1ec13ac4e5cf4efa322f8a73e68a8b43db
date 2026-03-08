@@ -1,0 +1,259 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "aa148e37_7d722ad2",
+        "filename": "techpack/display/msm/dsi/dsi_display.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 8210,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c5de3932_ffefaf04",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 761,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "aca83350_fb5a112d",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 2657,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ce31089c_906c330c",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 3007,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "62082787_31e2ad35",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 4117,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "24890a86_2adcaa73",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 4729,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f70d193b_90f8c108",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 4761,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3d0d2e72_2eb44434",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 4802,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "291c3f5a_2d72a05e",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 4830,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "353a7d94_a2f4aa1b",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 4848,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2a4cf65d_e42b3566",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 5204,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "392c1992_63317760",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 5251,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "384f9d39_281a32e4",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 5476,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6fe8fbfb_a264993a",
+        "filename": "techpack/display/msm/dsi/dsi_panel.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 5521,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "aaba9b3f_60eeeb1a",
+        "filename": "techpack/display/msm/sde/sde_encoder.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 3209,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:12:43Z",
+      "side": 1,
+      "message": "Useless change?",
+      "revId": "a5b89d1ec13ac4e5cf4efa322f8a73e68a8b43db",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
