@@ -34,6 +34,24 @@
       "parentUuid": "1379099c_06b98b5d",
       "revId": "1d59cbf949d1e60b5a489043326cbf102d559efe",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9e334a1e_9fe8ac7f",
+        "filename": "include/soc/qcom/socinfo.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:05:39Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bcab7658_30fceb3d",
+      "revId": "1d59cbf949d1e60b5a489043326cbf102d559efe",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
