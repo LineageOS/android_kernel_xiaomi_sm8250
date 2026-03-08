@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d01ee12a_667fec4e",
+        "filename": "drivers/platform/xiaomi/Kconfig",
+        "patchSetId": 2
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 25732
+      },
+      "writtenOn": "2026-03-08T23:04:50Z",
+      "side": 1,
+      "message": "Wrong indentation",
+      "revId": "514b37aa9451f4161e6a675f172d7bb5c939f707",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
