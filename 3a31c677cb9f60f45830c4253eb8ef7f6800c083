@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4d635b83_c5c59b8a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 34512
+      },
+      "writtenOn": "2026-04-30T21:35:39Z",
+      "side": 1,
+      "message": "Why submit a merge I gave a -1 CR on and then open a new merge with a seperate change ID??",
+      "revId": "3a31c677cb9f60f45830c4253eb8ef7f6800c083",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
