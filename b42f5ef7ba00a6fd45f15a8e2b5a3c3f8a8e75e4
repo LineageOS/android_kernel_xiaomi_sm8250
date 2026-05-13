@@ -16,6 +16,24 @@
       "message": "tfa9874 should be imported with CRLF format, so we have less diffs\n\nFixes that are already in the tree should be retained in the import, so squash build fixes there IF already present",
       "revId": "b42f5ef7ba00a6fd45f15a8e2b5a3c3f8a8e75e4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b5f6521a_b663bbc2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-05-13T22:22:19Z",
+      "side": 1,
+      "message": "I squashed the build fixes which were already present, however when I try to convert the files from LF to CRLF the situation seems to become worse :(",
+      "parentUuid": "3d94f238_777d36d2",
+      "revId": "b42f5ef7ba00a6fd45f15a8e2b5a3c3f8a8e75e4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
