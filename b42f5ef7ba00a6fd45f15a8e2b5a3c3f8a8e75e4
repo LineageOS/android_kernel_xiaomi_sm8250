@@ -34,6 +34,24 @@
       "parentUuid": "3d94f238_777d36d2",
       "revId": "b42f5ef7ba00a6fd45f15a8e2b5a3c3f8a8e75e4",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "628eee22_ec525711",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-05-14T10:48:15Z",
+      "side": 1,
+      "message": "Ok - I managed to correctly import the tfa9874 with CLRF. By visually inspecting the import however it seems that for what concerns tfa9874 and tfa98xx nothing really changed, but they just ran some sort of formatter... Indeed by checking the version.h of both drivers, the version is the same. So, if we aim at reducing the diff I would propose to exclude tfa9874 and tfa98xx from the import (or just checkout them from the oldest commit). What do you think ?",
+      "parentUuid": "b5f6521a_b663bbc2",
+      "revId": "b42f5ef7ba00a6fd45f15a8e2b5a3c3f8a8e75e4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
