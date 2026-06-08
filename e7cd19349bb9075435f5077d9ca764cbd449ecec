@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d7bc16b9_06b92e63",
+        "filename": "techpack/audio/asoc/codecs/wsa881x.c",
+        "patchSetId": 7
+      },
+      "lineNbr": 412,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-06-08T10:57:43Z",
+      "side": 1,
+      "message": "this can be removed",
+      "range": {
+        "startLine": 412,
+        "startChar": 2,
+        "endLine": 412,
+        "endChar": 3
+      },
+      "revId": "e7cd19349bb9075435f5077d9ca764cbd449ecec",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "08241d8e_d36f32af",
+        "filename": "techpack/audio/asoc/msm-pcm-routing-v2.c",
+        "patchSetId": 7
+      },
+      "lineNbr": 1957,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-06-08T10:57:43Z",
+      "side": 1,
+      "message": "restore the alignment",
+      "range": {
+        "startLine": 1957,
+        "startChar": 4,
+        "endLine": 1957,
+        "endChar": 6
+      },
+      "revId": "e7cd19349bb9075435f5077d9ca764cbd449ecec",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cdbba400_f219d8a6",
+        "filename": "techpack/audio/asoc/msm-pcm-routing-v2.c",
+        "patchSetId": 7
+      },
+      "lineNbr": 2245,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-06-08T10:57:43Z",
+      "side": 1,
+      "message": "restore the alignment",
+      "range": {
+        "startLine": 2245,
+        "startChar": 4,
+        "endLine": 2245,
+        "endChar": 6
+      },
+      "revId": "e7cd19349bb9075435f5077d9ca764cbd449ecec",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "17863df3_e3da2713",
+        "filename": "techpack/audio/asoc/msm-pcm-routing-v2.c",
+        "patchSetId": 7
+      },
+      "lineNbr": 31614,
+      "author": {
+        "id": 24387
+      },
+      "writtenOn": "2026-06-08T10:57:43Z",
+      "side": 1,
+      "message": "drop the newline",
+      "range": {
+        "startLine": 31614,
+        "startChar": 0,
+        "endLine": 31614,
+        "endChar": 32
+      },
+      "revId": "e7cd19349bb9075435f5077d9ca764cbd449ecec",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
