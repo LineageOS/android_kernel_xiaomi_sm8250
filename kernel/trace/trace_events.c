@@ -2236,7 +2236,7 @@ void trace_event_eval_update(struct trace_eval_map **map, int len)
 		/*
 		 * Since calls are grouped by systems, the likelyhood that the
 		 * next call in the iteration belongs to the same system as the
-		 * previous call is high. As an optimization, we skip seaching
+		 * previous call is high. As an optimization, we skip searching
 		 * for a map[] that matches the call's system if the last call
 		 * was from the same system. That's what last_i is for. If the
 		 * call has the same system as the previous call, then last_i
@@ -2985,7 +2985,7 @@ create_event_toplevel_files(struct dentry *parent, struct trace_array *tr)
  *
  * When a new instance is created, it needs to set up its events
  * directory, as well as other files associated with events. It also
- * creates the event hierachry in the @parent/events directory.
+ * creates the event hierarchy in the @parent/events directory.
  *
  * Returns 0 on success.
  *
@@ -3068,33 +3068,54 @@ static __init int event_trace_memsetup(void)
 	return 0;
 }
 
-static __init void
-early_enable_events(struct trace_array *tr, bool disable_first)
+/*
+ * Helper function to enable or disable a comma-separated list of events
+ * from the bootup buffer.
+ */
+static __init void __early_set_events(struct trace_array *tr, bool enable)
 {
 	char *buf = bootup_event_buf;
 	char *token;
-	int ret;
 
-	while (true) {
-		token = strsep(&buf, ",");
-
-		if (!token)
-			break;
-
+	while ((token = strsep(&buf, ","))) {
 		if (*token) {
-			/* Restarting syscalls requires that we stop them first */
-			if (disable_first)
+			if (enable) {
+				if (ftrace_set_clr_event(tr, token, 1))
+					pr_warn("Failed to enable trace event: %s\n", token);
+			} else {
 				ftrace_set_clr_event(tr, token, 0);
-
-			ret = ftrace_set_clr_event(tr, token, 1);
-			if (ret)
-				pr_warn("Failed to enable trace event: %s\n", token);
+			}
 		}
 
 		/* Put back the comma to allow this to be called again */
 		if (buf)
 			*(buf - 1) = ',';
 	}
+}
+
+/**
+ * early_enable_events - enable events from the bootup buffer
+ * @tr: The trace array to enable the events in
+ * @disable_first: If true, disable all events before enabling them
+ *
+ * This function enables events from the bootup buffer. If @disable_first
+ * is true, it will first disable all events in the buffer before enabling
+ * them.
+ *
+ * For syscall events, which rely on a global refcount to register the
+ * SYSCALL_WORK_SYSCALL_TRACEPOINT flag (especially for pid 1), we must
+ * ensure the refcount hits zero before re-enabling them. A simple
+ * "disable then enable" per-event is not enough if multiple syscalls are
+ * used, as the refcount will stay above zero. Thus, we need a two-phase
+ * approach: disable all, then enable all.
+ */
+static __init void
+early_enable_events(struct trace_array *tr, bool disable_first)
+{
+	if (disable_first)
+		__early_set_events(tr, false);
+
+	__early_set_events(tr, true);
 }
 
 static __init int event_trace_enable(void)

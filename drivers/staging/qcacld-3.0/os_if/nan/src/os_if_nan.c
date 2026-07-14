@@ -1487,12 +1487,13 @@ static QDF_STATUS os_if_ndp_confirm_pack_ch_info(struct sk_buff *event,
 	if (!ndp_confirm->num_channels)
 		return QDF_STATUS_SUCCESS;
 
-	ch_array = nla_nest_start(event, QCA_WLAN_VENDOR_ATTR_NDP_CHANNEL_INFO);
+	ch_array = nla_nest_start_noflag(event,
+					 QCA_WLAN_VENDOR_ATTR_NDP_CHANNEL_INFO);
 	if (!ch_array)
 		return QDF_STATUS_E_FAULT;
 
 	for (idx = 0; idx < ndp_confirm->num_channels; idx++) {
-		ch_element = nla_nest_start(event, idx);
+		ch_element = nla_nest_start_noflag(event, idx);
 		if (!ch_element)
 			return QDF_STATUS_E_FAULT;
 
@@ -2087,7 +2088,8 @@ static QDF_STATUS os_if_ndp_sch_update_pack_ch_info(struct sk_buff *event,
 	if (!sch_update->num_channels)
 		return QDF_STATUS_SUCCESS;
 
-	ch_array = nla_nest_start(event, QCA_WLAN_VENDOR_ATTR_NDP_CHANNEL_INFO);
+	ch_array = nla_nest_start_noflag(event,
+					 QCA_WLAN_VENDOR_ATTR_NDP_CHANNEL_INFO);
 	if (!ch_array)
 		return QDF_STATUS_E_FAULT;
 
@@ -2096,7 +2098,7 @@ static QDF_STATUS os_if_ndp_sch_update_pack_ch_info(struct sk_buff *event,
 			   idx, sch_update->ch[idx].freq,
 			   sch_update->ch[idx].ch_width,
 			   sch_update->ch[idx].nss);
-		ch_element = nla_nest_start(event, idx);
+		ch_element = nla_nest_start_noflag(event, idx);
 		if (!ch_element)
 			return QDF_STATUS_E_FAULT;
 

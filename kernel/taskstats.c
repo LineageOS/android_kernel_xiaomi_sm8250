@@ -390,7 +390,7 @@ static struct taskstats *mk_reply(struct sk_buff *skb, int type, u32 pid)
 			? TASKSTATS_TYPE_AGGR_PID
 			: TASKSTATS_TYPE_AGGR_TGID;
 
-	na = nla_nest_start(skb, aggr);
+	na = nla_nest_start_noflag(skb, aggr);
 	if (!na)
 		goto err;
 
@@ -1003,6 +1003,7 @@ void taskstats_exit(struct task_struct *tsk, int group_dead)
 		goto err;
 
 	memcpy(stats, tsk->signal->stats, sizeof(*stats));
+	stats->version = TASKSTATS_VERSION;
 
 send:
 	send_cpu_listeners(rep_skb, listeners);

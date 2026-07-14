@@ -972,7 +972,7 @@ static int amdgpu_cs_ib_vm_chunk(struct amdgpu_device *adev,
 		if (r)
 			return r;
 
-		r = reservation_object_reserve_shared(vm->root.base.bo->tbo.resv);
+		r = reservation_object_reserve_shared(vm->root.base.bo->tbo.resv, 1);
 		if (r)
 			return r;
 	}

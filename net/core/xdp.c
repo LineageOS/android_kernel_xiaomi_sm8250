@@ -415,9 +415,92 @@ void xdp_attachment_setup(struct xdp_attachment_info *info,
 }
 EXPORT_SYMBOL_GPL(xdp_attachment_setup);
 
+struct xdp_frame *xdp_convert_zc_to_xdp_frame(struct xdp_buff *xdp)
+{
+	unsigned int metasize, headroom, totsize;
+	void *addr, *data_to_copy;
+	struct xdp_frame *xdpf;
+	struct page *page;
+
+	/* Clone into a MEM_TYPE_PAGE_ORDER0 xdp_frame. */
+	metasize = xdp_data_meta_unsupported(xdp) ? 0 :
+		   xdp->data - xdp->data_meta;
+	headroom = xdp->data - xdp->data_hard_start;
+	totsize = xdp->data_end - xdp->data + metasize;
+
+	if (sizeof(*xdpf) + totsize > PAGE_SIZE)
+		return NULL;
+
+	page = dev_alloc_page();
+	if (!page)
+		return NULL;
+
+	addr = page_to_virt(page);
+	xdpf = addr;
+	memset(xdpf, 0, sizeof(*xdpf));
+
+	addr += sizeof(*xdpf);
+	data_to_copy = metasize ? xdp->data_meta : xdp->data;
+	memcpy(addr, data_to_copy, totsize);
+
+	xdpf->data = addr + metasize;
+	xdpf->len = totsize - metasize;
+	xdpf->headroom = 0;
+	xdpf->metasize = metasize;
+	xdpf->mem.type = MEM_TYPE_PAGE_ORDER0;
+
+	xdp_return_buff(xdp);
+	return xdpf;
+}
+EXPORT_SYMBOL_GPL(xdp_convert_zc_to_xdp_frame);
+
 /* Used by XDP_WARN macro, to avoid inlining WARN() in fast-path */
 void xdp_warn(const char *msg, const char *func, const int line)
 {
 	WARN(1, "XDP_WARN: %s(line:%d): %s\n", func, line, msg);
 };
 EXPORT_SYMBOL_GPL(xdp_warn);
+
+struct sk_buff *__xdp_build_skb_from_frame(struct xdp_frame *xdpf,
+					   struct sk_buff *skb,
+					   struct net_device *dev)
+{
+	unsigned int headroom, frame_size;
+	void *hard_start;
+
+	/* Part of headroom was reserved to xdpf */
+	headroom = sizeof(*xdpf) + xdpf->headroom;
+
+	/* Memory size backing xdp_frame data already have reserved
+	 * room for build_skb to place skb_shared_info in tailroom.
+	 */
+	frame_size = xdpf->frame_sz;
+
+	hard_start = xdpf->data - headroom;
+	skb = build_skb_around(skb, hard_start, frame_size);
+	if (unlikely(!skb))
+		return NULL;
+
+	skb_reserve(skb, headroom);
+	__skb_put(skb, xdpf->len);
+	if (xdpf->metasize)
+		skb_metadata_set(skb, xdpf->metasize);
+
+	/* Essential SKB info: protocol and skb->dev */
+	skb->protocol = eth_type_trans(skb, dev);
+
+	/* Optional SKB info, currently missing:
+	 * - HW checksum info		(skb->ip_summed)
+	 * - HW RX hash			(skb_set_hash)
+	 * - RX ring dev queue index	(skb_record_rx_queue)
+	 */
+
+	/* Until page_pool get SKB return path, release DMA here */
+	xdp_release_frame(xdpf);
+
+	/* Allow SKB to reuse area used by xdp_frame */
+	xdp_scrub_frame(xdpf);
+
+	return skb;
+}
+EXPORT_SYMBOL_GPL(__xdp_build_skb_from_frame);

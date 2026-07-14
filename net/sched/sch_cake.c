@@ -2260,10 +2260,11 @@ static void cake_set_rate(struct cake_tin_data *b, u64 rate, u32 mtu,
 
 	byte_target_ns = (byte_target * rate_ns) >> rate_shft;
 
-	b->cparams.target = max((byte_target_ns * 3) / 2, target_ns);
-	b->cparams.interval = max(rtt_est_ns +
-				     b->cparams.target - target_ns,
-				     b->cparams.target * 2);
+	WRITE_ONCE(b->cparams.target,
+		   max((byte_target_ns * 3) / 2, target_ns));
+	WRITE_ONCE(b->cparams.interval,
+		   max(rtt_est_ns + b->cparams.target - target_ns,
+		       b->cparams.target * 2));
 	b->cparams.mtu_time = byte_target_ns;
 	b->cparams.p_inc = 1 << 24; /* 1/256 */
 	b->cparams.p_dec = 1 << 20; /* 1/4096 */
@@ -2770,7 +2771,7 @@ static int cake_dump(struct Qdisc *sch, struct sk_buff *skb)
 	struct cake_sched_data *q = qdisc_priv(sch);
 	struct nlattr *opts;
 
-	opts = nla_nest_start(skb, TCA_OPTIONS);
+	opts = nla_nest_start_noflag(skb, TCA_OPTIONS);
 	if (!opts)
 		goto nla_put_failure;
 
@@ -2838,7 +2839,7 @@ nla_put_failure:
 
 static int cake_dump_stats(struct Qdisc *sch, struct gnet_dump *d)
 {
-	struct nlattr *stats = nla_nest_start(d->skb, TCA_STATS_APP);
+	struct nlattr *stats = nla_nest_start_noflag(d->skb, TCA_STATS_APP);
 	struct cake_sched_data *q = qdisc_priv(sch);
 	struct nlattr *tstats, *ts;
 	int i;
@@ -2868,7 +2869,7 @@ static int cake_dump_stats(struct Qdisc *sch, struct gnet_dump *d)
 #undef PUT_STAT_U32
 #undef PUT_STAT_U64
 
-	tstats = nla_nest_start(d->skb, TCA_CAKE_STATS_TIN_STATS);
+	tstats = nla_nest_start_noflag(d->skb, TCA_CAKE_STATS_TIN_STATS);
 	if (!tstats)
 		goto nla_put_failure;
 
@@ -2885,7 +2886,7 @@ static int cake_dump_stats(struct Qdisc *sch, struct gnet_dump *d)
 	for (i = 0; i < q->tin_cnt; i++) {
 		struct cake_tin_data *b = &q->tins[q->tin_order[i]];
 
-		ts = nla_nest_start(d->skb, i + 1);
+		ts = nla_nest_start_noflag(d->skb, i + 1);
 		if (!ts)
 			goto nla_put_failure;
 
@@ -2894,9 +2895,9 @@ static int cake_dump_stats(struct Qdisc *sch, struct gnet_dump *d)
 		PUT_TSTAT_U32(BACKLOG_BYTES, b->tin_backlog);
 
 		PUT_TSTAT_U32(TARGET_US,
-			      ktime_to_us(ns_to_ktime(b->cparams.target)));
+			      ktime_to_us(ns_to_ktime(READ_ONCE(b->cparams.target))));
 		PUT_TSTAT_U32(INTERVAL_US,
-			      ktime_to_us(ns_to_ktime(b->cparams.interval)));
+			      ktime_to_us(ns_to_ktime(READ_ONCE(b->cparams.interval))));
 
 		PUT_TSTAT_U32(SENT_PACKETS, b->packets);
 		PUT_TSTAT_U32(DROPPED_PACKETS, b->tin_dropped);
@@ -3005,7 +3006,7 @@ static int cake_dump_class_stats(struct Qdisc *sch, unsigned long cl,
 	if (flow) {
 		ktime_t now = ktime_get();
 
-		stats = nla_nest_start(d->skb, TCA_STATS_APP);
+		stats = nla_nest_start_noflag(d->skb, TCA_STATS_APP);
 		if (!stats)
 			return -1;
 

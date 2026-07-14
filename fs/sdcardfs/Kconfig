@@ -1,6 +1,5 @@
 config SDCARD_FS
 	tristate "sdcard file system"
-	depends on !FUSE_BPF
 	depends on CONFIGFS_FS
 	default n
 	help

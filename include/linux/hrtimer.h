@@ -42,6 +42,7 @@ enum hrtimer_mode {
 	HRTIMER_MODE_REL	= 0x01,
 	HRTIMER_MODE_PINNED	= 0x02,
 	HRTIMER_MODE_SOFT	= 0x04,
+	HRTIMER_MODE_HARD	= 0x08,
 
 	HRTIMER_MODE_ABS_PINNED = HRTIMER_MODE_ABS | HRTIMER_MODE_PINNED,
 	HRTIMER_MODE_REL_PINNED = HRTIMER_MODE_REL | HRTIMER_MODE_PINNED,
@@ -52,6 +53,11 @@ enum hrtimer_mode {
 	HRTIMER_MODE_ABS_PINNED_SOFT = HRTIMER_MODE_ABS_PINNED | HRTIMER_MODE_SOFT,
 	HRTIMER_MODE_REL_PINNED_SOFT = HRTIMER_MODE_REL_PINNED | HRTIMER_MODE_SOFT,
 
+	HRTIMER_MODE_ABS_HARD	= HRTIMER_MODE_ABS | HRTIMER_MODE_HARD,
+	HRTIMER_MODE_REL_HARD	= HRTIMER_MODE_REL | HRTIMER_MODE_HARD,
+
+	HRTIMER_MODE_ABS_PINNED_HARD = HRTIMER_MODE_ABS_PINNED | HRTIMER_MODE_HARD,
+	HRTIMER_MODE_REL_PINNED_HARD = HRTIMER_MODE_REL_PINNED | HRTIMER_MODE_HARD,
 };
 
 /*
@@ -108,6 +114,8 @@ enum hrtimer_restart {
  * @state:	state information (See bit values above)
  * @is_rel:	Set if the timer was armed relative
  * @is_soft:	Set if hrtimer will be expired in soft interrupt context.
+ * @is_hard:	Set if hrtimer will be expired in hard interrupt context
+ *		even on RT.
  *
  * The hrtimer structure must be initialized by hrtimer_init()
  */
@@ -119,7 +127,7 @@ struct hrtimer {
 	u8				state;
 	u8				is_rel;
 	u8				is_soft;
-
+	u8				is_hard;
 	ANDROID_KABI_RESERVE(1);
 };
 

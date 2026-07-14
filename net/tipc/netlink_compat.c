@@ -413,7 +413,7 @@ static int tipc_nl_compat_bearer_enable(struct tipc_nl_compat_cmd_doit *cmd,
 
 	b = (struct tipc_bearer_config *)TLV_DATA(msg->req);
 
-	bearer = nla_nest_start(skb, TIPC_NLA_BEARER);
+	bearer = nla_nest_start_noflag(skb, TIPC_NLA_BEARER);
 	if (!bearer)
 		return -EMSGSIZE;
 
@@ -433,7 +433,7 @@ static int tipc_nl_compat_bearer_enable(struct tipc_nl_compat_cmd_doit *cmd,
 		return -EMSGSIZE;
 
 	if (ntohl(b->priority) <= TIPC_MAX_LINK_PRI) {
-		prop = nla_nest_start(skb, TIPC_NLA_BEARER_PROP);
+		prop = nla_nest_start_noflag(skb, TIPC_NLA_BEARER_PROP);
 		if (!prop)
 			return -EMSGSIZE;
 		if (nla_put_u32(skb, TIPC_NLA_PROP_PRIO, ntohl(b->priority)))
@@ -455,7 +455,7 @@ static int tipc_nl_compat_bearer_disable(struct tipc_nl_compat_cmd_doit *cmd,
 
 	name = (char *)TLV_DATA(msg->req);
 
-	bearer = nla_nest_start(skb, TIPC_NLA_BEARER);
+	bearer = nla_nest_start_noflag(skb, TIPC_NLA_BEARER);
 	if (!bearer)
 		return -EMSGSIZE;
 
@@ -709,7 +709,7 @@ static int tipc_nl_compat_media_set(struct sk_buff *skb,
 
 	lc = (struct tipc_link_config *)TLV_DATA(msg->req);
 
-	media = nla_nest_start(skb, TIPC_NLA_MEDIA);
+	media = nla_nest_start_noflag(skb, TIPC_NLA_MEDIA);
 	if (!media)
 		return -EMSGSIZE;
 
@@ -720,7 +720,7 @@ static int tipc_nl_compat_media_set(struct sk_buff *skb,
 	if (nla_put_string(skb, TIPC_NLA_MEDIA_NAME, lc->name))
 		return -EMSGSIZE;
 
-	prop = nla_nest_start(skb, TIPC_NLA_MEDIA_PROP);
+	prop = nla_nest_start_noflag(skb, TIPC_NLA_MEDIA_PROP);
 	if (!prop)
 		return -EMSGSIZE;
 
@@ -741,7 +741,7 @@ static int tipc_nl_compat_bearer_set(struct sk_buff *skb,
 
 	lc = (struct tipc_link_config *)TLV_DATA(msg->req);
 
-	bearer = nla_nest_start(skb, TIPC_NLA_BEARER);
+	bearer = nla_nest_start_noflag(skb, TIPC_NLA_BEARER);
 	if (!bearer)
 		return -EMSGSIZE;
 
@@ -752,7 +752,7 @@ static int tipc_nl_compat_bearer_set(struct sk_buff *skb,
 	if (nla_put_string(skb, TIPC_NLA_BEARER_NAME, lc->name))
 		return -EMSGSIZE;
 
-	prop = nla_nest_start(skb, TIPC_NLA_BEARER_PROP);
+	prop = nla_nest_start_noflag(skb, TIPC_NLA_BEARER_PROP);
 	if (!prop)
 		return -EMSGSIZE;
 
@@ -772,14 +772,14 @@ static int __tipc_nl_compat_link_set(struct sk_buff *skb,
 
 	lc = (struct tipc_link_config *)TLV_DATA(msg->req);
 
-	link = nla_nest_start(skb, TIPC_NLA_LINK);
+	link = nla_nest_start_noflag(skb, TIPC_NLA_LINK);
 	if (!link)
 		return -EMSGSIZE;
 
 	if (nla_put_string(skb, TIPC_NLA_LINK_NAME, lc->name))
 		return -EMSGSIZE;
 
-	prop = nla_nest_start(skb, TIPC_NLA_LINK_PROP);
+	prop = nla_nest_start_noflag(skb, TIPC_NLA_LINK_PROP);
 	if (!prop)
 		return -EMSGSIZE;
 
@@ -835,7 +835,7 @@ static int tipc_nl_compat_link_reset_stats(struct tipc_nl_compat_cmd_doit *cmd,
 
 	name = (char *)TLV_DATA(msg->req);
 
-	link = nla_nest_start(skb, TIPC_NLA_LINK);
+	link = nla_nest_start_noflag(skb, TIPC_NLA_LINK);
 	if (!link)
 		return -EMSGSIZE;
 
@@ -1003,7 +1003,7 @@ static int tipc_nl_compat_publ_dump(struct tipc_nl_compat_msg *msg, u32 sock)
 		return -EMSGSIZE;
 	}
 
-	nest = nla_nest_start(args, TIPC_NLA_SOCK);
+	nest = nla_nest_start_noflag(args, TIPC_NLA_SOCK);
 	if (!nest) {
 		kfree_skb(args);
 		return -EMSGSIZE;
@@ -1131,7 +1131,7 @@ static int tipc_nl_compat_net_set(struct tipc_nl_compat_cmd_doit *cmd,
 
 	val = ntohl(*(__be32 *)TLV_DATA(msg->req));
 
-	net = nla_nest_start(skb, TIPC_NLA_NET);
+	net = nla_nest_start_noflag(skb, TIPC_NLA_NET);
 	if (!net)
 		return -EMSGSIZE;
 

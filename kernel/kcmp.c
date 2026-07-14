@@ -67,7 +67,7 @@ get_file_raw_ptr(struct task_struct *task, unsigned int idx)
 	rcu_read_lock();
 
 	if (task->files)
-		file = fcheck_files(task->files, idx);
+		file = files_lookup_fd_rcu(task->files, idx);
 
 	rcu_read_unlock();
 	task_unlock(task);
@@ -121,7 +121,7 @@ static int kcmp_epoll_target(struct task_struct *task1,
 		return -EBADF;
 
 	spin_lock(&files->file_lock);
-	filp_epoll = fcheck_files(files, slot.efd);
+	filp_epoll = files_lookup_fd_rcu(files, slot.efd);
 	if (filp_epoll)
 		get_file(filp_epoll);
 	else

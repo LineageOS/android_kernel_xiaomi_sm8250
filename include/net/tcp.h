@@ -420,6 +420,7 @@ int tcp_getsockopt(struct sock *sk, int level, int optname,
 		   char __user *optval, int __user *optlen);
 int tcp_setsockopt(struct sock *sk, int level, int optname,
 		   char __user *optval, unsigned int optlen);
+bool tcp_bpf_bypass_getsockopt(int level, int optname);
 int compat_tcp_getsockopt(struct sock *sk, int level, int optname,
 			  char __user *optval, int __user *optlen);
 int compat_tcp_setsockopt(struct sock *sk, int level, int optname,
@@ -429,6 +430,7 @@ void tcp_syn_ack_timeout(const struct request_sock *req);
 int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 		int flags, int *addr_len);
 int tcp_set_rcvlowat(struct sock *sk, int val);
+int tcp_set_window_clamp(struct sock *sk, int val);
 void tcp_data_ready(struct sock *sk);
 int tcp_mmap(struct file *file, struct socket *sock,
 	     struct vm_area_struct *vma);

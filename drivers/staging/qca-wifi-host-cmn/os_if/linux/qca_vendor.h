@@ -7444,7 +7444,7 @@ backported_cfg80211_vendor_event_alloc(struct wiphy *wiphy,
 		if (nla_put_u32(skb, NL80211_ATTR_IFINDEX, ifindex))
 			goto nla_fail;
 
-		attr = nla_nest_start(skb, NL80211_ATTR_VENDOR_DATA);
+		attr = nla_nest_start_noflag(skb, NL80211_ATTR_VENDOR_DATA);
 		((void **)skb->cb)[2] = attr;
 	}
 

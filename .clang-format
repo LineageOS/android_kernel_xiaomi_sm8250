@@ -213,6 +213,7 @@ ForEachMacros:
   - 'for_each_set_bit'
   - 'for_each_set_bit_from'
   - 'for_each_sg'
+  - 'for_each_sg_dma_page'
   - 'for_each_sg_page'
   - '__for_each_thread'
   - 'for_each_thread'

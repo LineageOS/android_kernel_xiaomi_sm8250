@@ -6058,7 +6058,7 @@ void ftrace_create_filter_files(struct ftrace_ops *ops,
 
 /*
  * The name "destroy_filter_files" is really a misnomer. Although
- * in the future, it may actualy delete the files, but this is
+ * in the future, it may actually delete the files, but this is
  * really intended to make sure the ops passed in are disabled
  * and that when this function returns, the caller is free to
  * free the ops.
