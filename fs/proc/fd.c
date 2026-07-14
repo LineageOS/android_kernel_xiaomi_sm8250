@@ -35,7 +35,7 @@ static int seq_show(struct seq_file *m, void *v)
 		unsigned int fd = proc_fd(m->private);
 
 		spin_lock(&files->file_lock);
-		file = fcheck_files(files, fd);
+		file = files_lookup_fd_rcu(files, fd);
 		if (file) {
 			struct fdtable *fdt = files_fdtable(files);
 
@@ -90,7 +90,7 @@ static bool tid_fd_mode(struct task_struct *task, unsigned fd, fmode_t *mode)
 		return false;
 
 	rcu_read_lock();
-	file = fcheck_files(files, fd);
+	file = files_lookup_fd_rcu(files, fd);
 	if (file)
 		*mode = file->f_mode;
 	rcu_read_unlock();
@@ -161,7 +161,7 @@ static int proc_fd_link(struct dentry *dentry, struct path *path)
 		struct file *fd_file;
 
 		spin_lock(&files->file_lock);
-		fd_file = fcheck_files(files, fd);
+		fd_file = files_lookup_fd_rcu(files, fd);
 		if (fd_file) {
 			*path = fd_file->f_path;
 			path_get(&fd_file->f_path);
@@ -250,7 +250,7 @@ static int proc_readfd_common(struct file *file, struct dir_context *ctx,
 		char name[10 + 1];
 		unsigned int len;
 
-		f = fcheck_files(files, fd);
+		f = files_lookup_fd_rcu(files, fd);
 		if (!f)
 			continue;
 		data.mode = f->f_mode;

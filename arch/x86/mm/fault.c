@@ -1244,7 +1244,7 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 	tsk = current;
 	mm = tsk->mm;
 
-	prefetchw(&mm->mmap_sem);
+	prefetchw(&mm->mmap_lock);
 
 	if (unlikely(kmmio_fault(regs, address)))
 		return;

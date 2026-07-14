@@ -30,13 +30,16 @@
 EXPORT_TRACEPOINT_SYMBOL(dma_fence_emit);
 EXPORT_TRACEPOINT_SYMBOL(dma_fence_enable_signal);
 
+static DEFINE_SPINLOCK(dma_fence_stub_lock);
+static struct dma_fence dma_fence_stub;
+
 /*
  * fence context counter: each execution context should have its own
  * fence context, this allows checking if fences belong to the same
  * context or not. One device can have multiple separate contexts,
  * and they're used if some engine can run independently of another.
  */
-static atomic64_t dma_fence_context_counter = ATOMIC64_INIT(0);
+static atomic64_t dma_fence_context_counter = ATOMIC64_INIT(1);
 
 /**
  * DOC: DMA fences overview
@@ -67,6 +70,37 @@ static atomic64_t dma_fence_context_counter = ATOMIC64_INIT(0);
  *   implicit fences are stored in &struct reservation_object through the
  *   &dma_buf.resv pointer.
  */
+
+static const char *dma_fence_stub_get_name(struct dma_fence *fence)
+{
+        return "stub";
+}
+
+static const struct dma_fence_ops dma_fence_stub_ops = {
+	.get_driver_name = dma_fence_stub_get_name,
+	.get_timeline_name = dma_fence_stub_get_name,
+};
+
+/**
+ * dma_fence_get_stub - return a signaled fence
+ *
+ * Return a stub fence which is already signaled.
+ */
+struct dma_fence *dma_fence_get_stub(void)
+{
+	spin_lock(&dma_fence_stub_lock);
+	if (!dma_fence_stub.ops) {
+		dma_fence_init(&dma_fence_stub,
+			       &dma_fence_stub_ops,
+			       &dma_fence_stub_lock,
+			       0, 0);
+		dma_fence_signal_locked(&dma_fence_stub);
+	}
+	spin_unlock(&dma_fence_stub_lock);
+
+	return dma_fence_get(&dma_fence_stub);
+}
+EXPORT_SYMBOL(dma_fence_get_stub);
 
 /**
  * dma_fence_context_alloc - allocate an array of fence contexts
@@ -102,31 +136,27 @@ EXPORT_SYMBOL(dma_fence_context_alloc);
 int dma_fence_signal_locked(struct dma_fence *fence)
 {
 	struct dma_fence_cb *cur, *tmp;
-	int ret = 0;
+	struct list_head cb_list;
 
 	lockdep_assert_held(fence->lock);
 
-	if (WARN_ON(!fence))
+	if (unlikely(test_and_set_bit(DMA_FENCE_FLAG_SIGNALED_BIT,
+				      &fence->flags)))
 		return -EINVAL;
 
-	if (test_and_set_bit(DMA_FENCE_FLAG_SIGNALED_BIT, &fence->flags)) {
-		ret = -EINVAL;
+	/* Stash the cb_list before replacing it with the timestamp */
+	list_replace(&fence->cb_list, &cb_list);
 
-		/*
-		 * we might have raced with the unlocked dma_fence_signal,
-		 * still run through all callbacks
-		 */
-	} else {
-		fence->timestamp = ktime_get();
-		set_bit(DMA_FENCE_FLAG_TIMESTAMP_BIT, &fence->flags);
-		trace_dma_fence_signaled(fence);
-	}
+	fence->timestamp = ktime_get();
+	set_bit(DMA_FENCE_FLAG_TIMESTAMP_BIT, &fence->flags);
+	trace_dma_fence_signaled(fence);
 
-	list_for_each_entry_safe(cur, tmp, &fence->cb_list, node) {
-		list_del_init(&cur->node);
+	list_for_each_entry_safe(cur, tmp, &cb_list, node) {
+		INIT_LIST_HEAD(&cur->node);
 		cur->func(fence, cur);
 	}
-	return ret;
+
+	return 0;
 }
 EXPORT_SYMBOL(dma_fence_signal_locked);
 
@@ -146,28 +176,16 @@ EXPORT_SYMBOL(dma_fence_signal_locked);
 int dma_fence_signal(struct dma_fence *fence)
 {
 	unsigned long flags;
+	int ret;
 
 	if (!fence)
 		return -EINVAL;
 
-	if (test_and_set_bit(DMA_FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-		return -EINVAL;
+	spin_lock_irqsave(fence->lock, flags);
+	ret = dma_fence_signal_locked(fence);
+	spin_unlock_irqrestore(fence->lock, flags);
 
-	fence->timestamp = ktime_get();
-	set_bit(DMA_FENCE_FLAG_TIMESTAMP_BIT, &fence->flags);
-	trace_dma_fence_signaled(fence);
-
-	if (test_bit(DMA_FENCE_FLAG_ENABLE_SIGNAL_BIT, &fence->flags)) {
-		struct dma_fence_cb *cur, *tmp;
-
-		spin_lock_irqsave(fence->lock, flags);
-		list_for_each_entry_safe(cur, tmp, &fence->cb_list, node) {
-			list_del_init(&cur->node);
-			cur->func(fence, cur);
-		}
-		spin_unlock_irqrestore(fence->lock, flags);
-	}
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(dma_fence_signal);
 
@@ -221,8 +239,26 @@ void dma_fence_release(struct kref *kref)
 
 	trace_dma_fence_destroy(fence);
 
-	/* Failed to signal before release, could be a refcounting issue */
-	WARN_ON(!list_empty(&fence->cb_list));
+	if (WARN(!list_empty(&fence->cb_list) &&
+		 !test_bit(DMA_FENCE_FLAG_SIGNALED_BIT, &fence->flags),
+		 "Fence %s:%s:%llx:%llx released with pending signals!\n",
+		 fence->ops->get_driver_name(fence),
+		 fence->ops->get_timeline_name(fence),
+		 fence->context, fence->seqno)) {
+		unsigned long flags;
+
+		/*
+		 * Failed to signal before release, likely a refcounting issue.
+		 *
+		 * This should never happen, but if it does make sure that we
+		 * don't leave chains dangling. We set the error flag first
+		 * so that the callbacks know this signal is due to an error.
+		 */
+		spin_lock_irqsave(fence->lock, flags);
+		fence->error = -EDEADLK;
+		dma_fence_signal_locked(fence);
+		spin_unlock_irqrestore(fence->lock, flags);
+	}
 
 	if (fence->ops->release)
 		fence->ops->release(fence);
@@ -607,7 +643,7 @@ EXPORT_SYMBOL(dma_fence_wait_any_timeout);
  */
 void
 dma_fence_init(struct dma_fence *fence, const struct dma_fence_ops *ops,
-	       spinlock_t *lock, u64 context, unsigned seqno)
+	       spinlock_t *lock, u64 context, u64 seqno)
 {
 	BUG_ON(!lock);
 	BUG_ON(!ops || !ops->get_driver_name || !ops->get_timeline_name);

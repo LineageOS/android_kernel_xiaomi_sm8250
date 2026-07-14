@@ -316,13 +316,17 @@ struct nla_policy {
 /**
  * struct nl_info - netlink source information
  * @nlh: Netlink message header of original request
+ * @nl_net: Network namespace
  * @portid: Netlink PORTID of requesting application
+ * @skip_notify: Skip netlink notifications to user space
+ * @skip_notify_kernel: Skip selected in-kernel notifications
  */
 struct nl_info {
 	struct nlmsghdr		*nlh;
 	struct net		*nl_net;
 	u32			portid;
-	bool			skip_notify;
+	u8			skip_notify:1,
+				skip_notify_kernel:1;
 };
 
 /**
@@ -1595,13 +1599,18 @@ static inline void *nla_memdup(const struct nlattr *src, gfp_t gfp)
 }
 
 /**
- * nla_nest_start - Start a new level of nested attributes
+ * nla_nest_start_noflag - Start a new level of nested attributes
  * @skb: socket buffer to add attributes to
  * @attrtype: attribute type of container
  *
- * Returns the container attribute
+ * This function exists for backward compatibility to use in APIs which never
+ * marked their nest attributes with NLA_F_NESTED flag. New APIs should use
+ * nla_nest_start() which sets the flag.
+ *
+ * Returns the container attribute or NULL on error
  */
-static inline struct nlattr *nla_nest_start(struct sk_buff *skb, int attrtype)
+static inline struct nlattr *nla_nest_start_noflag(struct sk_buff *skb,
+						   int attrtype)
 {
 	struct nlattr *start = (struct nlattr *)skb_tail_pointer(skb);
 
@@ -1609,6 +1618,21 @@ static inline struct nlattr *nla_nest_start(struct sk_buff *skb, int attrtype)
 		return NULL;
 
 	return start;
+}
+
+/**
+ * nla_nest_start - Start a new level of nested attributes, with NLA_F_NESTED
+ * @skb: socket buffer to add attributes to
+ * @attrtype: attribute type of container
+ *
+ * Unlike nla_nest_start_noflag(), mark the nest attribute with NLA_F_NESTED
+ * flag. This is the preferred function to use in new code.
+ *
+ * Returns the container attribute or NULL on error
+ */
+static inline struct nlattr *nla_nest_start(struct sk_buff *skb, int attrtype)
+{
+	return nla_nest_start_noflag(skb, attrtype | NLA_F_NESTED);
 }
 
 /**

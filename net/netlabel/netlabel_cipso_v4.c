@@ -487,7 +487,7 @@ list_start:
 	if (ret_val != 0)
 		goto list_failure_lock;
 
-	nla_a = nla_nest_start(ans_skb, NLBL_CIPSOV4_A_TAGLST);
+	nla_a = nla_nest_start_noflag(ans_skb, NLBL_CIPSOV4_A_TAGLST);
 	if (nla_a == NULL) {
 		ret_val = -ENOMEM;
 		goto list_failure_lock;
@@ -506,7 +506,8 @@ list_start:
 
 	switch (doi_def->type) {
 	case CIPSO_V4_MAP_TRANS:
-		nla_a = nla_nest_start(ans_skb, NLBL_CIPSOV4_A_MLSLVLLST);
+		nla_a = nla_nest_start_noflag(ans_skb,
+					      NLBL_CIPSOV4_A_MLSLVLLST);
 		if (nla_a == NULL) {
 			ret_val = -ENOMEM;
 			goto list_failure_lock;
@@ -518,7 +519,8 @@ list_start:
 			    CIPSO_V4_INV_LVL)
 				continue;
 
-			nla_b = nla_nest_start(ans_skb, NLBL_CIPSOV4_A_MLSLVL);
+			nla_b = nla_nest_start_noflag(ans_skb,
+						      NLBL_CIPSOV4_A_MLSLVL);
 			if (nla_b == NULL) {
 				ret_val = -ENOMEM;
 				goto list_retry;
@@ -537,7 +539,8 @@ list_start:
 		}
 		nla_nest_end(ans_skb, nla_a);
 
-		nla_a = nla_nest_start(ans_skb, NLBL_CIPSOV4_A_MLSCATLST);
+		nla_a = nla_nest_start_noflag(ans_skb,
+					      NLBL_CIPSOV4_A_MLSCATLST);
 		if (nla_a == NULL) {
 			ret_val = -ENOMEM;
 			goto list_retry;
@@ -549,7 +552,8 @@ list_start:
 			    CIPSO_V4_INV_CAT)
 				continue;
 
-			nla_b = nla_nest_start(ans_skb, NLBL_CIPSOV4_A_MLSCAT);
+			nla_b = nla_nest_start_noflag(ans_skb,
+						      NLBL_CIPSOV4_A_MLSCAT);
 			if (nla_b == NULL) {
 				ret_val = -ENOMEM;
 				goto list_retry;

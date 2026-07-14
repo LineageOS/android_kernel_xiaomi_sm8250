@@ -172,14 +172,14 @@ static int hdd_sar_fill_response(struct sk_buff *skb,
 		return errno;
 
 	attr = QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC;
-	nla_spec_attr = nla_nest_start(skb, attr);
+	nla_spec_attr = nla_nest_start_noflag(skb, attr);
 	if (!nla_spec_attr)
 		return -EINVAL;
 
 	for (row = 0, event_row = event->sar_limit_row;
 	     row < event->num_limit_rows;
 	     row++, event_row++) {
-		nla_row_attr = nla_nest_start(skb, attr);
+		nla_row_attr = nla_nest_start_noflag(skb, attr);
 		if (!nla_row_attr)
 			return -EINVAL;
 
