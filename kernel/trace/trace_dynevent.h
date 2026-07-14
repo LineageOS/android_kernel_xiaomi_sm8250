@@ -29,10 +29,10 @@ struct dyn_event;
  * @show: Showing method. This is invoked when user reads the event definitions
  *  via dynamic_events interface.
  * @is_busy: Check whether given event is busy so that it can not be deleted.
- *  Return true if it is busy, otherwides false.
- * @free: Delete the given event. Return 0 if success, otherwides error.
+ *  Return true if it is busy, otherwise false.
+ * @free: Delete the given event. Return 0 if success, otherwise error.
  * @match: Check whether given event and system name match this event.
- *  Return true if it matches, otherwides false.
+ *  Return true if it matches, otherwise false.
  *
  * Except for @create, these methods are called under holding event_mutex.
  */

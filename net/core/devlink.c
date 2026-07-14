@@ -1662,7 +1662,7 @@ int devlink_dpipe_match_put(struct sk_buff *skb,
 	struct devlink_dpipe_field *field = &header->fields[match->field_id];
 	struct nlattr *match_attr;
 
-	match_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_MATCH);
+	match_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_MATCH);
 	if (!match_attr)
 		return -EMSGSIZE;
 
@@ -1687,7 +1687,8 @@ static int devlink_dpipe_matches_put(struct devlink_dpipe_table *table,
 {
 	struct nlattr *matches_attr;
 
-	matches_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_TABLE_MATCHES);
+	matches_attr = nla_nest_start_noflag(skb,
+					     DEVLINK_ATTR_DPIPE_TABLE_MATCHES);
 	if (!matches_attr)
 		return -EMSGSIZE;
 
@@ -1709,7 +1710,7 @@ int devlink_dpipe_action_put(struct sk_buff *skb,
 	struct devlink_dpipe_field *field = &header->fields[action->field_id];
 	struct nlattr *action_attr;
 
-	action_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_ACTION);
+	action_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_ACTION);
 	if (!action_attr)
 		return -EMSGSIZE;
 
@@ -1734,7 +1735,8 @@ static int devlink_dpipe_actions_put(struct devlink_dpipe_table *table,
 {
 	struct nlattr *actions_attr;
 
-	actions_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_TABLE_ACTIONS);
+	actions_attr = nla_nest_start_noflag(skb,
+					     DEVLINK_ATTR_DPIPE_TABLE_ACTIONS);
 	if (!actions_attr)
 		return -EMSGSIZE;
 
@@ -1756,7 +1758,7 @@ static int devlink_dpipe_table_put(struct sk_buff *skb,
 	u64 table_size;
 
 	table_size = table->table_ops->size_get(table->priv);
-	table_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_TABLE);
+	table_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_TABLE);
 	if (!table_attr)
 		return -EMSGSIZE;
 
@@ -1836,7 +1838,7 @@ start_again:
 
 	if (devlink_nl_put_handle(skb, devlink))
 		goto nla_put_failure;
-	tables_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_TABLES);
+	tables_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_TABLES);
 	if (!tables_attr)
 		goto nla_put_failure;
 
@@ -1937,8 +1939,8 @@ static int devlink_dpipe_action_values_put(struct sk_buff *skb,
 	int err;
 
 	for (i = 0; i < values_count; i++) {
-		action_attr = nla_nest_start(skb,
-					     DEVLINK_ATTR_DPIPE_ACTION_VALUE);
+		action_attr = nla_nest_start_noflag(skb,
+						    DEVLINK_ATTR_DPIPE_ACTION_VALUE);
 		if (!action_attr)
 			return -EMSGSIZE;
 		err = devlink_dpipe_action_value_put(skb, &values[i]);
@@ -1974,8 +1976,8 @@ static int devlink_dpipe_match_values_put(struct sk_buff *skb,
 	int err;
 
 	for (i = 0; i < values_count; i++) {
-		match_attr = nla_nest_start(skb,
-					    DEVLINK_ATTR_DPIPE_MATCH_VALUE);
+		match_attr = nla_nest_start_noflag(skb,
+						   DEVLINK_ATTR_DPIPE_MATCH_VALUE);
 		if (!match_attr)
 			return -EMSGSIZE;
 		err = devlink_dpipe_match_value_put(skb, &values[i]);
@@ -1996,7 +1998,7 @@ static int devlink_dpipe_entry_put(struct sk_buff *skb,
 	struct nlattr *entry_attr, *matches_attr, *actions_attr;
 	int err;
 
-	entry_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_ENTRY);
+	entry_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_ENTRY);
 	if (!entry_attr)
 		return  -EMSGSIZE;
 
@@ -2008,8 +2010,8 @@ static int devlink_dpipe_entry_put(struct sk_buff *skb,
 				      entry->counter, DEVLINK_ATTR_PAD))
 			goto nla_put_failure;
 
-	matches_attr = nla_nest_start(skb,
-				      DEVLINK_ATTR_DPIPE_ENTRY_MATCH_VALUES);
+	matches_attr = nla_nest_start_noflag(skb,
+					     DEVLINK_ATTR_DPIPE_ENTRY_MATCH_VALUES);
 	if (!matches_attr)
 		goto nla_put_failure;
 
@@ -2021,8 +2023,8 @@ static int devlink_dpipe_entry_put(struct sk_buff *skb,
 	}
 	nla_nest_end(skb, matches_attr);
 
-	actions_attr = nla_nest_start(skb,
-				      DEVLINK_ATTR_DPIPE_ENTRY_ACTION_VALUES);
+	actions_attr = nla_nest_start_noflag(skb,
+					     DEVLINK_ATTR_DPIPE_ENTRY_ACTION_VALUES);
 	if (!actions_attr)
 		goto nla_put_failure;
 
@@ -2079,8 +2081,8 @@ int devlink_dpipe_entry_ctx_prepare(struct devlink_dpipe_dump_ctx *dump_ctx)
 	devlink = dump_ctx->info->user_ptr[0];
 	if (devlink_nl_put_handle(dump_ctx->skb, devlink))
 		goto nla_put_failure;
-	dump_ctx->nest = nla_nest_start(dump_ctx->skb,
-					DEVLINK_ATTR_DPIPE_ENTRIES);
+	dump_ctx->nest = nla_nest_start_noflag(dump_ctx->skb,
+					       DEVLINK_ATTR_DPIPE_ENTRIES);
 	if (!dump_ctx->nest)
 		goto nla_put_failure;
 	return 0;
@@ -2190,7 +2192,8 @@ static int devlink_dpipe_fields_put(struct sk_buff *skb,
 
 	for (i = 0; i < header->fields_count; i++) {
 		field = &header->fields[i];
-		field_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_FIELD);
+		field_attr = nla_nest_start_noflag(skb,
+						   DEVLINK_ATTR_DPIPE_FIELD);
 		if (!field_attr)
 			return -EMSGSIZE;
 		if (nla_put_string(skb, DEVLINK_ATTR_DPIPE_FIELD_NAME, field->name) ||
@@ -2213,7 +2216,7 @@ static int devlink_dpipe_header_put(struct sk_buff *skb,
 	struct nlattr *fields_attr, *header_attr;
 	int err;
 
-	header_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_HEADER);
+	header_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_HEADER);
 	if (!header_attr)
 		return -EMSGSIZE;
 
@@ -2222,7 +2225,8 @@ static int devlink_dpipe_header_put(struct sk_buff *skb,
 	    nla_put_u8(skb, DEVLINK_ATTR_DPIPE_HEADER_GLOBAL, header->global))
 		goto nla_put_failure;
 
-	fields_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_HEADER_FIELDS);
+	fields_attr = nla_nest_start_noflag(skb,
+					    DEVLINK_ATTR_DPIPE_HEADER_FIELDS);
 	if (!fields_attr)
 		goto nla_put_failure;
 
@@ -2269,7 +2273,7 @@ start_again:
 
 	if (devlink_nl_put_handle(skb, devlink))
 		goto nla_put_failure;
-	headers_attr = nla_nest_start(skb, DEVLINK_ATTR_DPIPE_HEADERS);
+	headers_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_DPIPE_HEADERS);
 	if (!headers_attr)
 		goto nla_put_failure;
 
@@ -2493,7 +2497,7 @@ static int devlink_resource_put(struct devlink *devlink, struct sk_buff *skb,
 	struct nlattr *child_resource_attr;
 	struct nlattr *resource_attr;
 
-	resource_attr = nla_nest_start(skb, DEVLINK_ATTR_RESOURCE);
+	resource_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_RESOURCE);
 	if (!resource_attr)
 		return -EMSGSIZE;
 
@@ -2517,7 +2521,8 @@ static int devlink_resource_put(struct devlink *devlink, struct sk_buff *skb,
 		       resource->size_valid))
 		goto nla_put_failure;
 
-	child_resource_attr = nla_nest_start(skb, DEVLINK_ATTR_RESOURCE_LIST);
+	child_resource_attr = nla_nest_start_noflag(skb,
+						    DEVLINK_ATTR_RESOURCE_LIST);
 	if (!child_resource_attr)
 		goto nla_put_failure;
 
@@ -2568,7 +2573,8 @@ start_again:
 	if (devlink_nl_put_handle(skb, devlink))
 		goto nla_put_failure;
 
-	resources_attr = nla_nest_start(skb, DEVLINK_ATTR_RESOURCE_LIST);
+	resources_attr = nla_nest_start_noflag(skb,
+					       DEVLINK_ATTR_RESOURCE_LIST);
 	if (!resources_attr)
 		goto nla_put_failure;
 
@@ -2781,7 +2787,8 @@ devlink_nl_param_value_fill_one(struct sk_buff *msg,
 {
 	struct nlattr *param_value_attr;
 
-	param_value_attr = nla_nest_start(msg, DEVLINK_ATTR_PARAM_VALUE);
+	param_value_attr = nla_nest_start_noflag(msg,
+						 DEVLINK_ATTR_PARAM_VALUE);
 	if (!param_value_attr)
 		goto nla_put_failure;
 
@@ -2860,7 +2867,7 @@ static int devlink_nl_param_fill(struct sk_buff *msg, struct devlink *devlink,
 
 	if (devlink_nl_put_handle(msg, devlink))
 		goto genlmsg_cancel;
-	param_attr = nla_nest_start(msg, DEVLINK_ATTR_PARAM);
+	param_attr = nla_nest_start_noflag(msg, DEVLINK_ATTR_PARAM);
 	if (!param_attr)
 		goto genlmsg_cancel;
 	if (nla_put_string(msg, DEVLINK_ATTR_PARAM_NAME, param->name))
@@ -2874,7 +2881,8 @@ static int devlink_nl_param_fill(struct sk_buff *msg, struct devlink *devlink,
 	if (nla_put_u8(msg, DEVLINK_ATTR_PARAM_TYPE, nla_type))
 		goto param_nest_cancel;
 
-	param_values_list = nla_nest_start(msg, DEVLINK_ATTR_PARAM_VALUES_LIST);
+	param_values_list = nla_nest_start_noflag(msg,
+						  DEVLINK_ATTR_PARAM_VALUES_LIST);
 	if (!param_values_list)
 		goto param_nest_cancel;
 
@@ -3177,7 +3185,7 @@ static int devlink_nl_region_snapshot_id_put(struct sk_buff *msg,
 	struct nlattr *snap_attr;
 	int err;
 
-	snap_attr = nla_nest_start(msg, DEVLINK_ATTR_REGION_SNAPSHOT);
+	snap_attr = nla_nest_start_noflag(msg, DEVLINK_ATTR_REGION_SNAPSHOT);
 	if (!snap_attr)
 		return -EINVAL;
 
@@ -3201,7 +3209,8 @@ static int devlink_nl_region_snapshots_id_put(struct sk_buff *msg,
 	struct nlattr *snapshots_attr;
 	int err;
 
-	snapshots_attr = nla_nest_start(msg, DEVLINK_ATTR_REGION_SNAPSHOTS);
+	snapshots_attr = nla_nest_start_noflag(msg,
+					       DEVLINK_ATTR_REGION_SNAPSHOTS);
 	if (!snapshots_attr)
 		return -EINVAL;
 
@@ -3417,7 +3426,7 @@ static int devlink_nl_cmd_region_read_chunk_fill(struct sk_buff *msg,
 	struct nlattr *chunk_attr;
 	int err;
 
-	chunk_attr = nla_nest_start(msg, DEVLINK_ATTR_REGION_CHUNK);
+	chunk_attr = nla_nest_start_noflag(msg, DEVLINK_ATTR_REGION_CHUNK);
 	if (!chunk_attr)
 		return -EINVAL;
 
@@ -3506,7 +3515,7 @@ static int devlink_nl_cmd_region_read_dumpit(struct sk_buff *skb,
 	err = nlmsg_parse_deprecated(cb->nlh,
 				     GENL_HDRLEN + devlink_nl_family.hdrsize,
 				     attrs, DEVLINK_ATTR_MAX, ops->policy,
-				     NULL);
+				     cb->extack);
 	if (err)
 		goto out;
 
@@ -3540,7 +3549,7 @@ static int devlink_nl_cmd_region_read_dumpit(struct sk_buff *skb,
 	if (err)
 		goto nla_put_failure;
 
-	chunks_attr = nla_nest_start(skb, DEVLINK_ATTR_REGION_CHUNKS);
+	chunks_attr = nla_nest_start_noflag(skb, DEVLINK_ATTR_REGION_CHUNKS);
 	if (!chunks_attr)
 		goto nla_put_failure;
 

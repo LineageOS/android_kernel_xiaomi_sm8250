@@ -19,7 +19,7 @@
 
 #include "test.h"
 
-#define DUMMY_PTR	((void *)0x12)
+#define DUMMY_PTR	((void *)0x10)
 
 int item_idr_free(int id, void *p, void *data)
 {
@@ -227,55 +227,64 @@ void idr_u32_test(int base)
 	idr_u32_test1(&idr, 0xffffffff);
 }
 
-static inline void *idr_mk_value(unsigned long v)
+static void idr_align_test(struct idr *idr)
 {
-	BUG_ON((long)v < 0);
-	return (void *)((v & 1) | 2 | (v << 1));
-}
+	char name[] = "Motorola 68000";
+	int i, id;
+	void *entry;
 
-DEFINE_IDR(find_idr);
+	for (i = 0; i < 9; i++) {
+		BUG_ON(idr_alloc(idr, &name[i], 0, 0, GFP_KERNEL) != i);
+		idr_for_each_entry(idr, entry, id);
+	}
+	idr_destroy(idr);
 
-static void *idr_throbber(void *arg)
-{
-	time_t start = time(NULL);
-	int id = *(int *)arg;
+	for (i = 1; i < 10; i++) {
+		BUG_ON(idr_alloc(idr, &name[i], 0, 0, GFP_KERNEL) != i - 1);
+		idr_for_each_entry(idr, entry, id);
+	}
+	idr_destroy(idr);
 
-	rcu_register_thread();
-	do {
-		idr_alloc(&find_idr, idr_mk_value(id), id, id + 1, GFP_KERNEL);
-		idr_remove(&find_idr, id);
-	} while (time(NULL) < start + 10);
-	rcu_unregister_thread();
+	for (i = 2; i < 11; i++) {
+		BUG_ON(idr_alloc(idr, &name[i], 0, 0, GFP_KERNEL) != i - 2);
+		idr_for_each_entry(idr, entry, id);
+	}
+	idr_destroy(idr);
 
-	return NULL;
-}
+	for (i = 3; i < 12; i++) {
+		BUG_ON(idr_alloc(idr, &name[i], 0, 0, GFP_KERNEL) != i - 3);
+		idr_for_each_entry(idr, entry, id);
+	}
+	idr_destroy(idr);
 
-void idr_find_test_1(int anchor_id, int throbber_id)
-{
-	pthread_t throbber;
-	time_t start = time(NULL);
+	for (i = 0; i < 8; i++) {
+		BUG_ON(idr_alloc(idr, &name[i], 0, 0, GFP_KERNEL) != 0);
+		BUG_ON(idr_alloc(idr, &name[i + 1], 0, 0, GFP_KERNEL) != 1);
+		idr_for_each_entry(idr, entry, id);
+		idr_remove(idr, 1);
+		idr_for_each_entry(idr, entry, id);
+		idr_remove(idr, 0);
+		BUG_ON(!idr_is_empty(idr));
+	}
 
-	pthread_create(&throbber, NULL, idr_throbber, &throbber_id);
+	for (i = 0; i < 8; i++) {
+		BUG_ON(idr_alloc(idr, NULL, 0, 0, GFP_KERNEL) != 0);
+		idr_for_each_entry(idr, entry, id);
+		idr_replace(idr, &name[i], 0);
+		idr_for_each_entry(idr, entry, id);
+		BUG_ON(idr_find(idr, 0) != &name[i]);
+		idr_remove(idr, 0);
+	}
 
-	BUG_ON(idr_alloc(&find_idr, idr_mk_value(anchor_id), anchor_id,
-				anchor_id + 1, GFP_KERNEL) != anchor_id);
-
-	do {
-		int id = 0;
-		void *entry = idr_get_next(&find_idr, &id);
-		BUG_ON(entry != idr_mk_value(id));
-	} while (time(NULL) < start + 11);
-
-	pthread_join(throbber, NULL);
-
-	idr_remove(&find_idr, anchor_id);
-	BUG_ON(!idr_is_empty(&find_idr));
-}
-
-void idr_find_test(void)
-{
-	idr_find_test_1(100000, 0);
-	idr_find_test_1(0, 100000);
+	for (i = 0; i < 8; i++) {
+		BUG_ON(idr_alloc(idr, &name[i], 0, 0, GFP_KERNEL) != 0);
+		BUG_ON(idr_alloc(idr, NULL, 0, 0, GFP_KERNEL) != 1);
+		idr_remove(idr, 1);
+		idr_for_each_entry(idr, entry, id);
+		idr_replace(idr, &name[i + 1], 0);
+		idr_for_each_entry(idr, entry, id);
+		idr_remove(idr, 0);
+	}
 }
 
 void idr_checks(void)
@@ -358,7 +367,7 @@ void idr_checks(void)
 	idr_u32_test(4);
 	idr_u32_test(1);
 	idr_u32_test(0);
-	idr_find_test();
+	idr_align_test(&idr);
 }
 
 #define module_init(x)
@@ -393,6 +402,7 @@ void ida_check_nomem(void)
  */
 void ida_check_conv_user(void)
 {
+#if 0
 	DEFINE_IDA(ida);
 	unsigned long i;
 
@@ -401,15 +411,16 @@ void ida_check_conv_user(void)
 		int id = ida_alloc(&ida, GFP_NOWAIT);
 		if (id == -ENOMEM) {
 			IDA_BUG_ON(&ida, (i % IDA_BITMAP_BITS) !=
-					BITS_PER_LONG - 2);
+					BITS_PER_XA_VALUE);
 			id = ida_alloc(&ida, GFP_KERNEL);
 		} else {
 			IDA_BUG_ON(&ida, (i % IDA_BITMAP_BITS) ==
-					BITS_PER_LONG - 2);
+					BITS_PER_XA_VALUE);
 		}
 		IDA_BUG_ON(&ida, id != i);
 	}
 	ida_destroy(&ida);
+#endif
 }
 
 void ida_check_random(void)

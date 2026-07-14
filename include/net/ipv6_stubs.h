@@ -38,13 +38,20 @@ struct ipv6_stub {
 	void (*fib6_select_path)(const struct net *net, struct fib6_result *res,
 				 struct flowi6 *fl6, int oif, bool oif_match,
 				 const struct sk_buff *skb, int strict);
-	u32 (*ip6_mtu_from_fib6)(struct fib6_info *f6i, struct in6_addr *daddr,
-				 struct in6_addr *saddr);
+	u32 (*ip6_mtu_from_fib6)(const struct fib6_result *res,
+				 const struct in6_addr *daddr,
+				 const struct in6_addr *saddr);
 
 	int (*fib6_nh_init)(struct net *net, struct fib6_nh *fib6_nh,
 			    struct fib6_config *cfg, gfp_t gfp_flags,
 			    struct netlink_ext_ack *extack);
 	void (*fib6_nh_release)(struct fib6_nh *fib6_nh);
+	void (*fib6_nh_release_dsts)(struct fib6_nh *fib6_nh);
+	void (*fib6_update_sernum)(struct net *net, struct fib6_info *rt);
+	int (*ip6_del_rt)(struct net *net, struct fib6_info *rt, bool skip_notify);
+	void (*fib6_rt_update)(struct net *net, struct fib6_info *rt,
+			       struct nl_info *info);
+
 	void (*udpv6_encap_enable)(void);
 	void (*ndisc_send_na)(struct net_device *dev, const struct in6_addr *daddr,
 			      const struct in6_addr *solicited_addr,

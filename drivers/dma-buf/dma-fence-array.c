@@ -21,6 +21,8 @@
 #include <linux/slab.h>
 #include <linux/dma-fence-array.h>
 
+#define PENDING_ERROR 1
+
 static const char *dma_fence_array_get_driver_name(struct dma_fence *fence)
 {
 	return "dma_fence_array";
@@ -31,9 +33,28 @@ static const char *dma_fence_array_get_timeline_name(struct dma_fence *fence)
 	return "unbound";
 }
 
+static void dma_fence_array_set_pending_error(struct dma_fence_array *array,
+					      int error)
+{
+	/*
+	 * Propagate the first error reported by any of our fences, but only
+	 * before we ourselves are signaled.
+	 */
+	if (error)
+		cmpxchg(&array->base.error, PENDING_ERROR, error);
+}
+
+static void dma_fence_array_clear_pending_error(struct dma_fence_array *array)
+{
+	/* Clear the error flag if not actually set. */
+	cmpxchg(&array->base.error, PENDING_ERROR, 0);
+}
+
 static void irq_dma_fence_array_work(struct irq_work *wrk)
 {
 	struct dma_fence_array *array = container_of(wrk, typeof(*array), work);
+
+	dma_fence_array_clear_pending_error(array);
 
 	dma_fence_signal(&array->base);
 	dma_fence_put(&array->base);
@@ -45,6 +66,8 @@ static void dma_fence_array_cb_func(struct dma_fence *f,
 	struct dma_fence_array_cb *array_cb =
 		container_of(cb, struct dma_fence_array_cb, cb);
 	struct dma_fence_array *array = array_cb->array;
+
+	dma_fence_array_set_pending_error(array, f->error);
 
 	if (atomic_dec_and_test(&array->num_pending))
 		irq_work_queue(&array->work);
@@ -71,9 +94,14 @@ static bool dma_fence_array_enable_signaling(struct dma_fence *fence)
 		dma_fence_get(&array->base);
 		if (dma_fence_add_callback(array->fences[i], &cb[i].cb,
 					   dma_fence_array_cb_func)) {
+			int error = array->fences[i]->error;
+
+			dma_fence_array_set_pending_error(array, error);
 			dma_fence_put(&array->base);
-			if (atomic_dec_and_test(&array->num_pending))
+			if (atomic_dec_and_test(&array->num_pending)) {
+				dma_fence_array_clear_pending_error(array);
 				return false;
+			}
 		}
 	}
 
@@ -83,8 +111,38 @@ static bool dma_fence_array_enable_signaling(struct dma_fence *fence)
 static bool dma_fence_array_signaled(struct dma_fence *fence)
 {
 	struct dma_fence_array *array = to_dma_fence_array(fence);
+	int num_pending;
+	unsigned int i;
 
-	return atomic_read(&array->num_pending) <= 0;
+	/*
+	 * We need to read num_pending before checking the enable_signal bit
+	 * to avoid racing with the enable_signaling() implementation, which
+	 * might decrement the counter, and cause a partial check.
+	 * atomic_read_acquire() pairs with atomic_dec_and_test() in
+	 * dma_fence_array_enable_signaling()
+	 *
+	 * The !--num_pending check is here to account for the any_signaled case
+	 * if we race with enable_signaling(), that means the !num_pending check
+	 * in the is_signalling_enabled branch might be outdated (num_pending
+	 * might have been decremented), but that's fine. The user will get the
+	 * right value when testing again later.
+	 */
+	num_pending = atomic_read_acquire(&array->num_pending);
+	if (test_bit(DMA_FENCE_FLAG_ENABLE_SIGNAL_BIT, &array->base.flags)) {
+		if (num_pending <= 0)
+			goto signal;
+		return false;
+	}
+
+	for (i = 0; i < array->num_fences; ++i) {
+		if (dma_fence_is_signaled(array->fences[i]) && !--num_pending)
+			goto signal;
+	}
+	return false;
+
+signal:
+	dma_fence_array_clear_pending_error(array);
+	return true;
 }
 
 static void dma_fence_array_release(struct dma_fence *fence)
@@ -149,6 +207,8 @@ struct dma_fence_array *dma_fence_array_create(int num_fences,
 	array->num_fences = num_fences;
 	atomic_set(&array->num_pending, signal_on_any ? 1 : num_fences);
 	array->fences = fences;
+
+	array->base.error = PENDING_ERROR;
 
 	return array;
 }

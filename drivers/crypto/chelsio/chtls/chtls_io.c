@@ -1086,7 +1086,7 @@ new_buf:
 			if (!page)
 				goto wait_for_memory;
 
-			pg_size <<= compound_order(page);
+			pg_size <<= order;
 			if (off < pg_size &&
 			    skb_can_coalesce(skb, i, page, off)) {
 				merge = 1;
@@ -1113,8 +1113,7 @@ new_buf:
 							   __GFP_NORETRY,
 							   order);
 					if (page)
-						pg_size <<=
-							compound_order(page);
+						pg_size <<= order;
 				}
 				if (!page) {
 					page = alloc_page(gfp);
