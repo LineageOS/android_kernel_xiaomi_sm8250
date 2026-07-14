@@ -164,6 +164,12 @@ kernels. The union bpf_attr -> kern_version is checked at load time
 to prevent accidentally loading kprobe-based bpf programs written
 for a different kernel. Networking programs don't do kern_version check.
 
+Q: Are tracepoints part of the stable ABI?
+------------------------------------------
+A: NO. Tracepoints are tied to internal implementation details hence they are
+subject to change and can break with newer kernels. BPF programs need to change
+accordingly when this happens.
+
 Q: How much stack space a BPF program uses?
 -------------------------------------------
 A: Currently all program types are limited to 512 bytes of stack

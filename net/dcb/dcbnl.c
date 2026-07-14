@@ -247,7 +247,7 @@ static int dcbnl_getpfccfg(struct net_device *netdev, struct nlmsghdr *nlh,
 	if (ret)
 		return ret;
 
-	nest = nla_nest_start(skb, DCB_ATTR_PFC_CFG);
+	nest = nla_nest_start_noflag(skb, DCB_ATTR_PFC_CFG);
 	if (!nest)
 		return -EMSGSIZE;
 
@@ -306,7 +306,7 @@ static int dcbnl_getcap(struct net_device *netdev, struct nlmsghdr *nlh,
 	if (ret)
 		return ret;
 
-	nest = nla_nest_start(skb, DCB_ATTR_CAP);
+	nest = nla_nest_start_noflag(skb, DCB_ATTR_CAP);
 	if (!nest)
 		return -EMSGSIZE;
 
@@ -351,7 +351,7 @@ static int dcbnl_getnumtcs(struct net_device *netdev, struct nlmsghdr *nlh,
 	if (ret)
 		return ret;
 
-	nest = nla_nest_start(skb, DCB_ATTR_NUMTCS);
+	nest = nla_nest_start_noflag(skb, DCB_ATTR_NUMTCS);
 	if (!nest)
 		return -EMSGSIZE;
 
@@ -484,7 +484,7 @@ static int dcbnl_getapp(struct net_device *netdev, struct nlmsghdr *nlh,
 		up = dcb_getapp(netdev, &app);
 	}
 
-	app_nest = nla_nest_start(skb, DCB_ATTR_APP);
+	app_nest = nla_nest_start_noflag(skb, DCB_ATTR_APP);
 	if (!app_nest)
 		return -EMSGSIZE;
 
@@ -585,7 +585,7 @@ static int __dcbnl_pg_getcfg(struct net_device *netdev, struct nlmsghdr *nlh,
 	if (ret)
 		return ret;
 
-	pg_nest = nla_nest_start(skb, DCB_ATTR_PG_CFG);
+	pg_nest = nla_nest_start_noflag(skb, DCB_ATTR_PG_CFG);
 	if (!pg_nest)
 		return -EMSGSIZE;
 
@@ -606,7 +606,7 @@ static int __dcbnl_pg_getcfg(struct net_device *netdev, struct nlmsghdr *nlh,
 		if (ret)
 			goto err_pg;
 
-		param_nest = nla_nest_start(skb, i);
+		param_nest = nla_nest_start_noflag(skb, i);
 		if (!param_nest)
 			goto err_pg;
 
@@ -902,7 +902,7 @@ static int dcbnl_bcn_getcfg(struct net_device *netdev, struct nlmsghdr *nlh,
 	if (ret)
 		return ret;
 
-	bcn_nest = nla_nest_start(skb, DCB_ATTR_BCN);
+	bcn_nest = nla_nest_start_noflag(skb, DCB_ATTR_BCN);
 	if (!bcn_nest)
 		return -EMSGSIZE;
 
@@ -1016,7 +1016,7 @@ static int dcbnl_build_peer_app(struct net_device *netdev, struct sk_buff* skb,
 		 */
 		err = -EMSGSIZE;
 
-		app = nla_nest_start(skb, app_nested_type);
+		app = nla_nest_start_noflag(skb, app_nested_type);
 		if (!app)
 			goto nla_put_failure;
 
@@ -1050,7 +1050,7 @@ static int dcbnl_ieee_fill(struct sk_buff *skb, struct net_device *netdev)
 	if (nla_put_string(skb, DCB_ATTR_IFNAME, netdev->name))
 		return -EMSGSIZE;
 
-	ieee = nla_nest_start(skb, DCB_ATTR_IEEE);
+	ieee = nla_nest_start_noflag(skb, DCB_ATTR_IEEE);
 	if (!ieee)
 		return -EMSGSIZE;
 
@@ -1120,7 +1120,7 @@ static int dcbnl_ieee_fill(struct sk_buff *skb, struct net_device *netdev)
 			return -EMSGSIZE;
 	}
 
-	app = nla_nest_start(skb, DCB_ATTR_IEEE_APP_TABLE);
+	app = nla_nest_start_noflag(skb, DCB_ATTR_IEEE_APP_TABLE);
 	if (!app)
 		return -EMSGSIZE;
 
@@ -1188,13 +1188,13 @@ static int dcbnl_cee_pg_fill(struct sk_buff *skb, struct net_device *dev,
 	u8 pgid, up_map, prio, tc_pct;
 	const struct dcbnl_rtnl_ops *ops = dev->dcbnl_ops;
 	int i = dir ? DCB_ATTR_CEE_TX_PG : DCB_ATTR_CEE_RX_PG;
-	struct nlattr *pg = nla_nest_start(skb, i);
+	struct nlattr *pg = nla_nest_start_noflag(skb, i);
 
 	if (!pg)
 		return -EMSGSIZE;
 
 	for (i = DCB_PG_ATTR_TC_0; i <= DCB_PG_ATTR_TC_7; i++) {
-		struct nlattr *tc_nest = nla_nest_start(skb, i);
+		struct nlattr *tc_nest = nla_nest_start_noflag(skb, i);
 
 		if (!tc_nest)
 			return -EMSGSIZE;
@@ -1245,7 +1245,7 @@ static int dcbnl_cee_fill(struct sk_buff *skb, struct net_device *netdev)
 
 	if (nla_put_string(skb, DCB_ATTR_IFNAME, netdev->name))
 		goto nla_put_failure;
-	cee = nla_nest_start(skb, DCB_ATTR_CEE);
+	cee = nla_nest_start_noflag(skb, DCB_ATTR_CEE);
 	if (!cee)
 		goto nla_put_failure;
 
@@ -1264,7 +1264,8 @@ static int dcbnl_cee_fill(struct sk_buff *skb, struct net_device *netdev)
 
 	/* local pfc */
 	if (ops->getpfccfg) {
-		struct nlattr *pfc_nest = nla_nest_start(skb, DCB_ATTR_CEE_PFC);
+		struct nlattr *pfc_nest = nla_nest_start_noflag(skb,
+								DCB_ATTR_CEE_PFC);
 
 		if (!pfc_nest)
 			goto nla_put_failure;
@@ -1279,14 +1280,14 @@ static int dcbnl_cee_fill(struct sk_buff *skb, struct net_device *netdev)
 
 	/* local app */
 	spin_lock_bh(&dcb_lock);
-	app = nla_nest_start(skb, DCB_ATTR_CEE_APP_TABLE);
+	app = nla_nest_start_noflag(skb, DCB_ATTR_CEE_APP_TABLE);
 	if (!app)
 		goto dcb_unlock;
 
 	list_for_each_entry(itr, &dcb_app_list, list) {
 		if (itr->ifindex == netdev->ifindex) {
-			struct nlattr *app_nest = nla_nest_start(skb,
-								 DCB_ATTR_APP);
+			struct nlattr *app_nest = nla_nest_start_noflag(skb,
+									DCB_ATTR_APP);
 			if (!app_nest)
 				goto dcb_unlock;
 
@@ -1319,7 +1320,8 @@ static int dcbnl_cee_fill(struct sk_buff *skb, struct net_device *netdev)
 
 	/* features flags */
 	if (ops->getfeatcfg) {
-		struct nlattr *feat = nla_nest_start(skb, DCB_ATTR_CEE_FEAT);
+		struct nlattr *feat = nla_nest_start_noflag(skb,
+							    DCB_ATTR_CEE_FEAT);
 		if (!feat)
 			goto nla_put_failure;
 
@@ -1632,7 +1634,7 @@ static int dcbnl_getfeatcfg(struct net_device *netdev, struct nlmsghdr *nlh,
 	if (ret)
 		return ret;
 
-	nest = nla_nest_start(skb, DCB_ATTR_FEATCFG);
+	nest = nla_nest_start_noflag(skb, DCB_ATTR_FEATCFG);
 	if (!nest)
 		return -EMSGSIZE;
 

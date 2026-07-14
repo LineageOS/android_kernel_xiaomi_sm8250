@@ -209,28 +209,6 @@ int tag_tagged_items(struct radix_tree_root *root, pthread_mutex_t *lock,
 	return tagged;
 }
 
-/* Use the same pattern as find_swap_entry() in mm/shmem.c */
-unsigned long find_item(struct radix_tree_root *root, void *item)
-{
-	struct radix_tree_iter iter;
-	void **slot;
-	unsigned long found = -1;
-	unsigned long checked = 0;
-
-	radix_tree_for_each_slot(slot, root, &iter, 0) {
-		if (*slot == item) {
-			found = iter.index;
-			break;
-		}
-		checked++;
-		if ((checked % 4) != 0)
-			continue;
-		slot = radix_tree_iter_resume(slot, &iter);
-	}
-
-	return found;
-}
-
 static int verify_node(struct radix_tree_node *slot, unsigned int tag,
 			int tagged)
 {
@@ -281,7 +259,7 @@ static int verify_node(struct radix_tree_node *slot, unsigned int tag,
 
 void verify_tag_consistency(struct radix_tree_root *root, unsigned int tag)
 {
-	struct radix_tree_node *node = root->rnode;
+	struct radix_tree_node *node = root->xa_head;
 	if (!radix_tree_is_internal_node(node))
 		return;
 	verify_node(node, tag, !!root_tag_get(root, tag));
@@ -295,7 +273,7 @@ void item_kill_tree(struct radix_tree_root *root)
 	int nfound;
 
 	radix_tree_for_each_slot(slot, root, &iter, 0) {
-		if (radix_tree_exceptional_entry(*slot))
+		if (xa_is_value(*slot))
 			radix_tree_delete(root, iter.index);
 	}
 
@@ -311,13 +289,13 @@ void item_kill_tree(struct radix_tree_root *root)
 		}
 	}
 	assert(radix_tree_gang_lookup(root, (void **)items, 0, 32) == 0);
-	assert(root->rnode == NULL);
+	assert(root->xa_head == NULL);
 }
 
 void tree_verify_min_height(struct radix_tree_root *root, int maxindex)
 {
 	unsigned shift;
-	struct radix_tree_node *node = root->rnode;
+	struct radix_tree_node *node = root->xa_head;
 	if (!radix_tree_is_internal_node(node)) {
 		assert(maxindex == 0);
 		return;
