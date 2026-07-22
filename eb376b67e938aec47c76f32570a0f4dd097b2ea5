@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "46d134f0_fe7e09c8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29551
+      },
+      "writtenOn": "2026-07-22T11:20:08Z",
+      "side": 1,
+      "message": "Load and stability tests have been conducted on\n1. umi `(WDC UFS 3.0)`\n2. psyche `(SAMSUNG UFS 3.1)`\n3. munch `(SKHynix UFS 3.1)`\n4. pipa `(SKHynix UFS 4.0)`",
+      "revId": "eb376b67e938aec47c76f32570a0f4dd097b2ea5",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
