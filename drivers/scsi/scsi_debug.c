@@ -2533,7 +2533,7 @@ static bool comp_write_worker(u64 lba, u32 num, const u8 *arr)
 	if (!res)
 		return res;
 	if (rest)
-		res = memcmp(fake_storep, arr + ((num - rest) * lb_size),
+		res = !memcmp(fake_storep, arr + ((num - rest) * lb_size),
 			     rest * lb_size);
 	if (!res)
 		return res;

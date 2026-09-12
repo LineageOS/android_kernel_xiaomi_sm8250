@@ -1379,7 +1379,7 @@ out_fib_notif:
 	call_fib_entry_notifiers(net, FIB_EVENT_ENTRY_DEL, key,
 				 plen, new_fa, NULL);
 out_free_new_fa:
-	kmem_cache_free(fn_alias_kmem, new_fa);
+	alias_free_mem_rcu(new_fa);
 out:
 	fib_release_info(fi);
 err:

@@ -1459,6 +1459,14 @@ long vhost_vring_ioctl(struct vhost_dev *d, unsigned int ioctl, void __user *arg
 			break;
 		}
 		vq->num = s.num;
+
+		/*
+		 * The metadata cache holds the IOTLB mapping that backed
+		 * the previous vring size, which is being replaced here.
+		 * iotlb_access_ok() takes a cache hit as proof that the
+		 * region was validated, so the stale entries have to go.
+		 */
+		__vhost_vq_meta_reset(vq);
 		break;
 	case VHOST_SET_VRING_BASE:
 		/* Moving base with an active backend?
@@ -1540,6 +1548,15 @@ long vhost_vring_ioctl(struct vhost_dev *d, unsigned int ioctl, void __user *arg
 		vq->avail = (void __user *)(unsigned long)a.avail_user_addr;
 		vq->log_addr = a.log_guest_addr;
 		vq->used = (void __user *)(unsigned long)a.used_user_addr;
+
+		/*
+		 * The metadata cache holds the IOTLB mapping that backed
+		 * the previous desc/avail/used addresses, which are being
+		 * replaced here.  iotlb_access_ok() takes a cache hit as
+		 * proof that the region was validated, so the stale
+		 * entries have to go.
+		 */
+		__vhost_vq_meta_reset(vq);
 		break;
 	case VHOST_SET_VRING_KICK:
 		if (copy_from_user(&f, argp, sizeof f)) {

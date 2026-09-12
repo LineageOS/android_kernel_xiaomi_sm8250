@@ -45,14 +45,16 @@ int tipc_udp_nl_bearer_add(struct tipc_bearer *b, struct nlattr *attr);
 int tipc_udp_nl_add_bearer_data(struct tipc_nl_msg *msg, struct tipc_bearer *b);
 int tipc_udp_nl_dump_remoteip(struct sk_buff *skb, struct netlink_callback *cb);
 
-/* check if configured MTU is too low for tipc headers */
+/* check if configured MTU is out-of-range for tipc headers */
 static inline bool tipc_udp_mtu_bad(u32 mtu)
 {
+	if (mtu > U16_MAX)
+		return true;
 	if (mtu >= (TIPC_MIN_BEARER_MTU + sizeof(struct iphdr) +
 	    sizeof(struct udphdr)))
 		return false;
 
-	pr_warn("MTU too low for tipc bearer\n");
+	pr_warn("MTU out-of-range for tipc bearer\n");
 	return true;
 }
 
