@@ -73,11 +73,6 @@ static void tcf_set_action_cookie(struct tc_cookie __rcu **old_cookie,
 		call_rcu(&old->rcu, tcf_free_cookie_rcu);
 }
 
-/* XXX: For standalone actions, we don't need a RCU grace period either, because
- * actions are always connected to filters and filters are already destroyed in
- * RCU callbacks, so after a RCU grace period actions are already disconnected
- * from filters. Readers later can not find us.
- */
 static void free_tcf(struct tc_action *p)
 {
 	free_percpu(p->cpu_bstats);
@@ -87,7 +82,7 @@ static void free_tcf(struct tc_action *p)
 	if (p->goto_chain)
 		tcf_action_goto_chain_fini(p);
 
-	kfree(p);
+	kfree_rcu(p, tcfa_rcu);
 }
 
 static void tcf_action_cleanup(struct tc_action *p)
@@ -213,7 +208,7 @@ static int tcf_dump_walker(struct tcf_idrinfo *idrinfo, struct sk_buff *skb,
 			       (unsigned long)p->tcfa_tm.lastuse))
 			continue;
 
-		nest = nla_nest_start(skb, n_i);
+		nest = nla_nest_start_noflag(skb, n_i);
 		if (!nest) {
 			index--;
 			goto nla_put_failure;
@@ -256,7 +251,7 @@ static int tcf_del_walker(struct tcf_idrinfo *idrinfo, struct sk_buff *skb,
 	struct tc_action *p;
 	unsigned long id = 1;
 
-	nest = nla_nest_start(skb, 0);
+	nest = nla_nest_start_noflag(skb, 0);
 	if (nest == NULL)
 		goto nla_put_failure;
 	if (nla_put_string(skb, TCA_KIND, ops->kind))
@@ -729,7 +724,7 @@ tcf_action_dump_1(struct sk_buff *skb, struct tc_action *a, int bind, int ref)
 	}
 	rcu_read_unlock();
 
-	nest = nla_nest_start(skb, TCA_OPTIONS);
+	nest = nla_nest_start_noflag(skb, TCA_OPTIONS);
 	if (nest == NULL)
 		goto nla_put_failure;
 	err = tcf_action_dump_old(skb, a, bind, ref);
@@ -753,7 +748,7 @@ int tcf_action_dump(struct sk_buff *skb, struct tc_action *actions[],
 
 	for (i = 0; i < TCA_ACT_MAX_PRIO && actions[i]; i++) {
 		a = actions[i];
-		nest = nla_nest_start(skb, i + 1);
+		nest = nla_nest_start_noflag(skb, i + 1);
 		if (nest == NULL)
 			goto nla_put_failure;
 		err = tcf_action_dump_1(skb, a, bind, ref);
@@ -1025,7 +1020,7 @@ static int tca_get_fill(struct sk_buff *skb, struct tc_action *actions[],
 	t->tca__pad1 = 0;
 	t->tca__pad2 = 0;
 
-	nest = nla_nest_start(skb, TCA_ACT_TAB);
+	nest = nla_nest_start_noflag(skb, TCA_ACT_TAB);
 	if (!nest)
 		goto out_nlmsg_trim;
 
@@ -1147,7 +1142,7 @@ static int tca_action_flush(struct net *net, struct nlattr *nla,
 	t->tca__pad1 = 0;
 	t->tca__pad2 = 0;
 
-	nest = nla_nest_start(skb, TCA_ACT_TAB);
+	nest = nla_nest_start_noflag(skb, TCA_ACT_TAB);
 	if (!nest) {
 		NL_SET_ERR_MSG(extack, "Failed to add new netlink message");
 		goto out_module_put;
@@ -1439,7 +1434,7 @@ static int tc_dump_action(struct sk_buff *skb, struct netlink_callback *cb)
 	u32 act_count = 0;
 
 	ret = nlmsg_parse_deprecated(cb->nlh, sizeof(struct tcamsg), tb,
-				     TCA_ROOT_MAX, tcaa_policy, NULL);
+				     TCA_ROOT_MAX, tcaa_policy, cb->extack);
 	if (ret < 0)
 		return ret;
 
@@ -1480,7 +1475,7 @@ static int tc_dump_action(struct sk_buff *skb, struct netlink_callback *cb)
 	if (!count_attr)
 		goto out_module_put;
 
-	nest = nla_nest_start(skb, TCA_ACT_TAB);
+	nest = nla_nest_start_noflag(skb, TCA_ACT_TAB);
 	if (nest == NULL)
 		goto out_module_put;
 

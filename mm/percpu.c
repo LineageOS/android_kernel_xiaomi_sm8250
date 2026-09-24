@@ -93,6 +93,8 @@
 
 /* the slots are sorted by free bytes left, 1-31 bytes share the same slot */
 #define PCPU_SLOT_BASE_SHIFT		5
+/* chunks in slots below this are subject to being sidelined on failed alloc */
+#define PCPU_SLOT_FAIL_THRESHOLD	3
 
 #define PCPU_EMPTY_POP_PAGES_LOW	2
 #define PCPU_EMPTY_POP_PAGES_HIGH	4
@@ -487,6 +489,22 @@ static void pcpu_mem_free(void *ptr)
 	kvfree(ptr);
 }
 
+static void __pcpu_chunk_move(struct pcpu_chunk *chunk, int slot,
+			      bool move_front)
+{
+	if (chunk != pcpu_reserved_chunk) {
+		if (move_front)
+			list_move(&chunk->list, &pcpu_slot[slot]);
+		else
+			list_move_tail(&chunk->list, &pcpu_slot[slot]);
+	}
+}
+
+static void pcpu_chunk_move(struct pcpu_chunk *chunk, int slot)
+{
+	__pcpu_chunk_move(chunk, slot, true);
+}
+
 /**
  * pcpu_chunk_relocate - put chunk in the appropriate chunk slot
  * @chunk: chunk of interest
@@ -504,12 +522,8 @@ static void pcpu_chunk_relocate(struct pcpu_chunk *chunk, int oslot)
 {
 	int nslot = pcpu_chunk_slot(chunk);
 
-	if (chunk != pcpu_reserved_chunk && oslot != nslot) {
-		if (oslot < nslot)
-			list_move(&chunk->list, &pcpu_slot[nslot]);
-		else
-			list_move_tail(&chunk->list, &pcpu_slot[nslot]);
-	}
+	if (oslot != nslot)
+		__pcpu_chunk_move(chunk, nslot, oslot < nslot);
 }
 
 /**
@@ -1025,10 +1039,13 @@ static int pcpu_alloc_area(struct pcpu_chunk *chunk, int alloc_bits,
  *
  * This function determines the size of an allocation to free using
  * the boundary bitmap and clears the allocation map.
+ *
+ * RETURNS:
+ * Number of freed bytes.
  */
-static void pcpu_free_area(struct pcpu_chunk *chunk, int off)
+static int pcpu_free_area(struct pcpu_chunk *chunk, int off)
 {
-	int bit_off, bits, end, oslot;
+	int bit_off, bits, end, oslot, freed;
 
 	lockdep_assert_held(&pcpu_lock);
 	pcpu_stats_area_dealloc(chunk);
@@ -1043,8 +1060,10 @@ static void pcpu_free_area(struct pcpu_chunk *chunk, int off)
 	bits = end - bit_off;
 	bitmap_clear(chunk->alloc_map, bit_off, bits);
 
+	freed = bits * PCPU_MIN_ALLOC_SIZE;
+
 	/* update metadata */
-	chunk->free_bytes += bits * PCPU_MIN_ALLOC_SIZE;
+	chunk->free_bytes += freed;
 
 	/* update first free bit */
 	chunk->first_bit = min(chunk->first_bit, bit_off);
@@ -1052,6 +1071,8 @@ static void pcpu_free_area(struct pcpu_chunk *chunk, int off)
 	pcpu_block_update_hint_free(chunk, bit_off, bits);
 
 	pcpu_chunk_relocate(chunk, oslot);
+
+	return freed;
 }
 
 static void pcpu_init_md_blocks(struct pcpu_chunk *chunk)
@@ -1086,6 +1107,7 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	struct pcpu_chunk *chunk;
 	unsigned long aligned_addr, lcm_align;
 	int start_offset, offset_bits, region_size, region_bits;
+	size_t alloc_size;
 
 	/* region calculations */
 	aligned_addr = tmp_addr & PAGE_MASK;
@@ -1101,9 +1123,12 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	region_size = ALIGN(start_offset + map_size, lcm_align);
 
 	/* allocate chunk */
-	chunk = memblock_virt_alloc(sizeof(struct pcpu_chunk) +
-				    BITS_TO_LONGS(region_size >> PAGE_SHIFT) * sizeof(unsigned long),
-				    0);
+	alloc_size = sizeof(struct pcpu_chunk) +
+		BITS_TO_LONGS(region_size >> PAGE_SHIFT) * sizeof(unsigned long);
+	chunk = memblock_virt_alloc(alloc_size, 0);
+	if (!chunk)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
 
 	INIT_LIST_HEAD(&chunk->list);
 
@@ -1114,12 +1139,25 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	chunk->nr_pages = region_size >> PAGE_SHIFT;
 	region_bits = pcpu_chunk_map_bits(chunk);
 
-	chunk->alloc_map = memblock_virt_alloc(BITS_TO_LONGS(region_bits) *
-					       sizeof(chunk->alloc_map[0]), 0);
-	chunk->bound_map = memblock_virt_alloc(BITS_TO_LONGS(region_bits + 1) *
-					       sizeof(chunk->bound_map[0]), 0);
-	chunk->md_blocks = memblock_virt_alloc(pcpu_chunk_nr_blocks(chunk) *
-					       sizeof(chunk->md_blocks[0]), 0);
+	alloc_size = BITS_TO_LONGS(region_bits) * sizeof(chunk->alloc_map[0]);
+	chunk->alloc_map = memblock_virt_alloc(alloc_size, 0);
+	if (!chunk->alloc_map)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
+
+	alloc_size =
+		BITS_TO_LONGS(region_bits + 1) * sizeof(chunk->bound_map[0]);
+	chunk->bound_map = memblock_virt_alloc(alloc_size, 0);
+	if (!chunk->bound_map)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
+
+	alloc_size = pcpu_chunk_nr_blocks(chunk) * sizeof(chunk->md_blocks[0]);
+	chunk->md_blocks = memblock_virt_alloc(alloc_size, 0);
+	if (!chunk->md_blocks)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
+
 	pcpu_init_md_blocks(chunk);
 
 	/* manage populated page bitmap */
@@ -1357,7 +1395,7 @@ static void __percpu *pcpu_alloc(size_t size, size_t align, bool reserved,
 	bool is_atomic = (gfp & GFP_KERNEL) != GFP_KERNEL;
 	bool do_warn = !(gfp & __GFP_NOWARN);
 	static int warn_limit = 10;
-	struct pcpu_chunk *chunk;
+	struct pcpu_chunk *chunk, *next;
 	const char *err;
 	int slot, off, cpu, ret;
 	unsigned long flags;
@@ -1419,11 +1457,14 @@ static void __percpu *pcpu_alloc(size_t size, size_t align, bool reserved,
 restart:
 	/* search through normal chunks */
 	for (slot = pcpu_size_to_slot(size); slot < pcpu_nr_slots; slot++) {
-		list_for_each_entry(chunk, &pcpu_slot[slot], list) {
+		list_for_each_entry_safe(chunk, next, &pcpu_slot[slot], list) {
 			off = pcpu_find_block_fit(chunk, bits, bit_align,
 						  is_atomic);
-			if (off < 0)
+			if (off < 0) {
+				if (slot < PCPU_SLOT_FAIL_THRESHOLD)
+					pcpu_chunk_move(chunk, 0);
 				continue;
+			}
 
 			off = pcpu_alloc_area(chunk, bits, bit_align, off);
 			if (off >= 0)
@@ -2049,6 +2090,7 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	int group, unit, i;
 	int map_size;
 	unsigned long tmp_addr;
+	size_t alloc_size;
 
 #define PCPU_SETUP_BUG_ON(cond)	do {					\
 	if (unlikely(cond)) {						\
@@ -2080,12 +2122,29 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	PCPU_SETUP_BUG_ON(pcpu_verify_alloc_info(ai) < 0);
 
 	/* process group information and build config tables accordingly */
-	group_offsets = memblock_virt_alloc(ai->nr_groups *
-					     sizeof(group_offsets[0]), 0);
-	group_sizes = memblock_virt_alloc(ai->nr_groups *
-					   sizeof(group_sizes[0]), 0);
-	unit_map = memblock_virt_alloc(nr_cpu_ids * sizeof(unit_map[0]), 0);
-	unit_off = memblock_virt_alloc(nr_cpu_ids * sizeof(unit_off[0]), 0);
+	alloc_size = ai->nr_groups * sizeof(group_offsets[0]);
+	group_offsets = memblock_virt_alloc(alloc_size, 0);
+	if (!group_offsets)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
+
+	alloc_size = ai->nr_groups * sizeof(group_sizes[0]);
+	group_sizes = memblock_virt_alloc(alloc_size, 0);
+	if (!group_sizes)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
+
+	alloc_size = nr_cpu_ids * sizeof(unit_map[0]);
+	unit_map = memblock_virt_alloc(alloc_size, 0);
+	if (!unit_map)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
+
+	alloc_size = nr_cpu_ids * sizeof(unit_off[0]);
+	unit_off = memblock_virt_alloc(alloc_size, 0);
+	if (!unit_off)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      alloc_size);
 
 	for (cpu = 0; cpu < nr_cpu_ids; cpu++)
 		unit_map[cpu] = UINT_MAX;
@@ -2151,6 +2210,9 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	pcpu_nr_slots = __pcpu_size_to_slot(pcpu_unit_size) + 2;
 	pcpu_slot = memblock_virt_alloc(
 			pcpu_nr_slots * sizeof(pcpu_slot[0]), 0);
+	if (!pcpu_slot)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      pcpu_nr_slots * sizeof(pcpu_slot[0]));
 	for (i = 0; i < pcpu_nr_slots; i++)
 		INIT_LIST_HEAD(&pcpu_slot[i]);
 
@@ -2605,6 +2667,9 @@ int __init pcpu_page_first_chunk(size_t reserved_size,
 	pages_size = PFN_ALIGN(unit_pages * num_possible_cpus() *
 			       sizeof(pages[0]));
 	pages = memblock_virt_alloc(pages_size, 0);
+	if (!pages)
+		panic("%s: Failed to allocate %zu bytes\n", __func__,
+		      pages_size);
 
 	/* allocate pages */
 	j = 0;

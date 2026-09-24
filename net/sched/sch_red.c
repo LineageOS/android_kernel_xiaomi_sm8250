@@ -121,7 +121,7 @@ static struct sk_buff *red_dequeue(struct Qdisc *sch)
 	struct red_sched_data *q = qdisc_priv(sch);
 	struct Qdisc *child = q->qdisc;
 
-	skb = child->dequeue(child);
+	skb = qdisc_dequeue_peeked(child);
 	if (skb) {
 		qdisc_bstats_update(sch, skb);
 		qdisc_qstats_backlog_dec(sch, skb);
@@ -334,7 +334,7 @@ static int red_dump(struct Qdisc *sch, struct sk_buff *skb)
 	if (err)
 		goto nla_put_failure;
 
-	opts = nla_nest_start(skb, TCA_OPTIONS);
+	opts = nla_nest_start_noflag(skb, TCA_OPTIONS);
 	if (opts == NULL)
 		goto nla_put_failure;
 	if (nla_put(skb, TCA_RED_PARMS, sizeof(opt), &opt) ||

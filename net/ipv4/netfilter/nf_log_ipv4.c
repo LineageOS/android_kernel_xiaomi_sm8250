@@ -176,7 +176,7 @@ static void dump_ipv4_packet(struct net *net, struct nf_log_buf *m,
 		case ICMP_REDIRECT:
 			/* Max length: 24 "GATEWAY=255.255.255.255 " */
 			nf_log_buf_add(m, "GATEWAY=%pI4 ", &ich->un.gateway);
-			/* Fall through */
+			fallthrough;
 		case ICMP_DEST_UNREACH:
 		case ICMP_SOURCE_QUENCH:
 		case ICMP_TIME_EXCEEDED:
@@ -299,8 +299,8 @@ static void dump_ipv4_mac_header(struct nf_log_buf *m,
 
 fallback:
 	nf_log_buf_add(m, "MAC=");
-	if (dev->hard_header_len &&
-	    skb->mac_header != skb->network_header) {
+	if (dev->hard_header_len && skb_mac_header_was_set(skb) &&
+	    skb_mac_header_len(skb) != 0) {
 		const unsigned char *p = skb_mac_header(skb);
 		unsigned int i;
 

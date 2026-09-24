@@ -561,7 +561,7 @@ static int qdisc_dump_stab(struct sk_buff *skb, struct qdisc_size_table *stab)
 {
 	struct nlattr *nest;
 
-	nest = nla_nest_start(skb, TCA_STAB);
+	nest = nla_nest_start_noflag(skb, TCA_STAB);
 	if (nest == NULL)
 		goto nla_put_failure;
 	if (nla_put(skb, TCA_STAB_BASE, sizeof(stab->szopts), &stab->szopts))
@@ -1758,7 +1758,7 @@ static int tc_dump_qdisc(struct sk_buff *skb, struct netlink_callback *cb)
 	ASSERT_RTNL();
 
 	err = nlmsg_parse_deprecated(nlh, sizeof(struct tcmsg), tca, TCA_MAX,
-				     rtm_tca_policy, NULL);
+				     rtm_tca_policy, cb->extack);
 	if (err < 0)
 		return err;
 

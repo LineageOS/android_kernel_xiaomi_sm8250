@@ -160,7 +160,7 @@ struct fanotify_event_info *fanotify_alloc_event(struct fsnotify_group *group,
 		gfp |= __GFP_RETRY_MAYFAIL;
 
 	/* Whoever is interested in the event, pays for the allocation. */
-	memalloc_use_memcg(group->memcg);
+	old_memcg = set_active_memcg(group->memcg);
 
 	if (fanotify_is_perm_event(mask)) {
 		struct fanotify_perm_event_info *pevent;
@@ -186,7 +186,7 @@ init: __maybe_unused
 		event->path.dentry = NULL;
 	}
 out:
-	memalloc_unuse_memcg();
+	set_active_memcg(old_memcg);
 	return event;
 }
 

@@ -224,9 +224,14 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
 		return s->addr;
 	}
 
+	/*
+	 * Allocated stacks are cached and later reused by new threads,
+	 * so memcg accounting is performed manually on assigning/releasing
+	 * stacks to tasks. Drop __GFP_ACCOUNT.
+	 */
 	stack = __vmalloc_node_range(THREAD_SIZE, THREAD_ALIGN,
 				     VMALLOC_START, VMALLOC_END,
-				     THREADINFO_GFP,
+				     THREADINFO_GFP & ~__GFP_ACCOUNT,
 				     PAGE_KERNEL,
 				     0, node, __builtin_return_address(0));
 
@@ -255,8 +260,18 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
 static inline void free_thread_stack(struct task_struct *tsk)
 {
 #ifdef CONFIG_VMAP_STACK
-	if (task_stack_vm_area(tsk)) {
+	struct vm_struct *vm = task_stack_vm_area(tsk);
+
+	if (vm) {
 		int i;
+
+		for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
+			mod_memcg_page_state(vm->pages[i],
+					     MEMCG_KERNEL_STACK_KB,
+					     -(int)(PAGE_SIZE / 1024));
+
+			memcg_kmem_uncharge_page(vm->pages[i], 0);
+		}
 
 		for (i = 0; i < NR_CACHED_STACKS; i++) {
 			if (this_cpu_cmpxchg(cached_stacks[i],
@@ -361,10 +376,6 @@ static void account_kernel_stack(struct task_struct *tsk, int account)
 					    NR_KERNEL_STACK_KB,
 					    PAGE_SIZE / 1024 * account);
 		}
-
-		/* All stack pages belong to the same memcg. */
-		mod_memcg_page_state(vm->pages[0], MEMCG_KERNEL_STACK_KB,
-				     account * (THREAD_SIZE / 1024));
 	} else {
 		/*
 		 * All stack pages are in the same zone and belong to the
@@ -378,6 +389,36 @@ static void account_kernel_stack(struct task_struct *tsk, int account)
 		mod_memcg_page_state(first_page, MEMCG_KERNEL_STACK_KB,
 				     account * (THREAD_SIZE / 1024));
 	}
+}
+
+static int memcg_charge_kernel_stack(struct task_struct *tsk)
+{
+#ifdef CONFIG_VMAP_STACK
+	struct vm_struct *vm = task_stack_vm_area(tsk);
+	int ret;
+
+	if (vm) {
+		int i;
+
+		for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
+			/*
+			 * If memcg_kmem_charge_page() fails, page's
+			 * memory cgroup pointer is NULL, and
+			 * memcg_kmem_uncharge_page() in free_thread_stack()
+			 * will ignore this page.
+			 */
+			ret = memcg_kmem_charge_page(vm->pages[i], GFP_KERNEL,
+						     0);
+			if (ret)
+				return ret;
+
+			mod_memcg_page_state(vm->pages[i],
+					     MEMCG_KERNEL_STACK_KB,
+					     PAGE_SIZE / 1024);
+		}
+	}
+#endif
+	return 0;
 }
 
 static void release_task_stack(struct task_struct *tsk)
@@ -449,7 +490,7 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 	/*
 	 * Not linked in yet - no deadlock potential:
 	 */
-	down_write_nested(&mm->mmap_sem, SINGLE_DEPTH_NESTING);
+	down_write_nested(&mm->mmap_lock, SINGLE_DEPTH_NESTING);
 
 	/* No ordering required: file already has been exposed. */
 	RCU_INIT_POINTER(mm->exe_file, get_mm_exe_file(oldmm));
@@ -826,6 +867,9 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	stack = alloc_thread_stack_node(tsk, node);
 	if (!stack)
 		goto free_tsk;
+
+	if (memcg_charge_kernel_stack(tsk))
+		goto free_stack;
 
 	stack_vm_area = task_stack_vm_area(tsk);
 
@@ -1461,6 +1505,11 @@ static int copy_sighand(unsigned long clone_flags, struct task_struct *tsk)
 	spin_lock_irq(&current->sighand->siglock);
 	memcpy(sig->action, current->sighand->action, sizeof(sig->action));
 	spin_unlock_irq(&current->sighand->siglock);
+
+	/* Reset all signal handler not set to SIG_IGN to SIG_DFL. */
+	if (clone_flags & CLONE_CLEAR_SIGHAND)
+		flush_signal_handlers(tsk, 0);
+
 	return 0;
 }
 
@@ -1668,6 +1717,14 @@ static __always_inline void delayed_free_task(struct task_struct *tsk)
 		free_task(tsk);
 }
 
+struct pid *pidfd_pid(const struct file *file)
+{
+	if (file->f_op == &pidfd_fops)
+		return file->private_data;
+
+	return ERR_PTR(-EBADF);
+}
+
 static int pidfd_release(struct inode *inode, struct file *file)
 {
 	struct pid *pid = file->private_data;
@@ -1744,20 +1801,17 @@ static void copy_oom_score_adj(u64 clone_flags, struct task_struct *tsk)
  * parts of the process environment (as per the clone
  * flags). The actual kick-off is left to the caller.
  */
+
 static __latent_entropy struct task_struct *copy_process(
-					unsigned long clone_flags,
-					unsigned long stack_start,
-					unsigned long stack_size,
-					int __user *parent_tidptr,
-					int __user *child_tidptr,
 					struct pid *pid,
 					int trace,
-					unsigned long tls,
-					int node)
+					int node,
+					struct kernel_clone_args *args)
 {
 	int pidfd = -1, retval;
 	struct task_struct *p;
 	struct multiprocess_signals delayed;
+	u64 clone_flags = args->flags;
 	struct file *pidfile = NULL;
 
 	/*
@@ -1808,14 +1862,11 @@ static __latent_entropy struct task_struct *copy_process(
 
 	if (clone_flags & CLONE_PIDFD) {
 		/*
-		 * - CLONE_PARENT_SETTID is useless for pidfds and also
-		 *   parent_tidptr is used to return pidfds.
 		 * - CLONE_DETACHED is blocked so that we can potentially
 		 *   reuse it later for CLONE_PIDFD.
 		 * - CLONE_THREAD is blocked until someone really needs it.
 		 */
-		if (clone_flags &
-		    (CLONE_DETACHED | CLONE_PARENT_SETTID | CLONE_THREAD))
+		if (clone_flags & (CLONE_DETACHED | CLONE_THREAD))
 			return ERR_PTR(-EINVAL);
 	}
 
@@ -1850,11 +1901,11 @@ static __latent_entropy struct task_struct *copy_process(
 	 * p->set_child_tid which is (ab)used as a kthread's data pointer for
 	 * kernel threads (PF_KTHREAD).
 	 */
-	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
+	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? args->child_tid : NULL;
 	/*
 	 * Clear TID on mm_release()?
 	 */
-	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
+	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? args->child_tid : NULL;
 
 	ftrace_graph_init_task(p);
 
@@ -2013,12 +2064,14 @@ static __latent_entropy struct task_struct *copy_process(
 	retval = copy_io(clone_flags, p);
 	if (retval)
 		goto bad_fork_cleanup_namespaces;
-	retval = copy_thread_tls(clone_flags, stack_start, stack_size, p, tls);
+	retval = copy_thread_tls(clone_flags, args->stack, args->stack_size, p,
+				 args->tls);
 	if (retval)
 		goto bad_fork_cleanup_io;
 
 	if (pid != &init_struct_pid) {
-		pid = alloc_pid(p->nsproxy->pid_ns_for_children);
+		pid = alloc_pid(p->nsproxy->pid_ns_for_children, args->set_tid,
+				args->set_tid_size);
 		if (IS_ERR(pid)) {
 			retval = PTR_ERR(pid);
 			goto bad_fork_cleanup_thread;
@@ -2046,7 +2099,7 @@ static __latent_entropy struct task_struct *copy_process(
 		}
 		get_pid(pid);	/* held by pidfile now */
 
-		retval = put_user(pidfd, parent_tidptr);
+		retval = put_user(pidfd, args->pidfd);
 		if (retval)
 			goto bad_fork_put_pidfd;
 	}
@@ -2130,7 +2183,7 @@ static __latent_entropy struct task_struct *copy_process(
 	} else {
 		p->real_parent = current;
 		p->parent_exec_id = current->self_exec_id;
-		p->exit_signal = (clone_flags & CSIGNAL);
+		p->exit_signal = args->exit_signal;
 	}
 
 	klp_copy_process(p);
@@ -2298,8 +2351,11 @@ static inline void init_idle_pids(struct task_struct *idle)
 struct task_struct *fork_idle(int cpu)
 {
 	struct task_struct *task;
-	task = copy_process(CLONE_VM, 0, 0, NULL, NULL, &init_struct_pid, 0, 0,
-			    cpu_to_node(cpu));
+	struct kernel_clone_args args = {
+		.flags = CLONE_VM,
+	};
+
+	task = copy_process(&init_struct_pid, 0, cpu_to_node(cpu), &args);
 	if (!IS_ERR(task)) {
 		init_idle_pids(task);
 		init_idle(task, cpu);
@@ -2314,13 +2370,9 @@ struct task_struct *fork_idle(int cpu)
  * It copies the process, and if successful kick-starts
  * it and waits for it to finish using the VM if required.
  */
-long _do_fork(unsigned long clone_flags,
-	      unsigned long stack_start,
-	      unsigned long stack_size,
-	      int __user *parent_tidptr,
-	      int __user *child_tidptr,
-	      unsigned long tls)
+long _do_fork(struct kernel_clone_args *args)
 {
+	u64 clone_flags = args->flags;
 	struct completion vfork;
 	struct pid *pid;
 	struct task_struct *p;
@@ -2336,7 +2388,7 @@ long _do_fork(unsigned long clone_flags,
 	if (!(clone_flags & CLONE_UNTRACED)) {
 		if (clone_flags & CLONE_VFORK)
 			trace = PTRACE_EVENT_VFORK;
-		else if ((clone_flags & CSIGNAL) != SIGCHLD)
+		else if (args->exit_signal != SIGCHLD)
 			trace = PTRACE_EVENT_CLONE;
 		else
 			trace = PTRACE_EVENT_FORK;
@@ -2345,8 +2397,7 @@ long _do_fork(unsigned long clone_flags,
 			trace = 0;
 	}
 
-	p = copy_process(clone_flags, stack_start, stack_size, parent_tidptr,
-			 child_tidptr, NULL, trace, tls, NUMA_NO_NODE);
+	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
 	add_latent_entropy();
 
 	if (IS_ERR(p))
@@ -2364,7 +2415,7 @@ long _do_fork(unsigned long clone_flags,
 	nr = pid_vnr(pid);
 
 	if (clone_flags & CLONE_PARENT_SETTID)
-		put_user(nr, parent_tidptr);
+		put_user(nr, args->parent_tid);
 
 	if (clone_flags & CLONE_VFORK) {
 		p->vfork_done = &vfork;
@@ -2387,6 +2438,16 @@ long _do_fork(unsigned long clone_flags,
 	return nr;
 }
 
+bool legacy_clone_args_valid(const struct kernel_clone_args *kargs)
+{
+	/* clone(CLONE_PIDFD) uses parent_tidptr to return a pidfd */
+	if ((kargs->flags & CLONE_PIDFD) &&
+	    (kargs->flags & CLONE_PARENT_SETTID))
+		return false;
+
+	return true;
+}
+
 #ifndef CONFIG_HAVE_COPY_THREAD_TLS
 /* For compatibility with architectures that call do_fork directly rather than
  * using the syscall entry points below. */
@@ -2396,8 +2457,20 @@ long do_fork(unsigned long clone_flags,
 	      int __user *parent_tidptr,
 	      int __user *child_tidptr)
 {
-	return _do_fork(clone_flags, stack_start, stack_size,
-			parent_tidptr, child_tidptr, 0);
+	struct kernel_clone_args args = {
+		.flags		= (clone_flags & ~CSIGNAL),
+		.pidfd		= parent_tidptr,
+		.child_tid	= child_tidptr,
+		.parent_tid	= parent_tidptr,
+		.exit_signal	= (clone_flags & CSIGNAL),
+		.stack		= stack_start,
+		.stack_size	= stack_size,
+	};
+
+	if (!legacy_clone_args_valid(&args))
+		return -EINVAL;
+
+	return _do_fork(&args);
 }
 #endif
 
@@ -2406,15 +2479,25 @@ long do_fork(unsigned long clone_flags,
  */
 pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 {
-	return _do_fork(flags|CLONE_VM|CLONE_UNTRACED, (unsigned long)fn,
-		(unsigned long)arg, NULL, NULL, 0);
+	struct kernel_clone_args args = {
+		.flags		= ((flags | CLONE_VM | CLONE_UNTRACED) & ~CSIGNAL),
+		.exit_signal	= (flags & CSIGNAL),
+		.stack		= (unsigned long)fn,
+		.stack_size	= (unsigned long)arg,
+	};
+
+	return _do_fork(&args);
 }
 
 #ifdef __ARCH_WANT_SYS_FORK
 SYSCALL_DEFINE0(fork)
 {
 #ifdef CONFIG_MMU
-	return _do_fork(SIGCHLD, 0, 0, NULL, NULL, 0);
+	struct kernel_clone_args args = {
+		.exit_signal = SIGCHLD,
+	};
+
+	return _do_fork(&args);
 #else
 	/* can not support in nommu mode */
 	return -EINVAL;
@@ -2425,8 +2508,12 @@ SYSCALL_DEFINE0(fork)
 #ifdef __ARCH_WANT_SYS_VFORK
 SYSCALL_DEFINE0(vfork)
 {
-	return _do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD, 0,
-			0, NULL, NULL, 0);
+	struct kernel_clone_args args = {
+		.flags		= CLONE_VFORK | CLONE_VM,
+		.exit_signal	= SIGCHLD,
+	};
+
+	return _do_fork(&args);
 }
 #endif
 
@@ -2454,7 +2541,152 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
 		 unsigned long, tls)
 #endif
 {
-	return _do_fork(clone_flags, newsp, 0, parent_tidptr, child_tidptr, tls);
+	struct kernel_clone_args args = {
+		.flags		= (clone_flags & ~CSIGNAL),
+		.pidfd		= parent_tidptr,
+		.child_tid	= child_tidptr,
+		.parent_tid	= parent_tidptr,
+		.exit_signal	= (clone_flags & CSIGNAL),
+		.stack		= newsp,
+		.tls		= tls,
+	};
+
+	if (!legacy_clone_args_valid(&args))
+		return -EINVAL;
+
+	return _do_fork(&args);
+}
+#endif
+
+#ifdef __ARCH_WANT_SYS_CLONE3
+noinline static int copy_clone_args_from_user(struct kernel_clone_args *kargs,
+					      struct clone_args __user *uargs,
+					      size_t usize)
+{
+	int err;
+	struct clone_args args;
+	pid_t *kset_tid = kargs->set_tid;
+
+	if (unlikely(usize > PAGE_SIZE))
+		return -E2BIG;
+	if (unlikely(usize < CLONE_ARGS_SIZE_VER0))
+		return -EINVAL;
+
+	err = copy_struct_from_user(&args, sizeof(args), uargs, usize);
+	if (err)
+		return err;
+
+	if (unlikely(args.set_tid_size > MAX_PID_NS_LEVEL))
+		return -EINVAL;
+
+	if (unlikely(!args.set_tid && args.set_tid_size > 0))
+		return -EINVAL;
+
+	if (unlikely(args.set_tid && args.set_tid_size == 0))
+		return -EINVAL;
+
+	/*
+	 * Verify that higher 32bits of exit_signal are unset and that
+	 * it is a valid signal
+	 */
+	if (unlikely((args.exit_signal & ~((u64)CSIGNAL)) ||
+		     !valid_signal(args.exit_signal)))
+		return -EINVAL;
+
+	*kargs = (struct kernel_clone_args){
+		.flags		= args.flags,
+		.pidfd		= u64_to_user_ptr(args.pidfd),
+		.child_tid	= u64_to_user_ptr(args.child_tid),
+		.parent_tid	= u64_to_user_ptr(args.parent_tid),
+		.exit_signal	= args.exit_signal,
+		.stack		= args.stack,
+		.stack_size	= args.stack_size,
+		.tls		= args.tls,
+		.set_tid_size	= args.set_tid_size,
+	};
+
+	if (args.set_tid &&
+		copy_from_user(kset_tid, u64_to_user_ptr(args.set_tid),
+			(kargs->set_tid_size * sizeof(pid_t))))
+		return -EFAULT;
+
+	kargs->set_tid = kset_tid;
+
+	return 0;
+}
+
+/**
+ * clone3_stack_valid - check and prepare stack
+ * @kargs: kernel clone args
+ *
+ * Verify that the stack arguments userspace gave us are sane.
+ * In addition, set the stack direction for userspace since it's easy for us to
+ * determine.
+ */
+static inline bool clone3_stack_valid(struct kernel_clone_args *kargs)
+{
+	if (kargs->stack == 0) {
+		if (kargs->stack_size > 0)
+			return false;
+	} else {
+		if (kargs->stack_size == 0)
+			return false;
+
+		if (!access_ok(VERIFY_WRITE, (void __user *)kargs->stack, kargs->stack_size))
+			return false;
+
+#if !defined(CONFIG_STACK_GROWSUP) && !defined(CONFIG_IA64)
+		kargs->stack += kargs->stack_size;
+#endif
+	}
+
+	return true;
+}
+
+static bool clone3_args_valid(struct kernel_clone_args *kargs)
+{
+	/* Verify that no unknown flags are passed along. */
+	if (kargs->flags & ~(CLONE_LEGACY_FLAGS | CLONE_CLEAR_SIGHAND))
+		return false;
+
+	/*
+	 * - make the CLONE_DETACHED bit reuseable for clone3
+	 * - make the CSIGNAL bits reuseable for clone3
+	 */
+	if (kargs->flags & (CLONE_DETACHED | CSIGNAL))
+		return false;
+
+	if ((kargs->flags & (CLONE_SIGHAND | CLONE_CLEAR_SIGHAND)) ==
+	    (CLONE_SIGHAND | CLONE_CLEAR_SIGHAND))
+		return false;
+
+	if ((kargs->flags & (CLONE_THREAD | CLONE_PARENT)) &&
+	    kargs->exit_signal)
+		return false;
+
+	if (!clone3_stack_valid(kargs))
+		return false;
+
+	return true;
+}
+
+SYSCALL_DEFINE2(clone3, struct clone_args __user *, uargs, size_t, size)
+{
+	int err;
+
+	struct kernel_clone_args kargs;
+	pid_t set_tid[MAX_PID_NS_LEVEL];
+
+	kargs.set_tid = set_tid;
+
+	err = copy_clone_args_from_user(&kargs, uargs, size);
+	if (err)
+		return err;
+
+	if (!clone3_args_valid(&kargs))
+		return -EINVAL;
+
+	return _do_fork(&kargs);
 }
 #endif
 
@@ -2584,7 +2816,7 @@ static int unshare_fs(unsigned long unshare_flags, struct fs_struct **new_fsp)
 		return 0;
 
 	/* don't need lock here; in the worst case we'll do useless copy */
-	if (fs->users == 1)
+	if (!(unshare_flags & CLONE_NEWNS) && fs->users == 1)
 		return 0;
 
 	*new_fsp = copy_fs_struct(fs);

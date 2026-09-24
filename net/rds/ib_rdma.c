@@ -43,7 +43,7 @@ struct workqueue_struct *rds_ib_mr_wq;
 static DEFINE_PER_CPU(unsigned long, clean_list_grace);
 #define CLEAN_LIST_BUSY_BIT 0
 
-static struct rds_ib_device *rds_ib_get_device(__be32 ipaddr)
+struct rds_ib_device *rds_ib_get_device(__be32 ipaddr)
 {
 	struct rds_ib_device *rds_ibdev;
 	struct rds_ib_ipaddr *i_ipaddr;

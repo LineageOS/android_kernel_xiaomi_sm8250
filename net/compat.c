@@ -331,7 +331,7 @@ static int __compat_sys_setsockopt(int fd, int level, int optname,
 
 		if (level == SOL_SOCKET)
 			err = sock_setsockopt(sock, level,
-					optname, optval, optlen);
+					optname, USER_SOCKPTR(optval), optlen);
 		else if (sock->ops->compat_setsockopt)
 			err = sock->ops->compat_setsockopt(sock, level,
 					optname, optval, optlen);

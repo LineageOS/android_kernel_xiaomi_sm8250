@@ -45,7 +45,7 @@
 #include <uapi/linux/dma-buf.h>
 #include <uapi/linux/magic.h>
 
-static inline int is_dma_buf_file(struct file *);
+#include "dma-buf-sysfs-stats.h"
 
 struct dma_buf_list {
 	struct list_head head;
@@ -105,6 +105,8 @@ static void dma_buf_release(struct dentry *dentry)
 	int dtor_ret = 0;
 
 	dmabuf = dentry->d_fsdata;
+	if (unlikely(!dmabuf))
+		return;
 
 	spin_lock(&dentry->d_lock);
 	dentry->d_fsdata = NULL;
@@ -135,6 +137,9 @@ static void dma_buf_release(struct dentry *dentry)
 	if (dmabuf->resv == (struct reservation_object *)&dmabuf[1])
 		reservation_object_fini(dmabuf->resv);
 
+	dma_buf_stats_teardown(dmabuf);
+
+	WARN_ON(!list_empty(&dmabuf->attachments));
 	module_put(dmabuf->owner);
 	dmabuf_dent_put(dmabuf);
 }
@@ -167,8 +172,8 @@ static int dma_buf_fs_init_context(struct fs_context *fc)
 	struct pseudo_fs_context *ctx;
 
 	ctx = init_pseudo(fc, DMA_BUF_MAGIC);
-		if (!ctx)
-			return -ENOMEM;
+	if (!ctx)
+		return -ENOMEM;
 	ctx->dops = &dma_buf_dentry_ops;
 	return 0;
 }
@@ -187,6 +192,10 @@ static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
 		return -EINVAL;
 
 	dmabuf = file->private_data;
+
+	/* check if buffer supports mmap */
+	if (!dmabuf->ops->mmap)
+		return -EINVAL;
 
 	/* check for overflowing the buffer's size */
 	if (vma->vm_pgoff + vma_pages(vma) >
@@ -404,8 +413,10 @@ static long dma_buf_set_name(struct dma_buf *dmabuf, const char __user *buf)
 		kfree(name);
 		goto out_unlock;
 	}
+	spin_lock(&dmabuf->name_lock);
 	kfree(dmabuf->name);
 	dmabuf->name = name;
+	spin_unlock(&dmabuf->name_lock);
 
 out_unlock:
 	spin_unlock(&dmabuf->name_lock);
@@ -503,10 +514,11 @@ static const struct file_operations dma_buf_fops = {
 /*
  * is_dma_buf_file - Check if struct file* is associated with dma_buf
  */
-static inline int is_dma_buf_file(struct file *file)
+int is_dma_buf_file(struct file *file)
 {
 	return file->f_op == &dma_buf_fops;
 }
+EXPORT_SYMBOL_GPL(is_dma_buf_file);
 
 static struct file *dma_buf_getfile(struct dma_buf *dmabuf, int flags)
 {
@@ -600,9 +612,7 @@ struct dma_buf *dma_buf_export(const struct dma_buf_export_info *exp_info)
 			  || !exp_info->ops
 			  || !exp_info->ops->map_dma_buf
 			  || !exp_info->ops->unmap_dma_buf
-			  || !exp_info->ops->release
-			  || !exp_info->ops->map
-			  || !exp_info->ops->mmap)) {
+			  || !exp_info->ops->release)) {
 		return ERR_PTR(-EINVAL);
 	}
 
@@ -621,6 +631,7 @@ struct dma_buf *dma_buf_export(const struct dma_buf_export_info *exp_info)
 	dmabuf->size = exp_info->size;
 	dmabuf->exp_name = exp_info->exp_name;
 	dmabuf->owner = exp_info->owner;
+	spin_lock_init(&dmabuf->name_lock);
 	init_waitqueue_head(&dmabuf->poll);
 	dmabuf->cb_excl.poll = dmabuf->cb_shared.poll = &dmabuf->poll;
 	dmabuf->cb_excl.active = dmabuf->cb_shared.active = 0;
@@ -655,8 +666,19 @@ struct dma_buf *dma_buf_export(const struct dma_buf_export_info *exp_info)
 	list_add(&dmabuf->list_node, &db_list.head);
 	mutex_unlock(&db_list.lock);
 
+	ret = dma_buf_stats_setup(dmabuf);
+	if (ret)
+		goto err_sysfs;
+
 	return dmabuf;
 
+err_sysfs:
+	/*
+	 * Set file->f_path.dentry->d_fsdata to NULL so that when
+	 * dma_buf_release() gets invoked by dentry_ops, it exits
+	 * early before calling the release() dma_buf op.
+	 */
+	file->f_path.dentry->d_fsdata = NULL;
 err_dmabuf:
 	kfree(dmabuf);
 err_module:
@@ -780,11 +802,15 @@ struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
 	list_add(&attach->node, &dmabuf->attachments);
 
 	mutex_unlock(&dmabuf->lock);
+
 	return attach;
 
 err_attach:
 	kfree(attach);
 	mutex_unlock(&dmabuf->lock);
+	return ERR_PTR(ret);
+
+	dma_buf_detach(dmabuf, attach);
 	return ERR_PTR(ret);
 }
 EXPORT_SYMBOL_GPL(dma_buf_attach);
@@ -801,6 +827,10 @@ void dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
 {
 	if (WARN_ON(!dmabuf || !attach))
 		return;
+
+	if (attach->sgt) {
+		dmabuf->ops->unmap_dma_buf(attach, attach->sgt, attach->dir);
+	}
 
 	mutex_lock(&dmabuf->lock);
 	list_del(&attach->node);
@@ -837,9 +867,26 @@ struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
 	if (WARN_ON(!attach || !attach->dmabuf))
 		return ERR_PTR(-EINVAL);
 
+	if (attach->sgt) {
+		/*
+		 * Two mappings with different directions for the same
+		 * attachment are not allowed.
+		 */
+		if (attach->dir != direction &&
+		    attach->dir != DMA_BIDIRECTIONAL)
+			return ERR_PTR(-EBUSY);
+
+		return attach->sgt;
+	}
+
 	sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
 	if (!sg_table)
 		sg_table = ERR_PTR(-ENOMEM);
+
+	if (!IS_ERR(sg_table) && attach->dmabuf->ops->cache_sgt_mapping) {
+		attach->sgt = sg_table;
+		attach->dir = direction;
+	}
 
 	return sg_table;
 }
@@ -864,8 +911,10 @@ void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
 	if (WARN_ON(!attach || !attach->dmabuf || !sg_table))
 		return;
 
-	attach->dmabuf->ops->unmap_dma_buf(attach, sg_table,
-						direction);
+	if (attach->sgt == sg_table)
+		return;
+
+	attach->dmabuf->ops->unmap_dma_buf(attach, sg_table, direction);
 }
 EXPORT_SYMBOL_GPL(dma_buf_unmap_attachment);
 
@@ -1188,6 +1237,10 @@ int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
 	if (WARN_ON(!dmabuf || !vma))
 		return -EINVAL;
 
+	/* check if buffer supports mmap */
+	if (!dmabuf->ops->mmap)
+		return -EINVAL;
+
 	/* check for offset overflow */
 	if (pgoff + vma_pages(vma) < pgoff)
 		return -EOVERFLOW;
@@ -1406,17 +1459,7 @@ static int dma_buf_debug_show(struct seq_file *s, void *unused)
 	return 0;
 }
 
-static int dma_buf_debug_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, dma_buf_debug_show, NULL);
-}
-
-static const struct file_operations dma_buf_debug_fops = {
-	.open           = dma_buf_debug_open,
-	.read           = seq_read,
-	.llseek         = seq_lseek,
-	.release        = single_release,
-};
+DEFINE_SHOW_ATTRIBUTE(dma_buf_debug);
 
 static int get_dma_info(const void *data, struct file *file, unsigned int n)
 {
@@ -1606,6 +1649,12 @@ static inline void dma_buf_uninit_debugfs(void)
 
 static int __init dma_buf_init(void)
 {
+	int ret;
+
+	ret = dma_buf_init_sysfs_statistics();
+	if (ret)
+		return ret;
+
 	dma_buf_mnt = kern_mount(&dma_buf_fs_type);
 	if (IS_ERR(dma_buf_mnt))
 		return PTR_ERR(dma_buf_mnt);
@@ -1621,5 +1670,6 @@ static void __exit dma_buf_deinit(void)
 {
 	dma_buf_uninit_debugfs();
 	kern_unmount(dma_buf_mnt);
+	dma_buf_uninit_sysfs_statistics();
 }
 __exitcall(dma_buf_deinit);

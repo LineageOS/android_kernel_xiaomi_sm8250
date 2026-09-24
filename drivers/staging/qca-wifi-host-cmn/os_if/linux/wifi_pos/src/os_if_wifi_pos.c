@@ -199,7 +199,7 @@ static void os_if_wifi_pos_send_peer_nl_status(uint32_t pid, uint8_t *buf)
 
 	nla_put_u32(msg, CLD80211_ATTR_CMD,
 			 CLD80211_VENDOR_SUB_CMD_PEER_STATUS_IND);
-	nest2 = nla_nest_start(msg, CLD80211_ATTR_CMD_TAG_DATA);
+	nest2 = nla_nest_start_noflag(msg, CLD80211_ATTR_CMD_TAG_DATA);
 	if (!nest2) {
 		osif_err("nla_nest_start failed");
 		dev_kfree_skb(msg);
@@ -216,7 +216,7 @@ static void os_if_wifi_pos_send_peer_nl_status(uint32_t pid, uint8_t *buf)
 						peer_info->peer_capability);
 	nla_put_u32(msg, CLD80211_SUB_ATTR_PEER_RESERVED,
 							peer_info->reserved0);
-	nest3 = nla_nest_start(msg, CLD80211_SUB_ATTR_PEER_CHAN_INFO);
+	nest3 = nla_nest_start_noflag(msg, CLD80211_SUB_ATTR_PEER_CHAN_INFO);
 	if (!nest3) {
 		osif_err("nla_nest_start failed");
 		dev_kfree_skb(msg);
@@ -262,7 +262,7 @@ static void os_if_send_cap_nl_resp(uint32_t pid, uint8_t *buf)
 	map_wifi_pos_cmd_to_cld_vendor_sub_cmd(WIFI_POS_CMD_GET_CAPS));
 
 	cap_rsp = (struct wifi_pos_oem_get_cap_rsp *)(buf);
-	nest2 = nla_nest_start(msg, CLD80211_ATTR_CMD_TAG_DATA);
+	nest2 = nla_nest_start_noflag(msg, CLD80211_ATTR_CMD_TAG_DATA);
 
 	if (!nest2) {
 		osif_err("nla_nest_start failed");
@@ -372,7 +372,7 @@ os_if_create_ch_nl_resp(uint32_t pid, uint8_t *buf, uint16_t num_chan,
 	nla_put_u32(msg, CLD80211_ATTR_CMD,
 		    CLD80211_VENDOR_SUB_CMD_GET_CH_INFO);
 
-	nest2 = nla_nest_start(msg, CLD80211_ATTR_CMD_TAG_DATA);
+	nest2 = nla_nest_start_noflag(msg, CLD80211_ATTR_CMD_TAG_DATA);
 	if (!nest2)
 		goto fail;
 
@@ -381,11 +381,11 @@ os_if_create_ch_nl_resp(uint32_t pid, uint8_t *buf, uint16_t num_chan,
 
 	nla_put_u32(msg, CLD80211_SUB_ATTR_CHANNEL_NUM_CHAN, num_chan);
 
-	nest3 = nla_nest_start(msg, CLD80211_SUB_ATTR_CH_LIST);
+	nest3 = nla_nest_start_noflag(msg, CLD80211_SUB_ATTR_CH_LIST);
 	if (!nest3)
 		goto fail;
 	for (i = 0; i < num_chan; i++) {
-		nest4 = nla_nest_start(msg, i);
+		nest4 = nla_nest_start_noflag(msg, i);
 		if (!nest4)
 			goto fail;
 
@@ -467,7 +467,7 @@ os_if_create_oemdata_resp(uint32_t pid, uint8_t *buf, bool frag_resp,
 
 	nla_put_u32(msg, CLD80211_ATTR_CMD, CLD80211_VENDOR_SUB_CMD_OEM_DATA);
 
-	nest2 = nla_nest_start(msg, CLD80211_ATTR_CMD_TAG_DATA);
+	nest2 = nla_nest_start_noflag(msg, CLD80211_ATTR_CMD_TAG_DATA);
 	if (!nest2)
 		goto fail;
 

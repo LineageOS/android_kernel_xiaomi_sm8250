@@ -461,17 +461,15 @@ static int sock_map_fd(struct socket *sock, int flags)
 /**
  *	sock_from_file - Return the &socket bounded to @file.
  *	@file: file
- *	@err: pointer to an error code return
  *
- *	On failure returns %NULL and assigns -ENOTSOCK to @err.
+ *	On failure returns %NULL.
  */
 
-struct socket *sock_from_file(struct file *file, int *err)
+struct socket *sock_from_file(struct file *file)
 {
 	if (file->f_op == &socket_file_ops)
 		return file->private_data;	/* set in sock_map_fd */
 
-	*err = -ENOTSOCK;
 	return NULL;
 }
 EXPORT_SYMBOL(sock_from_file);
@@ -500,9 +498,11 @@ struct socket *sockfd_lookup(int fd, int *err)
 		return NULL;
 	}
 
-	sock = sock_from_file(file, err);
-	if (!sock)
+	sock = sock_from_file(file);
+	if (!sock) {
+		*err = -ENOTSOCK;
 		fput(file);
+	}
 	return sock;
 }
 EXPORT_SYMBOL(sockfd_lookup);
@@ -514,11 +514,12 @@ static struct socket *sockfd_lookup_light(int fd, int *err, int *fput_needed)
 
 	*err = -EBADF;
 	if (f.file) {
-		sock = sock_from_file(f.file, err);
+		sock = sock_from_file(f.file);
 		if (likely(sock)) {
 			*fput_needed = f.flags & FDPUT_FPUT;
 			return sock;
 		}
+		*err = -ENOTSOCK;
 		fdput(f);
 	}
 	return NULL;
@@ -754,12 +755,13 @@ EXPORT_SYMBOL(kernel_sendmsg_locked);
 
 static bool skb_is_err_queue(const struct sk_buff *skb)
 {
-	/* pkt_type of skbs enqueued on the error queue are set to
-	 * PACKET_OUTGOING in skb_set_err_queue(). This is only safe to do
-	 * in recvmsg, since skbs received on a local socket will never
-	 * have a pkt_type of PACKET_OUTGOING.
+	/* Error-queue skbs are marked as PACKET_OUTGOING in
+	 * skb_set_err_queue() and use the destructor installed by
+	 * sock_queue_err_skb(). PACKET_OUTGOING alone is not unique:
+	 * AF_PACKET outgoing taps use the same pkt_type.
 	 */
-	return skb->pkt_type == PACKET_OUTGOING;
+	return skb->pkt_type == PACKET_OUTGOING &&
+	       skb->destructor == sock_rmem_free;
 }
 
 /* On transmit, software and hardware timestamps are returned independently.
@@ -2081,7 +2083,7 @@ static int __sys_setsockopt(int fd, int level, int optname,
 
 		if (level == SOL_SOCKET)
 			err =
-			    sock_setsockopt(sock, level, optname, optval,
+			    sock_setsockopt(sock, level, optname, USER_SOCKPTR(optval),
 					    optlen);
 		else
 			err =
@@ -2103,6 +2105,9 @@ SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
 {
 	return __sys_setsockopt(fd, level, optname, optval, optlen);
 }
+
+INDIRECT_CALLABLE_DECLARE(bool tcp_bpf_bypass_getsockopt(int level,
+							 int optname));
 
 /*
  *	Get a socket option. Because we don't know the option lengths we have
@@ -3654,7 +3659,7 @@ int kernel_setsockopt(struct socket *sock, int level, int optname,
 
 	set_fs(KERNEL_DS);
 	if (level == SOL_SOCKET)
-		err = sock_setsockopt(sock, level, optname, uoptval, optlen);
+		err = sock_setsockopt(sock, level, optname, USER_SOCKPTR(uoptval), optlen);
 	else
 		err = sock->ops->setsockopt(sock, level, optname, uoptval,
 					    optlen);

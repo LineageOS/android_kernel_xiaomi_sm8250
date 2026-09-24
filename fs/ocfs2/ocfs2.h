@@ -383,7 +383,7 @@ struct ocfs2_super
 	struct delayed_work		la_enable_wq;
 
 	/*
-	 * Must hold local alloc i_mutex and osb->osb_lock to change
+	 * Must hold local alloc i_rwsem and osb->osb_lock to change
 	 * local_alloc_bits. Reads can be done under either lock.
 	 */
 	unsigned int local_alloc_bits;
@@ -458,7 +458,7 @@ struct ocfs2_super
 	atomic_t			osb_tl_disable;
 	/*
 	 * How many clusters in our truncate log.
-	 * It must be protected by osb_tl_inode->i_mutex.
+	 * It must be protected by osb_tl_inode->i_rwsem.
 	 */
 	unsigned int truncated_clusters;
 
@@ -480,8 +480,6 @@ struct ocfs2_super
 	/* rb tree root for refcount lock. */
 	struct rb_root	osb_rf_lock_tree;
 	struct ocfs2_refcount_tree *osb_ref_tree_lru;
-
-	struct mutex system_file_mutex;
 
 	/*
 	 * OCFS2 needs to schedule several different types of work which

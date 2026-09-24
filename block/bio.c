@@ -2004,12 +2004,14 @@ EXPORT_SYMBOL(bioset_init_from_src);
 int bio_associate_blkcg_from_page(struct bio *bio, struct page *page)
 {
 	struct cgroup_subsys_state *blkcg_css;
+	struct mem_cgroup *memcg;
 
 	if (unlikely(bio->bi_css))
 		return -EBUSY;
-	if (!page->mem_cgroup)
+	memcg = page_memcg(page);
+	if (!memcg)
 		return 0;
-	blkcg_css = cgroup_get_e_css(page->mem_cgroup->css.cgroup,
+	blkcg_css = cgroup_get_e_css(memcg->css.cgroup,
 				     &io_cgrp_subsys);
 	bio->bi_css = blkcg_css;
 	return 0;

@@ -406,6 +406,12 @@ static inline struct sde_kms *sde_encoder_get_kms(struct drm_encoder *drm_enc)
 	return to_sde_kms(priv->kms);
 }
 
+/**
+ * sde_encoder_trigger_early_wakeup - trigger early wake up
+ * @drm_enc:    Pointer to drm encoder structure
+ */
+void sde_encoder_trigger_early_wakeup(struct drm_encoder *drm_enc);
+
 bool get_sde_encoder_virt_prepare_kickoff(struct drm_connector *connector);
 
 bool get_sde_encoder_virt_ready_kickoff(struct drm_connector *connector);

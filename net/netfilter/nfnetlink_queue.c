@@ -353,7 +353,7 @@ static int nfqnl_put_bridge(struct nf_queue_entry *entry, struct sk_buff *skb)
 	if (skb_vlan_tag_present(entskb)) {
 		struct nlattr *nest;
 
-		nest = nla_nest_start(skb, NFQA_VLAN | NLA_F_NESTED);
+		nest = nla_nest_start(skb, NFQA_VLAN);
 		if (!nest)
 			goto nla_put_failure;
 
@@ -914,6 +914,8 @@ nfqnl_set_mode(struct nfqnl_instance *queue,
 static int
 dev_cmp(struct nf_queue_entry *entry, unsigned long ifindex)
 {
+	if (entry->skb_dev && entry->skb_dev->ifindex == ifindex)
+		return 1;
 	if (entry->state.in)
 		if (entry->state.in->ifindex == ifindex)
 			return 1;
@@ -1221,8 +1223,10 @@ static int nfqnl_recv_verdict(struct net *net, struct sock *ctnl,
 
 	if (entry->state.pf == PF_BRIDGE) {
 		err = nfqa_parse_bridge(entry, nfqa);
-		if (err < 0)
+		if (err < 0) {
+			nfqnl_reinject(entry, NF_DROP);
 			return err;
+		}
 	}
 
 	if (nfqa[NFQA_PAYLOAD]) {

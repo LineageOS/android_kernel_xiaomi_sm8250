@@ -193,7 +193,7 @@ static bool timeline_fence_signaled(struct dma_fence *fence)
 {
 	struct kgsl_timeline_fence *f = to_timeline_fence(fence);
 
-	return !__dma_fence_is_later(fence->seqno, f->timeline->value);
+	return !__dma_fence_is_later(fence->seqno, f->timeline->value, fence->ops);
 }
 
 static bool timeline_fence_enable_signaling(struct dma_fence *fence)

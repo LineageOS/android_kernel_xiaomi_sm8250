@@ -446,6 +446,7 @@ void tipc_disable_l2_media(struct tipc_bearer *b)
 	dev = (struct net_device *)rtnl_dereference(b->media_ptr);
 	dev_remove_pack(&b->pt);
 	RCU_INIT_POINTER(dev->tipc_ptr, NULL);
+	RCU_INIT_POINTER(b->media_ptr, NULL);
 	synchronize_net();
 	dev_put(dev);
 }
@@ -704,14 +705,14 @@ static int __tipc_nl_add_bearer(struct tipc_nl_msg *msg,
 	if (!hdr)
 		return -EMSGSIZE;
 
-	attrs = nla_nest_start(msg->skb, TIPC_NLA_BEARER);
+	attrs = nla_nest_start_noflag(msg->skb, TIPC_NLA_BEARER);
 	if (!attrs)
 		goto msg_full;
 
 	if (nla_put_string(msg->skb, TIPC_NLA_BEARER_NAME, bearer->name))
 		goto attr_msg_full;
 
-	prop = nla_nest_start(msg->skb, TIPC_NLA_BEARER_PROP);
+	prop = nla_nest_start_noflag(msg->skb, TIPC_NLA_BEARER_PROP);
 	if (!prop)
 		goto prop_msg_full;
 	if (nla_put_u32(msg->skb, TIPC_NLA_PROP_PRIO, bearer->priority))
@@ -1069,14 +1070,14 @@ static int __tipc_nl_add_media(struct tipc_nl_msg *msg,
 	if (!hdr)
 		return -EMSGSIZE;
 
-	attrs = nla_nest_start(msg->skb, TIPC_NLA_MEDIA);
+	attrs = nla_nest_start_noflag(msg->skb, TIPC_NLA_MEDIA);
 	if (!attrs)
 		goto msg_full;
 
 	if (nla_put_string(msg->skb, TIPC_NLA_MEDIA_NAME, media->name))
 		goto attr_msg_full;
 
-	prop = nla_nest_start(msg->skb, TIPC_NLA_MEDIA_PROP);
+	prop = nla_nest_start_noflag(msg->skb, TIPC_NLA_MEDIA_PROP);
 	if (!prop)
 		goto prop_msg_full;
 	if (nla_put_u32(msg->skb, TIPC_NLA_PROP_PRIO, media->priority))

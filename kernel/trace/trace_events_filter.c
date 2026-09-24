@@ -762,6 +762,9 @@ static int regex_match_full(char *str, struct regex *r, int len)
 	if (!len)
 		return strcmp(str, r->pattern) == 0;
 
+	if (len < r->len)
+		return 0;
+
 	return strncmp(str, r->pattern, len) == 0;
 }
 
@@ -791,11 +794,9 @@ static int regex_match_end(char *str, struct regex *r, int len)
 	return 0;
 }
 
-static int regex_match_glob(char *str, struct regex *r, int len __maybe_unused)
+static int regex_match_glob(char *str, struct regex *r, int len)
 {
-	if (glob_match(r->pattern, str))
-		return 1;
-	return 0;
+	return glob_match_len(r->pattern, str, len) ? 1 : 0;
 }
 
 /**
@@ -1930,7 +1931,7 @@ static int __ftrace_function_set_filter(int filter, char *buf, int len,
 	/*
 	 * The 'ip' field could have multiple filters set, separated
 	 * either by space or comma. We first cut the filter and apply
-	 * all pieces separatelly.
+	 * all pieces separately.
 	 */
 	re = ftrace_function_filter_re(buf, len, &re_cnt);
 	if (!re)

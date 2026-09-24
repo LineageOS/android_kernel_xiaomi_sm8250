@@ -107,7 +107,7 @@ unsigned int kobjsize(const void *objp)
 	 * The ksize() function is only guaranteed to work for pointers
 	 * returned by kmalloc(). So handle arbitrary pointers here.
 	 */
-	return PAGE_SIZE << compound_order(page);
+	return page_size(page);
 }
 
 static long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,

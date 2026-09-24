@@ -386,18 +386,27 @@ static void tracing_map_elt_init_fields(struct tracing_map_elt *elt)
 	}
 }
 
-static void tracing_map_elt_free(struct tracing_map_elt *elt)
+static void __tracing_map_elt_free(struct tracing_map_elt *elt)
 {
 	if (!elt)
 		return;
 
-	if (elt->map->ops && elt->map->ops->elt_free)
-		elt->map->ops->elt_free(elt);
 	kfree(elt->fields);
 	kfree(elt->vars);
 	kfree(elt->var_set);
 	kfree(elt->key);
 	kfree(elt);
+}
+
+static void tracing_map_elt_free(struct tracing_map_elt *elt)
+{
+	if (!elt)
+		return;
+
+	/* Only objects initialized with alloc_elt() should be passed to free_elt().*/
+	if (elt->map->ops && elt->map->ops->elt_free)
+		elt->map->ops->elt_free(elt);
+	__tracing_map_elt_free(elt);
 }
 
 static struct tracing_map_elt *tracing_map_elt_alloc(struct tracing_map *map)
@@ -444,7 +453,7 @@ static struct tracing_map_elt *tracing_map_elt_alloc(struct tracing_map *map)
 	}
 	return elt;
  free:
-	tracing_map_elt_free(elt);
+	__tracing_map_elt_free(elt);
 
 	return ERR_PTR(err);
 }
@@ -617,7 +626,7 @@ __tracing_map_insert(struct tracing_map *map, void *key, bool lookup_only)
  * signal that state.  There are two user-visible tracing_map
  * variables, 'hits' and 'drops', which are updated by this function.
  * Every time an element is either successfully inserted or retrieved,
- * the 'hits' value is incrememented.  Every time an element insertion
+ * the 'hits' value is incremented.  Every time an element insertion
  * fails, the 'drops' value is incremented.
  *
  * This is a lock-free tracing map insertion function implementing a
@@ -650,9 +659,9 @@ struct tracing_map_elt *tracing_map_insert(struct tracing_map *map, void *key)
  * tracing_map_elt.  This is a lock-free lookup; see
  * tracing_map_insert() for details on tracing_map and how it works.
  * Every time an element is retrieved, the 'hits' value is
- * incrememented.  There is one user-visible tracing_map variable,
+ * incremented.  There is one user-visible tracing_map variable,
  * 'hits', which is updated by this function.  Every time an element
- * is successfully retrieved, the 'hits' value is incrememented.  The
+ * is successfully retrieved, the 'hits' value is incremented.  The
  * 'drops' value is never updated by this function.
  *
  * Return: the tracing_map_elt pointer val associated with the key.

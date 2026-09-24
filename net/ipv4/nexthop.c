@@ -34,6 +34,7 @@ static const struct nla_policy rtm_nh_policy[NHA_MAX + 1] = {
 	[NHA_ENCAP]		= { .type = NLA_NESTED },
 	[NHA_GROUPS]		= { .type = NLA_FLAG },
 	[NHA_MASTER]		= { .type = NLA_U32 },
+	[NHA_FDB]		= { .type = NLA_FLAG },
 };
 
 static unsigned int nh_dev_hashfn(unsigned int val)
@@ -105,7 +106,10 @@ static struct nexthop *nexthop_alloc(void)
 
 	nh = kzalloc(sizeof(struct nexthop), GFP_KERNEL);
 	if (nh) {
+		INIT_LIST_HEAD(&nh->fi_list);
+		INIT_LIST_HEAD(&nh->f6i_list);
 		INIT_LIST_HEAD(&nh->grp_list);
+		INIT_LIST_HEAD(&nh->fdb_list);
 	}
 	return nh;
 }
@@ -226,6 +230,9 @@ static int nh_fill_node(struct sk_buff *skb, struct nexthop *nh,
 	if (nla_put_u32(skb, NHA_ID, nh->id))
 		goto nla_put_failure;
 
+	if (nh->is_fdb_nh && nla_put_flag(skb, NHA_FDB))
+		goto nla_put_failure;
+
 	if (nh->is_group) {
 		struct nh_group *nhg = rtnl_dereference(nh->nh_grp);
 
@@ -240,7 +247,7 @@ static int nh_fill_node(struct sk_buff *skb, struct nexthop *nh,
 		if (nla_put_flag(skb, NHA_BLACKHOLE))
 			goto nla_put_failure;
 		goto out;
-	} else {
+	} else if (!nh->is_fdb_nh) {
 		const struct net_device *dev;
 
 		dev = nhi->fib_nhc.nhc_dev;
@@ -384,12 +391,35 @@ static bool valid_group_nh(struct nexthop *nh, unsigned int npaths,
 	return true;
 }
 
+static int nh_check_attr_fdb_group(struct nexthop *nh, u8 *nh_family,
+				   struct netlink_ext_ack *extack)
+{
+	struct nh_info *nhi;
+
+	if (!nh->is_fdb_nh) {
+		NL_SET_ERR_MSG(extack, "FDB nexthop group can only have fdb nexthops");
+		return -EINVAL;
+	}
+
+	nhi = rtnl_dereference(nh->nh_info);
+	if (*nh_family == AF_UNSPEC) {
+		*nh_family = nhi->family;
+	} else if (*nh_family != nhi->family) {
+		NL_SET_ERR_MSG(extack, "FDB nexthop group cannot have mixed family nexthops");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int nh_check_attr_group(struct net *net, struct nlattr *tb[],
 			       struct netlink_ext_ack *extack)
 {
 	unsigned int len = nla_len(tb[NHA_GROUP]);
+	u8 nh_family = AF_UNSPEC;
 	struct nexthop_grp *nhg;
 	unsigned int i, j;
+	u8 nhg_fdb = 0;
 
 	if (len & (sizeof(struct nexthop_grp) - 1)) {
 		NL_SET_ERR_MSG(extack,
@@ -418,6 +448,8 @@ static int nh_check_attr_group(struct net *net, struct nlattr *tb[],
 		}
 	}
 
+	if (tb[NHA_FDB])
+		nhg_fdb = 1;
 	nhg = nla_data(tb[NHA_GROUP]);
 	for (i = 0; i < len; ++i) {
 		struct nexthop *nh;
@@ -429,11 +461,20 @@ static int nh_check_attr_group(struct net *net, struct nlattr *tb[],
 		}
 		if (!valid_group_nh(nh, len, extack))
 			return -EINVAL;
+
+		if (nhg_fdb && nh_check_attr_fdb_group(nh, &nh_family, extack))
+			return -EINVAL;
+
+		if (!nhg_fdb && nh->is_fdb_nh) {
+			NL_SET_ERR_MSG(extack, "Non FDB nexthop group cannot have fdb nexthops");
+			return -EINVAL;
+		}
 	}
 	for (i = NHA_GROUP + 1; i < __NHA_MAX; ++i) {
 		if (!tb[i])
 			continue;
-
+		if (tb[NHA_FDB])
+			continue;
 		NL_SET_ERR_MSG(extack,
 			       "No other attributes can be set in nexthop groups");
 		return -EINVAL;
@@ -492,6 +533,9 @@ struct nexthop *nexthop_select_path(struct nexthop *nh, int hash)
 		if (hash > atomic_read(&nhge->upper_bound))
 			continue;
 
+		if (nhge->nh->is_fdb_nh)
+			return nhge->nh;
+
 		/* nexthops always check if it is good and does
 		 * not rely on a sysctl for this behavior
 		 */
@@ -514,6 +558,173 @@ struct nexthop *nexthop_select_path(struct nexthop *nh, int hash)
 	return rc;
 }
 EXPORT_SYMBOL_GPL(nexthop_select_path);
+
+int nexthop_for_each_fib6_nh(struct nexthop *nh,
+			     int (*cb)(struct fib6_nh *nh, void *arg),
+			     void *arg)
+{
+	struct nh_info *nhi;
+	int err;
+
+	if (nh->is_group) {
+		struct nh_group *nhg;
+		int i;
+
+		nhg = rcu_dereference_rtnl(nh->nh_grp);
+		for (i = 0; i < nhg->num_nh; i++) {
+			struct nh_grp_entry *nhge = &nhg->nh_entries[i];
+
+			nhi = rcu_dereference_rtnl(nhge->nh->nh_info);
+			err = cb(&nhi->fib6_nh, arg);
+			if (err)
+				return err;
+		}
+	} else {
+		nhi = rcu_dereference_rtnl(nh->nh_info);
+		err = cb(&nhi->fib6_nh, arg);
+		if (err)
+			return err;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(nexthop_for_each_fib6_nh);
+
+static int check_src_addr(const struct in6_addr *saddr,
+			  struct netlink_ext_ack *extack)
+{
+	if (!ipv6_addr_any(saddr)) {
+		NL_SET_ERR_MSG(extack, "IPv6 routes using source address can not use nexthop objects");
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int fib6_check_nexthop(struct nexthop *nh, struct fib6_config *cfg,
+		       struct netlink_ext_ack *extack)
+{
+	struct nh_info *nhi;
+
+	if (nh->is_fdb_nh) {
+		NL_SET_ERR_MSG(extack, "Route cannot point to a fdb nexthop");
+		return -EINVAL;
+	}
+
+	/* fib6_src is unique to a fib6_info and limits the ability to cache
+	 * routes in fib6_nh within a nexthop that is potentially shared
+	 * across multiple fib entries. If the config wants to use source
+	 * routing it can not use nexthop objects. mlxsw also does not allow
+	 * fib6_src on routes.
+	 */
+	if (cfg && check_src_addr(&cfg->fc_src, extack) < 0)
+		return -EINVAL;
+
+	if (nh->is_group) {
+		struct nh_group *nhg;
+
+		nhg = rtnl_dereference(nh->nh_grp);
+		if (nhg->has_v4)
+			goto no_v4_nh;
+	} else {
+		nhi = rtnl_dereference(nh->nh_info);
+		if (nhi->family == AF_INET)
+			goto no_v4_nh;
+	}
+
+	return 0;
+no_v4_nh:
+	NL_SET_ERR_MSG(extack, "IPv6 routes can not use an IPv4 nexthop");
+	return -EINVAL;
+}
+EXPORT_SYMBOL_GPL(fib6_check_nexthop);
+
+/* if existing nexthop has ipv6 routes linked to it, need
+ * to verify this new spec works with ipv6
+ */
+static int fib6_check_nh_list(struct nexthop *old, struct nexthop *new,
+			      struct netlink_ext_ack *extack)
+{
+	struct fib6_info *f6i;
+
+	if (list_empty(&old->f6i_list))
+		return 0;
+
+	list_for_each_entry(f6i, &old->f6i_list, nh_list) {
+		if (check_src_addr(&f6i->fib6_src.addr, extack) < 0)
+			return -EINVAL;
+	}
+
+	return fib6_check_nexthop(new, NULL, extack);
+}
+
+static int nexthop_check_scope(struct nexthop *nh, u8 scope,
+			       struct netlink_ext_ack *extack)
+{
+	struct nh_info *nhi;
+
+	nhi = rtnl_dereference(nh->nh_info);
+	if (scope == RT_SCOPE_HOST && nhi->fib_nhc.nhc_gw_family) {
+		NL_SET_ERR_MSG(extack,
+			       "Route with host scope can not have a gateway");
+		return -EINVAL;
+	}
+
+	if (nhi->fib_nhc.nhc_flags & RTNH_F_ONLINK && scope >= RT_SCOPE_LINK) {
+		NL_SET_ERR_MSG(extack, "Scope mismatch with nexthop");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/* Invoked by fib add code to verify nexthop by id is ok with
+ * config for prefix; parts of fib_check_nh not done when nexthop
+ * object is used.
+ */
+int fib_check_nexthop(struct nexthop *nh, u8 scope,
+		      struct netlink_ext_ack *extack)
+{
+	int err = 0;
+
+	if (nh->is_fdb_nh) {
+		NL_SET_ERR_MSG(extack, "Route cannot point to a fdb nexthop");
+		err = -EINVAL;
+		goto out;
+	}
+
+	if (nh->is_group) {
+		struct nh_group *nhg;
+
+		if (scope == RT_SCOPE_HOST) {
+			NL_SET_ERR_MSG(extack, "Route with host scope can not have multiple nexthops");
+			err = -EINVAL;
+			goto out;
+		}
+
+		nhg = rtnl_dereference(nh->nh_grp);
+		/* all nexthops in a group have the same scope */
+		err = nexthop_check_scope(nhg->nh_entries[0].nh, scope, extack);
+	} else {
+		err = nexthop_check_scope(nh, scope, extack);
+	}
+out:
+	return err;
+}
+
+static int fib_check_nh_list(struct nexthop *old, struct nexthop *new,
+			     struct netlink_ext_ack *extack)
+{
+	struct fib_info *fi;
+
+	list_for_each_entry(fi, &old->fi_list, nh_list) {
+		int err;
+
+		err = fib_check_nexthop(new, fi->fib_scope, extack);
+		if (err)
+			return err;
+	}
+	return 0;
+}
 
 static void nh_group_rebalance(struct nh_group *nhg)
 {
@@ -607,9 +818,34 @@ static void remove_nexthop_group(struct nexthop *nh, struct nl_info *nlinfo)
 	}
 }
 
+/* not called for nexthop replace */
+static void __remove_nexthop_fib(struct net *net, struct nexthop *nh)
+{
+	struct fib6_info *f6i, *tmp;
+	bool do_flush = false;
+	struct fib_info *fi;
+
+	list_for_each_entry(fi, &nh->fi_list, nh_list) {
+		fi->fib_flags |= RTNH_F_DEAD;
+		do_flush = true;
+	}
+	if (do_flush)
+		fib_flush(net);
+
+	/* ip6_del_rt removes the entry from this list hence the _safe */
+	list_for_each_entry_safe(f6i, tmp, &nh->f6i_list, nh_list) {
+		/* __ip6_del_rt does a release, so do a hold here */
+		fib6_info_hold(f6i);
+		ipv6_stub->ip6_del_rt(net, f6i,
+				      !READ_ONCE(net->ipv4.sysctl_nexthop_compat_mode));
+	}
+}
+
 static void __remove_nexthop(struct net *net, struct nexthop *nh,
 			     struct nl_info *nlinfo)
 {
+	__remove_nexthop_fib(net, nh);
+
 	if (nh->is_group) {
 		remove_nexthop_group(nh, nlinfo);
 	} else {
@@ -638,10 +874,171 @@ static void remove_nexthop(struct net *net, struct nexthop *nh,
 	nexthop_put(nh);
 }
 
+/* if any FIB entries reference this nexthop, any dst entries
+ * need to be regenerated
+ */
+static void nh_rt_cache_flush(struct net *net, struct nexthop *nh)
+{
+	struct fib6_info *f6i;
+
+	if (!list_empty(&nh->fi_list))
+		rt_cache_flush(net);
+
+	list_for_each_entry(f6i, &nh->f6i_list, nh_list)
+		ipv6_stub->fib6_update_sernum(net, f6i);
+}
+
+static int replace_nexthop_grp(struct net *net, struct nexthop *old,
+			       struct nexthop *new,
+			       struct netlink_ext_ack *extack)
+{
+	struct nh_group *oldg, *newg;
+	int i;
+
+	if (!new->is_group) {
+		NL_SET_ERR_MSG(extack, "Can not replace a nexthop group with a nexthop.");
+		return -EINVAL;
+	}
+
+	oldg = rtnl_dereference(old->nh_grp);
+	newg = rtnl_dereference(new->nh_grp);
+
+	/* update parents - used by nexthop code for cleanup */
+	for (i = 0; i < newg->num_nh; i++)
+		newg->nh_entries[i].nh_parent = old;
+
+	rcu_assign_pointer(old->nh_grp, newg);
+
+	for (i = 0; i < oldg->num_nh; i++)
+		oldg->nh_entries[i].nh_parent = new;
+
+	rcu_assign_pointer(new->nh_grp, oldg);
+
+	return 0;
+}
+
+static int replace_nexthop_single(struct net *net, struct nexthop *old,
+				  struct nexthop *new,
+				  struct netlink_ext_ack *extack)
+{
+	struct nh_info *oldi, *newi;
+
+	if (new->is_group) {
+		NL_SET_ERR_MSG(extack, "Can not replace a nexthop with a nexthop group.");
+		return -EINVAL;
+	}
+
+	oldi = rtnl_dereference(old->nh_info);
+	newi = rtnl_dereference(new->nh_info);
+
+	newi->nh_parent = old;
+	oldi->nh_parent = new;
+
+	old->protocol = new->protocol;
+	old->nh_flags = new->nh_flags;
+
+	rcu_assign_pointer(old->nh_info, newi);
+	rcu_assign_pointer(new->nh_info, oldi);
+
+	return 0;
+}
+
+static void __nexthop_replace_notify(struct net *net, struct nexthop *nh,
+				     struct nl_info *info)
+{
+	struct fib6_info *f6i;
+
+	if (!list_empty(&nh->fi_list)) {
+		struct fib_info *fi;
+
+		/* expectation is a few fib_info per nexthop and then
+		 * a lot of routes per fib_info. So mark the fib_info
+		 * and then walk the fib tables once
+		 */
+		list_for_each_entry(fi, &nh->fi_list, nh_list)
+			fi->nh_updated = true;
+
+		fib_info_notify_update(net, info);
+
+		list_for_each_entry(fi, &nh->fi_list, nh_list)
+			fi->nh_updated = false;
+	}
+
+	list_for_each_entry(f6i, &nh->f6i_list, nh_list)
+		ipv6_stub->fib6_rt_update(net, f6i, info);
+}
+
+/* send RTM_NEWROUTE with REPLACE flag set for all FIB entries
+ * linked to this nexthop and for all groups that the nexthop
+ * is a member of
+ */
+static void nexthop_replace_notify(struct net *net, struct nexthop *nh,
+				   struct nl_info *info)
+{
+	struct nh_grp_entry *nhge;
+
+	__nexthop_replace_notify(net, nh, info);
+
+	list_for_each_entry(nhge, &nh->grp_list, nh_list)
+		__nexthop_replace_notify(net, nhge->nh_parent, info);
+}
+
 static int replace_nexthop(struct net *net, struct nexthop *old,
 			   struct nexthop *new, struct netlink_ext_ack *extack)
 {
-	return -EEXIST;
+	bool new_is_reject = false;
+	struct nh_grp_entry *nhge;
+	int err;
+
+	/* check that existing FIB entries are ok with the
+	 * new nexthop definition
+	 */
+	err = fib_check_nh_list(old, new, extack);
+	if (err)
+		return err;
+
+	err = fib6_check_nh_list(old, new, extack);
+	if (err)
+		return err;
+
+	if (!new->is_group) {
+		struct nh_info *nhi = rtnl_dereference(new->nh_info);
+
+		new_is_reject = nhi->reject_nh;
+	}
+
+	list_for_each_entry(nhge, &old->grp_list, nh_list) {
+		/* if new nexthop is a blackhole, any groups using this
+		 * nexthop cannot have more than 1 path
+		 */
+		if (new_is_reject &&
+		    nexthop_num_path(nhge->nh_parent) > 1) {
+			NL_SET_ERR_MSG(extack, "Blackhole nexthop can not be a member of a group with more than one path");
+			return -EINVAL;
+		}
+
+		err = fib_check_nh_list(nhge->nh_parent, new, extack);
+		if (err)
+			return err;
+
+		err = fib6_check_nh_list(nhge->nh_parent, new, extack);
+		if (err)
+			return err;
+	}
+
+	if (old->is_group)
+		err = replace_nexthop_grp(net, old, new, extack);
+	else
+		err = replace_nexthop_single(net, old, new, extack);
+
+	if (!err) {
+		nh_rt_cache_flush(net, old);
+
+		__remove_nexthop(net, new, NULL);
+		nexthop_put(new);
+	}
+
+	return err;
 }
 
 /* called with rtnl_lock held */
@@ -653,6 +1050,7 @@ static int insert_nexthop(struct net *net, struct nexthop *new_nh,
 	bool replace = !!(cfg->nlflags & NLM_F_REPLACE);
 	bool create = !!(cfg->nlflags & NLM_F_CREATE);
 	u32 new_id = new_nh->id;
+	int replace_notify = 0;
 	int rc = -EEXIST;
 
 	pp = &root->rb_node;
@@ -672,8 +1070,10 @@ static int insert_nexthop(struct net *net, struct nexthop *new_nh,
 			pp = &next->rb_right;
 		} else if (replace) {
 			rc = replace_nexthop(net, nh, new_nh, extack);
-			if (!rc)
+			if (!rc) {
 				new_nh = nh; /* send notification with old nh */
+				replace_notify = 1;
+			}
 			goto out;
 		} else {
 			/* id already exists and not a replace */
@@ -694,6 +1094,9 @@ out:
 	if (!rc) {
 		nh_base_seq_inc(net);
 		nexthop_notify(RTM_NEWNEXTHOP, new_nh, &cfg->nlinfo);
+		if (replace_notify &&
+		    READ_ONCE(net->ipv4.sysctl_nexthop_compat_mode))
+			nexthop_replace_notify(net, new_nh, &cfg->nlinfo);
 	}
 
 	return rc;
@@ -775,6 +1178,9 @@ static struct nexthop *nexthop_create_group(struct net *net,
 		nh_group_rebalance(nhg);
 	}
 
+	if (cfg->nh_fdb)
+		nh->is_fdb_nh = 1;
+
 	rcu_assign_pointer(nh->nh_grp, nhg);
 
 	return nh;
@@ -802,14 +1208,17 @@ static int nh_create_ipv4(struct net *net, struct nexthop *nh,
 		.fc_encap = cfg->nh_encap,
 		.fc_encap_type = cfg->nh_encap_type,
 	};
-	u32 tb_id = l3mdev_fib_table(cfg->dev);
-	int err = -EINVAL;
+	u32 tb_id = (cfg->dev ? l3mdev_fib_table(cfg->dev) : RT_TABLE_MAIN);
+	int err;
 
 	err = fib_nh_init(net, fib_nh, &fib_cfg, 1, extack);
 	if (err) {
 		fib_nh_release(net, fib_nh);
 		goto out;
 	}
+
+	if (nh->is_fdb_nh)
+		goto out;
 
 	/* sets nh_dev if successful */
 	err = fib_check_nh(net, fib_nh, tb_id, 0, extack);
@@ -836,6 +1245,7 @@ static int nh_create_ipv6(struct net *net,  struct nexthop *nh,
 		.fc_flags = cfg->nh_flags,
 		.fc_encap = cfg->nh_encap,
 		.fc_encap_type = cfg->nh_encap_type,
+		.fc_is_fdb = cfg->nh_fdb,
 	};
 	int err;
 
@@ -877,6 +1287,9 @@ static struct nexthop *nexthop_create(struct net *net, struct nh_config *cfg,
 	nhi->family = cfg->nh_family;
 	nhi->fib_nhc.nhc_scope = RT_SCOPE_LINK;
 
+	if (cfg->nh_fdb)
+		nh->is_fdb_nh = 1;
+
 	if (cfg->nh_blackhole) {
 		nhi->reject_nh = 1;
 		cfg->nh_ifindex = net->loopback_dev->ifindex;
@@ -898,7 +1311,8 @@ static struct nexthop *nexthop_create(struct net *net, struct nh_config *cfg,
 	}
 
 	/* add the entry to the device based hash */
-	nexthop_devhash_add(net, nhi);
+	if (!nh->is_fdb_nh)
+		nexthop_devhash_add(net, nhi);
 
 	rcu_assign_pointer(nh->nh_info, nhi);
 
@@ -978,7 +1392,7 @@ static int rtm_to_nh_config(struct net *net, struct sk_buff *skb,
 	case AF_UNSPEC:
 		if (tb[NHA_GROUP])
 			break;
-		/* fallthrough */
+		fallthrough;
 	default:
 		NL_SET_ERR_MSG(extack, "Invalid address family");
 		goto out;
@@ -1001,6 +1415,19 @@ static int rtm_to_nh_config(struct net *net, struct sk_buff *skb,
 
 	if (tb[NHA_ID])
 		cfg->nh_id = nla_get_u32(tb[NHA_ID]);
+
+	if (tb[NHA_FDB]) {
+		if (tb[NHA_OIF] || tb[NHA_BLACKHOLE] ||
+		    tb[NHA_ENCAP]   || tb[NHA_ENCAP_TYPE]) {
+			NL_SET_ERR_MSG(extack, "Fdb attribute can not be used with encap, oif or blackhole");
+			goto out;
+		}
+		if (nhm->nh_flags) {
+			NL_SET_ERR_MSG(extack, "Unsupported nexthop flags in ancillary header");
+			goto out;
+		}
+		cfg->nh_fdb = nla_get_flag(tb[NHA_FDB]);
+	}
 
 	if (tb[NHA_GROUP]) {
 		if (nhm->nh_family != AF_UNSPEC) {
@@ -1025,8 +1452,8 @@ static int rtm_to_nh_config(struct net *net, struct sk_buff *skb,
 
 	if (tb[NHA_BLACKHOLE]) {
 		if (tb[NHA_GATEWAY] || tb[NHA_OIF] ||
-		    tb[NHA_ENCAP]   || tb[NHA_ENCAP_TYPE]) {
-			NL_SET_ERR_MSG(extack, "Blackhole attribute can not be used with gateway or oif");
+		    tb[NHA_ENCAP]   || tb[NHA_ENCAP_TYPE] || tb[NHA_FDB]) {
+			NL_SET_ERR_MSG(extack, "Blackhole attribute can not be used with gateway, oif, encap or fdb");
 			goto out;
 		}
 
@@ -1035,26 +1462,28 @@ static int rtm_to_nh_config(struct net *net, struct sk_buff *skb,
 		goto out;
 	}
 
-	if (!tb[NHA_OIF]) {
-		NL_SET_ERR_MSG(extack, "Device attribute required for non-blackhole nexthops");
+	if (!cfg->nh_fdb && !tb[NHA_OIF]) {
+		NL_SET_ERR_MSG(extack, "Device attribute required for non-blackhole and non-fdb nexthops");
 		goto out;
 	}
 
-	cfg->nh_ifindex = nla_get_u32(tb[NHA_OIF]);
-	if (cfg->nh_ifindex)
-		cfg->dev = __dev_get_by_index(net, cfg->nh_ifindex);
+	if (!cfg->nh_fdb && tb[NHA_OIF]) {
+		cfg->nh_ifindex = nla_get_u32(tb[NHA_OIF]);
+		if (cfg->nh_ifindex)
+			cfg->dev = __dev_get_by_index(net, cfg->nh_ifindex);
 
-	if (!cfg->dev) {
-		NL_SET_ERR_MSG(extack, "Invalid device index");
-		goto out;
-	} else if (!(cfg->dev->flags & IFF_UP)) {
-		NL_SET_ERR_MSG(extack, "Nexthop device is not up");
-		err = -ENETDOWN;
-		goto out;
-	} else if (!netif_carrier_ok(cfg->dev)) {
-		NL_SET_ERR_MSG(extack, "Carrier for nexthop device is down");
-		err = -ENETDOWN;
-		goto out;
+		if (!cfg->dev) {
+			NL_SET_ERR_MSG(extack, "Invalid device index");
+			goto out;
+		} else if (!(cfg->dev->flags & IFF_UP)) {
+			NL_SET_ERR_MSG(extack, "Nexthop device is not up");
+			err = -ENETDOWN;
+			goto out;
+		} else if (!netif_carrier_ok(cfg->dev)) {
+			NL_SET_ERR_MSG(extack, "Carrier for nexthop device is down");
+			err = -ENETDOWN;
+			goto out;
+		}
 	}
 
 	err = -EINVAL;
@@ -1283,7 +1712,7 @@ static bool nh_dump_filtered(struct nexthop *nh, int dev_idx, int master_idx,
 
 static int nh_valid_dump_req(const struct nlmsghdr *nlh, int *dev_idx,
 			     int *master_idx, bool *group_filter,
-			     struct netlink_callback *cb)
+			     bool *fdb_filter, struct netlink_callback *cb)
 {
 	struct netlink_ext_ack *extack = cb->extack;
 	struct nlattr *tb[NHA_MAX + 1];
@@ -1320,6 +1749,9 @@ static int nh_valid_dump_req(const struct nlmsghdr *nlh, int *dev_idx,
 		case NHA_GROUPS:
 			*group_filter = true;
 			break;
+		case NHA_FDB:
+			*fdb_filter = true;
+			break;
 		default:
 			NL_SET_ERR_MSG(extack, "Unsupported attribute in dump request");
 			return -EINVAL;
@@ -1338,17 +1770,17 @@ static int nh_valid_dump_req(const struct nlmsghdr *nlh, int *dev_idx,
 /* rtnl */
 static int rtm_dump_nexthop(struct sk_buff *skb, struct netlink_callback *cb)
 {
+	bool group_filter = false, fdb_filter = false;
 	struct nhmsg *nhm = nlmsg_data(cb->nlh);
 	int dev_filter_idx = 0, master_idx = 0;
 	struct net *net = sock_net(skb->sk);
 	struct rb_root *root = &net->nexthop.rb_root;
-	bool group_filter = false;
 	struct rb_node *node;
 	int idx = 0, s_idx;
 	int err;
 
 	err = nh_valid_dump_req(cb->nlh, &dev_filter_idx, &master_idx,
-				&group_filter, cb);
+				&group_filter, &fdb_filter, cb);
 	if (err < 0)
 		return err;
 

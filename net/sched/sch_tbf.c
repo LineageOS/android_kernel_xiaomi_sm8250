@@ -449,7 +449,7 @@ static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
 	struct tc_tbf_qopt opt;
 
 	sch->qstats.backlog = q->qdisc->qstats.backlog;
-	nest = nla_nest_start(skb, TCA_OPTIONS);
+	nest = nla_nest_start_noflag(skb, TCA_OPTIONS);
 	if (nest == NULL)
 		goto nla_put_failure;
 

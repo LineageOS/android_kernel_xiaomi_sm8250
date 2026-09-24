@@ -294,7 +294,7 @@ void scm_detach_fds(struct msghdr *msg, struct scm_cookie *scm)
 			break;
 		}
 		/* Bump the usage count and install the file. */
-		sock = sock_from_file(fp[i], &err);
+		sock = sock_from_file(fp[i]);
 		if (sock) {
 			sock_update_netprioidx(&sock->sk->sk_cgrp_data);
 			sock_update_classid(&sock->sk->sk_cgrp_data);

@@ -907,11 +907,11 @@ static __initconst const struct x86_pmu amd_pmu = {
 
 static int __init amd_core_pmu_init(void)
 {
-	if (!boot_cpu_has(X86_FEATURE_PERFCTR_CORE))
-		return 0;
-
 	/* Avoid calulating the value each time in the NMI handler */
 	perf_nmi_window = msecs_to_jiffies(100);
+
+	if (!boot_cpu_has(X86_FEATURE_PERFCTR_CORE))
+		return 0;
 
 	switch (boot_cpu_data.x86) {
 	case 0x15:

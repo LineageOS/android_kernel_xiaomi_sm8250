@@ -1222,7 +1222,7 @@ static int mpls_netconf_get_devconf(struct sk_buff *in_skb,
 	int err;
 
 	err = nlmsg_parse_deprecated(nlh, sizeof(*ncm), tb, NETCONFA_MAX,
-				     devconf_mpls_policy, NULL);
+				     devconf_mpls_policy, extack);
 	if (err < 0)
 		goto errout;
 
@@ -2003,7 +2003,7 @@ static int mpls_dump_route(struct sk_buff *skb, u32 portid, u32 seq, int event,
 		u8 linkdown = 0;
 		u8 dead = 0;
 
-		mp = nla_nest_start(skb, RTA_MULTIPATH);
+		mp = nla_nest_start_noflag(skb, RTA_MULTIPATH);
 		if (!mp)
 			goto nla_put_failure;
 
@@ -2326,6 +2326,7 @@ static int mpls_getroute(struct sk_buff *in_skb, struct nlmsghdr *in_nlh,
 	r->rtm_family	 = AF_MPLS;
 	r->rtm_dst_len	= 20;
 	r->rtm_src_len	= 0;
+	r->rtm_tos	= 0;
 	r->rtm_table	= RT_TABLE_MAIN;
 	r->rtm_type	= RTN_UNICAST;
 	r->rtm_scope	= RT_SCOPE_UNIVERSE;

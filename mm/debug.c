@@ -82,8 +82,8 @@ hex_only:
 		pr_alert("page dumped because: %s\n", reason);
 
 #ifdef CONFIG_MEMCG
-	if (!page_poisoned && page->mem_cgroup)
-		pr_alert("page->mem_cgroup:%px\n", page->mem_cgroup);
+	if (!page_poisoned && page->memcg_data)
+		pr_alert("page's memcg:%lx\n", page->memcg_data);
 #endif
 }
 

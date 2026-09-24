@@ -596,6 +596,7 @@ static void exit_mm(void)
 	BUG_ON(mm != current->active_mm);
 	/* more a memory barrier than a real lock */
 	task_lock(current);
+	current->user_dumpable = (get_dumpable(mm) == SUID_DUMP_USER);
 	current->mm = NULL;
 	mmap_read_unlock(mm);
 	enter_lazy_tlb(mm, current);
@@ -1630,6 +1631,7 @@ static long kernel_waitid(int which, pid_t upid, struct waitid_info *infop,
 	struct pid *pid = NULL;
 	enum pid_type type;
 	long ret;
+	unsigned int f_flags = 0;
 
 	if (options & ~(WNOHANG|WNOWAIT|WEXITED|WSTOPPED|WCONTINUED|
 			__WNOTHREAD|__WCLONE|__WALL))
@@ -1645,25 +1647,41 @@ static long kernel_waitid(int which, pid_t upid, struct waitid_info *infop,
 		type = PIDTYPE_PID;
 		if (upid <= 0)
 			return -EINVAL;
+
+		pid = find_get_pid(upid);
 		break;
 	case P_PGID:
 		type = PIDTYPE_PGID;
 		if (upid <= 0)
 			return -EINVAL;
+
+		pid = find_get_pid(upid);
+		break;
+	case P_PIDFD:
+		type = PIDTYPE_PID;
+		if (upid < 0)
+			return -EINVAL;
+
+		pid = pidfd_get_pid(upid, &f_flags);
+		if (IS_ERR(pid))
+			return PTR_ERR(pid);
+
 		break;
 	default:
 		return -EINVAL;
 	}
-
-	if (type < PIDTYPE_MAX)
-		pid = find_get_pid(upid);
 
 	wo.wo_type	= type;
 	wo.wo_pid	= pid;
 	wo.wo_flags	= options;
 	wo.wo_info	= infop;
 	wo.wo_rusage	= ru;
+	if (f_flags & O_NONBLOCK)
+		wo.wo_flags |= WNOHANG;
+
 	ret = do_wait(&wo);
+	if (!ret && !(options & WNOHANG) && (f_flags & O_NONBLOCK))
+		ret = -EAGAIN;
 
 	put_pid(pid);
 	return ret;

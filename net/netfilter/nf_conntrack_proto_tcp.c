@@ -1019,7 +1019,8 @@ static int tcp_packet(struct nf_conn *ct,
 			new_state = old_state;
 		}
 		if (((test_bit(IPS_SEEN_REPLY_BIT, &ct->status)
-			 && ct->proto.tcp.last_index == TCP_SYN_SET)
+			 && ct->proto.tcp.last_index == TCP_SYN_SET
+			 && ct->proto.tcp.last_dir != dir)
 			|| (!test_bit(IPS_ASSURED_BIT, &ct->status)
 			    && ct->proto.tcp.last_index == TCP_ACK_SET))
 		    && ntohl(th->ack_seq) == ct->proto.tcp.last_end) {
@@ -1229,7 +1230,7 @@ static int tcp_to_nlattr(struct sk_buff *skb, struct nlattr *nla,
 	struct nf_ct_tcp_flags tmp = {};
 
 	spin_lock_bh(&ct->lock);
-	nest_parms = nla_nest_start(skb, CTA_PROTOINFO_TCP | NLA_F_NESTED);
+	nest_parms = nla_nest_start(skb, CTA_PROTOINFO_TCP);
 	if (!nest_parms)
 		goto nla_put_failure;
 

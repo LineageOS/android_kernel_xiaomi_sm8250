@@ -360,10 +360,10 @@ ssize_t tcp_splice_read(struct socket *sk, loff_t *ppos,
 
 /* sysctl master controller */
 extern int tcp_use_userconfig_sysctl_handler(struct ctl_table *table,
-				int write, void __user *buffer, size_t *length,
+				int write, void *buffer, size_t *length,
 				loff_t *ppos);
 extern int tcp_proc_delayed_ack_control(struct ctl_table *table, int write,
-				void __user *buffer, size_t *length,
+				void *buffer, size_t *length,
 				loff_t *ppos);
 
 static inline void tcp_dec_quickack_mode(struct sock *sk)
@@ -420,6 +420,7 @@ int tcp_getsockopt(struct sock *sk, int level, int optname,
 		   char __user *optval, int __user *optlen);
 int tcp_setsockopt(struct sock *sk, int level, int optname,
 		   char __user *optval, unsigned int optlen);
+bool tcp_bpf_bypass_getsockopt(int level, int optname);
 int compat_tcp_getsockopt(struct sock *sk, int level, int optname,
 			  char __user *optval, int __user *optlen);
 int compat_tcp_setsockopt(struct sock *sk, int level, int optname,
@@ -429,6 +430,7 @@ void tcp_syn_ack_timeout(const struct request_sock *req);
 int tcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len, int nonblock,
 		int flags, int *addr_len);
 int tcp_set_rcvlowat(struct sock *sk, int val);
+int tcp_set_window_clamp(struct sock *sk, int val);
 void tcp_data_ready(struct sock *sk);
 int tcp_mmap(struct file *file, struct socket *sock,
 	     struct vm_area_struct *vma);

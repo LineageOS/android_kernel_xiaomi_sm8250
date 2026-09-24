@@ -47,7 +47,7 @@ static struct notifier_block rmnet_shs_dev_notifier __read_mostly = {
 
 static int rmnet_vnd_total;
 /* Enable smart hashing capability upon call to initialize module*/
-int __init rmnet_shs_module_init(void)
+static int __init rmnet_shs_module_init(void)
 {
 	pr_info("%s(): Starting rmnet SHS module\n", __func__);
 	trace_rmnet_shs_high(RMNET_SHS_MODULE, RMNET_SHS_MODULE_INIT,
@@ -61,7 +61,7 @@ int __init rmnet_shs_module_init(void)
 }
 
 /* Remove smart hashing capability upon call to initialize module */
-void __exit rmnet_shs_module_exit(void)
+static void __exit rmnet_shs_module_exit(void)
 {
 	trace_rmnet_shs_high(RMNET_SHS_MODULE, RMNET_SHS_MODULE_EXIT,
 			    0xDEF, 0xDEF, 0xDEF, 0xDEF, NULL, NULL);

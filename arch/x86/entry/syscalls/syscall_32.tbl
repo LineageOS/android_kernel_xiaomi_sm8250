@@ -400,5 +400,6 @@
 386	i386	rseq			sys_rseq			__ia32_sys_rseq
 424	i386	pidfd_send_signal	sys_pidfd_send_signal		__ia32_sys_pidfd_send_signal
 434	i386	pidfd_open		sys_pidfd_open			__ia32_sys_pidfd_open
+435	i386	clone3			sys_clone3			__ia32_sys_clone3
 436	i386	close_range		sys_close_range
 441	i386	epoll_pwait2		sys_epoll_pwait2		__ia32_sys_epoll_pwait2

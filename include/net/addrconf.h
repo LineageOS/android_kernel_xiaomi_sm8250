@@ -89,6 +89,9 @@ int ipv6_chk_addr_and_flags(struct net *net, const struct in6_addr *addr,
 int ipv6_chk_home_addr(struct net *net, const struct in6_addr *addr);
 #endif
 
+int ipv6_chk_rpl_srh_loop(struct net *net, const struct in6_addr *segs,
+			  unsigned char nsegs);
+
 bool ipv6_chk_custom_prefix(const struct in6_addr *addr,
 				   const unsigned int prefix_len,
 				   struct net_device *dev);
@@ -102,8 +105,6 @@ struct inet6_ifaddr *ipv6_get_ifaddr(struct net *net,
 int ipv6_dev_get_saddr(struct net *net, const struct net_device *dev,
 		       const struct in6_addr *daddr, unsigned int srcprefs,
 		       struct in6_addr *saddr);
-int __ipv6_get_lladdr(struct inet6_dev *idev, struct in6_addr *addr,
-		      u32 banned_flags);
 int ipv6_get_lladdr(struct net_device *dev, struct in6_addr *addr,
 		    u32 banned_flags);
 bool inet_rcv_saddr_equal(const struct sock *sk, const struct sock *sk2,
@@ -320,8 +321,11 @@ static inline struct inet6_dev *__in6_dev_get(const struct net_device *dev)
 static inline struct inet6_dev *__in6_dev_stats_get(const struct net_device *dev,
 						    const struct sk_buff *skb)
 {
-	if (netif_is_l3_master(dev))
+	if (netif_is_l3_master(dev)) {
 		dev = dev_get_by_index_rcu(dev_net(dev), inet6_iif(skb));
+		if (!dev)
+			return NULL;
+	}
 	return __in6_dev_get(dev);
 }
 
@@ -353,8 +357,8 @@ static inline struct inet6_dev *in6_dev_get(const struct net_device *dev)
 
 	rcu_read_lock();
 	idev = rcu_dereference(dev->ip6_ptr);
-	if (idev)
-		refcount_inc(&idev->refcnt);
+	if (idev && !refcount_inc_not_zero(&idev->refcnt))
+		idev = NULL;
 	rcu_read_unlock();
 	return idev;
 }
@@ -400,6 +404,11 @@ static inline bool ip6_ignore_linkdown(const struct net_device *dev)
 	const struct inet6_dev *idev = __in6_dev_get(dev);
 
 	return !!idev->cnf.ignore_routes_with_linkdown;
+}
+
+static inline bool in6_dev_hold_safe(struct inet6_dev *idev)
+{
+	return refcount_inc_not_zero(&idev->refcnt);
 }
 
 void inet6_ifa_finish_destroy(struct inet6_ifaddr *ifp);

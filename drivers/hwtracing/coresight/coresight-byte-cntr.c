@@ -74,7 +74,7 @@ static ssize_t tmc_etr_byte_cntr_read(struct file *fp, char __user *data,
 			       size_t len, loff_t *ppos)
 {
 	struct byte_cntr *byte_cntr_data = fp->private_data;
-	char *bufp;
+	char *bufp = NULL;
 	int ret = 0;
 	if (!data)
 		return -EINVAL;

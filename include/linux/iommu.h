@@ -520,6 +520,17 @@ const struct iommu_ops *iommu_ops_from_fwnode(struct fwnode_handle *fwnode);
 int iommu_fwspec_get_id(struct device *dev, u32 *id);
 int iommu_is_available(struct device *dev);
 
+static inline struct iommu_fwspec *dev_iommu_fwspec_get(struct device *dev)
+{
+	return dev->iommu_fwspec;
+}
+
+static inline void dev_iommu_fwspec_set(struct device *dev,
+					struct iommu_fwspec *fwspec)
+{
+	dev->iommu_fwspec = fwspec;
+}
+
 #else /* CONFIG_IOMMU_API */
 
 struct iommu_ops {};

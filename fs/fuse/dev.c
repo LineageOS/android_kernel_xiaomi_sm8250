@@ -865,12 +865,6 @@ static int fuse_try_move_page(struct fuse_copy_state *cs, struct page **pagep)
 		goto out_put_old;
 	}
 
-	/*
-	 * Release while we have extra ref on stolen page.  Otherwise
-	 * anon_pipe_buf_release() might think the page can be reused.
-	 */
-	pipe_buf_release(cs->pipe, buf);
-
 	get_page(newpage);
 
 	if (!(buf->flags & PIPE_BUF_FLAG_LRU))
@@ -947,7 +941,7 @@ static int fuse_ref_page(struct fuse_copy_state *cs, struct page *page,
 	cs->nr_segs++;
 	cs->len = 0;
 
-	return 0;
+	return lock_request(cs->req);
 }
 
 /*
@@ -1744,6 +1738,10 @@ static int fuse_retrieve(struct fuse_mount *fm, struct inode *inode,
 		page = find_get_page(mapping, index);
 		if (!page)
 			break;
+		if (!PageUptodate(page)) {
+			put_page(page);
+			break;
+		}
 
 		this_num = min_t(unsigned, num, PAGE_SIZE - offset);
 		ap->pages[ap->num_pages] = page;

@@ -127,11 +127,9 @@ static __be32 nfsacld_proc_setacl(struct svc_rqst *rqstp)
 	nfserr = fh_getattr(fh, &resp->stat);
 
 out:
-	/* argp->acl_{access,default} may have been allocated in
-	   nfssvc_decode_setaclargs. */
-	posix_acl_release(argp->acl_access);
-	posix_acl_release(argp->acl_default);
+	/* argp->acl_{access,default} are released in nfsaclsvc_release_setacl. */
 	return nfserr;
+
 out_drop_lock:
 	fh_unlock(fh);
 	fh_drop_write(fh);
@@ -354,6 +352,16 @@ static void nfsaclsvc_release_access(struct svc_rqst *rqstp)
 #define nfsd3_voidres		nfsd3_voidargs
 struct nfsd3_voidargs { int dummy; };
 
+static void nfsaclsvc_release_setacl(struct svc_rqst *rqstp)
+{
+	struct nfsd3_setaclargs *argp = rqstp->rq_argp;
+	struct nfsd_attrstat *resp = rqstp->rq_resp;
+
+	fh_put(&resp->fh);
+	posix_acl_release(argp->acl_access);
+	posix_acl_release(argp->acl_default);
+}
+
 #define PROC(name, argt, rest, relt, cache, respsize)			\
 {									\
 	.pc_func	= nfsacld_proc_##name,				\
@@ -374,7 +382,7 @@ struct nfsd3_voidargs { int dummy; };
 static const struct svc_procedure nfsd_acl_procedures2[] = {
   PROC(null,	void,		void,		void,	  RC_NOCACHE, ST),
   PROC(getacl,	getacl,		getacl,		getacl,	  RC_NOCACHE, ST+1+2*(1+ACL)),
-  PROC(setacl,	setacl,		attrstat,	attrstat, RC_NOCACHE, ST+AT),
+  PROC(setacl,	setacl,		attrstat,	setacl, RC_NOCACHE, ST+AT),
   PROC(getattr, fhandle,	attrstat,	attrstat, RC_NOCACHE, ST+AT),
   PROC(access,	access,		access,		access,   RC_NOCACHE, ST+AT+1),
 };

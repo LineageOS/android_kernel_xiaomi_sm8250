@@ -59,7 +59,7 @@ static int wlan_hdd_fill_btm_resp(struct sk_buff *reply_skb,
 {
 	struct nlattr *attr;
 
-	attr = nla_nest_start(reply_skb, index);
+	attr = nla_nest_start_noflag(reply_skb, index);
 	if (!attr) {
 		hdd_err("nla_nest_start failed");
 		kfree_skb(reply_skb);
@@ -218,8 +218,8 @@ __wlan_hdd_cfg80211_fetch_bss_transition_status(struct wiphy *wiphy,
 		return -ENOMEM;
 	}
 
-	attr = nla_nest_start(reply_skb,
-			      QCA_WLAN_VENDOR_ATTR_BTM_CANDIDATE_INFO);
+	attr = nla_nest_start_noflag(reply_skb,
+				     QCA_WLAN_VENDOR_ATTR_BTM_CANDIDATE_INFO);
 	if (!attr) {
 		hdd_err("nla_nest_start failed");
 		kfree_skb(reply_skb);

@@ -202,13 +202,20 @@ static const struct nla_policy tunnel_key_policy[TCA_TUNNEL_KEY_MAX + 1] = {
 	[TCA_TUNNEL_KEY_ENC_TTL]      = { .type = NLA_U8 },
 };
 
+static void tunnel_key_release_params_rcu(struct rcu_head *head)
+{
+	struct tcf_tunnel_key_params *p = container_of(head, typeof(*p), rcu);
+
+	if (p->tcft_action == TCA_TUNNEL_KEY_ACT_SET)
+		dst_release(&p->tcft_enc_metadata->dst);
+	kfree(p);
+}
+
 static void tunnel_key_release_params(struct tcf_tunnel_key_params *p)
 {
 	if (!p)
 		return;
-	if (p->tcft_action == TCA_TUNNEL_KEY_ACT_SET)
-		dst_release(&p->tcft_enc_metadata->dst);
-	kfree_rcu(p, rcu);
+	call_rcu(&p->rcu, tunnel_key_release_params_rcu);
 }
 
 static int tunnel_key_init(struct net *net, struct nlattr *nla,
@@ -411,7 +418,7 @@ static int tunnel_key_geneve_opts_dump(struct sk_buff *skb,
 	u8 *src = (u8 *)(info + 1);
 	struct nlattr *start;
 
-	start = nla_nest_start(skb, TCA_TUNNEL_KEY_ENC_OPTS_GENEVE);
+	start = nla_nest_start_noflag(skb, TCA_TUNNEL_KEY_ENC_OPTS_GENEVE);
 	if (!start)
 		return -EMSGSIZE;
 
@@ -445,7 +452,7 @@ static int tunnel_key_opts_dump(struct sk_buff *skb,
 	if (!info->options_len)
 		return 0;
 
-	start = nla_nest_start(skb, TCA_TUNNEL_KEY_ENC_OPTS);
+	start = nla_nest_start_noflag(skb, TCA_TUNNEL_KEY_ENC_OPTS);
 	if (!start)
 		return -EMSGSIZE;
 

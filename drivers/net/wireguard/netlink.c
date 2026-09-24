@@ -81,7 +81,7 @@ static int get_allowedips(struct sk_buff *skb, const u8 *ip, u8 cidr,
 {
 	struct nlattr *allowedip_nest;
 
-	allowedip_nest = nla_nest_start(skb, 0);
+	allowedip_nest = nla_nest_start_noflag(skb, 0);
 	if (!allowedip_nest)
 		return -EMSGSIZE;
 
@@ -110,7 +110,8 @@ static int
 get_peer(struct wg_peer *peer, struct sk_buff *skb, struct dump_ctx *ctx)
 {
 
-	struct nlattr *allowedips_nest, *peer_nest = nla_nest_start(skb, 0);
+	struct nlattr *allowedips_nest, *peer_nest = nla_nest_start_noflag(skb,
+									   0);
 	struct allowedips_node *allowedips_node = ctx->next_allowedip;
 	bool fail;
 
@@ -172,7 +173,7 @@ get_peer(struct wg_peer *peer, struct sk_buff *skb, struct dump_ctx *ctx)
 	else if (ctx->allowedips_seq != peer->device->peer_allowedips.seq)
 		goto no_allowedips;
 
-	allowedips_nest = nla_nest_start(skb, WGPEER_A_ALLOWEDIPS);
+	allowedips_nest = nla_nest_start_noflag(skb, WGPEER_A_ALLOWEDIPS);
 	if (!allowedips_nest)
 		goto err;
 
@@ -262,7 +263,7 @@ static int wg_get_device_dump(struct sk_buff *skb, struct netlink_callback *cb)
 		up_read(&wg->static_identity.lock);
 	}
 
-	peers_nest = nla_nest_start(skb, WGDEVICE_A_PEERS);
+	peers_nest = nla_nest_start_noflag(skb, WGDEVICE_A_PEERS);
 	if (!peers_nest)
 		goto out;
 	ret = 0;

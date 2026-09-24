@@ -874,7 +874,7 @@ static void wlan_vendor_scan_callback(struct cfg80211_scan_request *req,
 
 	cookie = (uintptr_t)req;
 
-	attr = nla_nest_start(skb, QCA_WLAN_VENDOR_ATTR_SCAN_SSIDS);
+	attr = nla_nest_start_noflag(skb, QCA_WLAN_VENDOR_ATTR_SCAN_SSIDS);
 	if (!attr)
 		goto nla_put_failure;
 	for (i = 0; i < req->n_ssids; i++) {
@@ -883,7 +883,8 @@ static void wlan_vendor_scan_callback(struct cfg80211_scan_request *req,
 	}
 	nla_nest_end(skb, attr);
 
-	attr = nla_nest_start(skb, QCA_WLAN_VENDOR_ATTR_SCAN_FREQUENCIES);
+	attr = nla_nest_start_noflag(skb,
+				     QCA_WLAN_VENDOR_ATTR_SCAN_FREQUENCIES);
 	if (!attr)
 		goto nla_put_failure;
 	for (i = 0; i < req->n_channels; i++) {

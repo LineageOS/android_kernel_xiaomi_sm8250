@@ -1372,7 +1372,7 @@ static void blk_log_dump_pdu(struct trace_seq *s,
 				 i == 0 ? "" : " ", pdu_buf[i]);
 
 		/*
-		 * stop when the rest is just zeroes and indicate so
+		 * stop when the rest is just zeros and indicate so
 		 * with a ".." appended
 		 */
 		if (i == end && end != pdu_len - 1) {

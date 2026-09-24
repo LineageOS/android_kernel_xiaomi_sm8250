@@ -51,12 +51,9 @@ set -- $(LC_ALL=C "$@" -Wa,--version -c -x assembler /dev/null -o /dev/null 2>/d
 IFS=' '
 set -- $1
 
-min_tool_version=$(dirname $0)/min-tool-version.sh
-
 if [ "$1" = GNU -a "$2" = assembler ]; then
 	shift $(($# - 1))
 	version=$1
-	min_version=$($min_tool_version binutils)
 	name=GNU
 else
 	echo "$orig_args: unknown assembler invoked" >&2
@@ -68,15 +65,5 @@ fi
 version=${version%-*}
 
 cversion=$(get_canonical_version $version)
-min_cversion=$(get_canonical_version $min_version)
-
-if [ "$cversion" -lt "$min_cversion" ]; then
-	echo >&2 "***"
-	echo >&2 "*** Assembler is too old."
-	echo >&2 "***   Your $name assembler version:    $version"
-	echo >&2 "***   Minimum $name assembler version: $min_version"
-	echo >&2 "***"
-	exit 1
-fi
 
 echo $name $cversion

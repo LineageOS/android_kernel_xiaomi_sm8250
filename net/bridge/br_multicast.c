@@ -1634,6 +1634,8 @@ br_multicast_leave_group(struct net_bridge *br,
 			if (!mp->ports && !mp->host_joined &&
 			    netif_running(br->dev))
 				mod_timer(&mp->timer, jiffies);
+
+			break;
 		}
 		goto out;
 	}

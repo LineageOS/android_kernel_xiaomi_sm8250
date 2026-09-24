@@ -268,6 +268,8 @@ static int pika_dtm_thread(void __iomem *fpga)
 		schedule_timeout(HZ);
 	}
 
+	put_device(&client->dev);
+
 	return 0;
 }
 

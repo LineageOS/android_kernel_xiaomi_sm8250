@@ -294,12 +294,12 @@ static bool put_wifi_peer_rates(struct wifi_peer_info *stats,
 		return true;
 
 	nest_id = QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO_RATE_INFO;
-	info = nla_nest_start(vendor_event, nest_id);
+	info = nla_nest_start_noflag(vendor_event, nest_id);
 	if (!info)
 		return false;
 
 	for (i = 0; i < stats->num_rate; i++) {
-		rates = nla_nest_start(vendor_event, i);
+		rates = nla_nest_start_noflag(vendor_event, i);
 		if (!rates)
 			return false;
 		rate_stat = &stats->rate_stats[i];
@@ -533,13 +533,13 @@ static bool put_wifi_iface_stats(struct wifi_interface_stats *if_stat,
 		return false;
 	}
 
-	wmm_info = nla_nest_start(vendor_event,
-				  QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_INFO);
+	wmm_info = nla_nest_start_noflag(vendor_event,
+					 QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_INFO);
 	if (!wmm_info)
 		return false;
 
 	for (i = 0; i < WIFI_AC_MAX; i++) {
-		wmm_stats = nla_nest_start(vendor_event, i);
+		wmm_stats = nla_nest_start_noflag(vendor_event, i);
 		if (!wmm_stats)
 			return false;
 
@@ -705,8 +705,8 @@ static void hdd_link_layer_process_peer_stats(struct hdd_adapter *adapter,
 	if (peer_stat->num_peers) {
 		struct nlattr *peer_nest;
 
-		peer_nest = nla_nest_start(vendor_event,
-					   QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO);
+		peer_nest = nla_nest_start_noflag(vendor_event,
+						  QCA_WLAN_VENDOR_ATTR_LL_STATS_PEER_INFO);
 		if (!peer_nest) {
 			hdd_err("nla_nest_start failed");
 			kfree_skb(vendor_event);
@@ -714,7 +714,7 @@ static void hdd_link_layer_process_peer_stats(struct hdd_adapter *adapter,
 		}
 
 		for (i = 1; i <= peer_stat->num_peers; i++) {
-			peers = nla_nest_start(vendor_event, i);
+			peers = nla_nest_start_noflag(vendor_event, i);
 			if (!peers) {
 				hdd_err("nla_nest_start failed");
 				kfree_skb(vendor_event);
@@ -818,8 +818,8 @@ static int hdd_llstats_radio_fill_channels(struct hdd_adapter *adapter,
 	struct nlattr *chinfo;
 	int i;
 
-	chlist = nla_nest_start(vendor_event,
-				QCA_WLAN_VENDOR_ATTR_LL_STATS_CH_INFO);
+	chlist = nla_nest_start_noflag(vendor_event,
+				       QCA_WLAN_VENDOR_ATTR_LL_STATS_CH_INFO);
 	if (!chlist) {
 		hdd_err("nla_nest_start failed");
 		return -EINVAL;
@@ -830,7 +830,7 @@ static int hdd_llstats_radio_fill_channels(struct hdd_adapter *adapter,
 				     radiostat->channels +
 				     (i * sizeof(struct wifi_channel_stats)));
 
-		chinfo = nla_nest_start(vendor_event, i);
+		chinfo = nla_nest_start_noflag(vendor_event, i);
 		if (!chinfo) {
 			hdd_err("nla_nest_start failed");
 			return -EINVAL;
@@ -2090,8 +2090,8 @@ static int hdd_populate_wifi_peer_ps_info(struct wifi_peer_stat *data,
 		return -EINVAL;
 	}
 
-	peer_info = nla_nest_start(vendor_event,
-			       QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_CHG);
+	peer_info = nla_nest_start_noflag(vendor_event,
+					  QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_PS_CHG);
 	if (!peer_info) {
 		hdd_err("nla_nest_start failed");
 		return -EINVAL;
@@ -2099,7 +2099,7 @@ static int hdd_populate_wifi_peer_ps_info(struct wifi_peer_stat *data,
 
 	for (i = 0; i < peer_num; i++) {
 		wifi_peer_info = &data->peer_info[i];
-		peers = nla_nest_start(vendor_event, i);
+		peers = nla_nest_start_noflag(vendor_event, i);
 
 		if (!peers) {
 			hdd_err("nla_nest_start failed");
@@ -2220,15 +2220,15 @@ hdd_populate_wifi_signal_info(struct sir_wifi_peer_signal_stats *peer_signal,
 		return -EINVAL;
 	}
 
-	att = nla_nest_start(skb,
-			     QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_SIGNAL);
+	att = nla_nest_start_noflag(skb,
+				    QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_SIGNAL);
 	if (!att) {
 		hdd_err("nla_nest_start failed");
 		return -EINVAL;
 	}
 
 	for (i = 0; i < chain_count; i++) {
-		chains = nla_nest_start(skb, i);
+		chains = nla_nest_start_noflag(skb, i);
 
 		if (!chains) {
 			hdd_err("nla_nest_start failed");
@@ -2430,7 +2430,7 @@ hdd_populate_wifi_wmm_ac_info(struct sir_wifi_ll_ext_wmm_ac_stats *ac_stats,
 {
 	struct nlattr *wmm;
 
-	wmm = nla_nest_start(skb, ac_stats->type);
+	wmm = nla_nest_start_noflag(skb, ac_stats->type);
 	if (!wmm)
 		goto nest_start_fail;
 
@@ -2489,8 +2489,8 @@ hdd_populate_wifi_ll_ext_peer_info(struct sir_wifi_ll_ext_peer_stats *peers,
 		return -EINVAL;
 	}
 
-	wmm_ac = nla_nest_start(skb,
-				QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_STATUS);
+	wmm_ac = nla_nest_start_noflag(skb,
+				       QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_STATUS);
 	if (!wmm_ac) {
 		hdd_err("nla_nest_start failed");
 		return -EINVAL;
@@ -2544,15 +2544,15 @@ hdd_populate_wifi_ll_ext_stats(struct sir_wifi_ll_ext_stats *stats,
 		goto put_attr_fail;
 	}
 
-	channels = nla_nest_start(skb,
-				  QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_CCA_BSS);
+	channels = nla_nest_start_noflag(skb,
+					 QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_CCA_BSS);
 	if (!channels) {
 		hdd_err("nla_nest_start failed");
 		return -EINVAL;
 	}
 
 	for (i = 0; i < stats->channel_num; i++) {
-		channel_info = nla_nest_start(skb, i);
+		channel_info = nla_nest_start_noflag(skb, i);
 		if (!channel_info) {
 			hdd_err("nla_nest_start failed");
 			return -EINVAL;
@@ -2564,15 +2564,15 @@ hdd_populate_wifi_ll_ext_stats(struct sir_wifi_ll_ext_stats *stats,
 	}
 	nla_nest_end(skb, channels);
 
-	peer_info = nla_nest_start(skb,
-				   QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER);
+	peer_info = nla_nest_start_noflag(skb,
+					  QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER);
 	if (!peer_info) {
 		hdd_err("nla_nest_start failed");
 		return -EINVAL;
 	}
 
 	for (i = 0; i < stats->peer_num; i++) {
-		peer = nla_nest_start(skb, i);
+		peer = nla_nest_start_noflag(skb, i);
 		if (!peer) {
 			hdd_err("nla_nest_start failed");
 			return -EINVAL;

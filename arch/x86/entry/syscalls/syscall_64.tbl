@@ -341,6 +341,7 @@
 332	common	statx			sys_statx
 424	common	pidfd_send_signal	sys_pidfd_send_signal
 434	common	pidfd_open		sys_pidfd_open
+435	common	clone3			sys_clone3/ptregs
 436	common	close_range		sys_close_range
 441	common	epoll_pwait2		sys_epoll_pwait2
 

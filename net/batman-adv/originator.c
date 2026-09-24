@@ -927,8 +927,6 @@ static void batadv_orig_node_free_rcu(struct rcu_head *rcu)
 
 	orig_node = container_of(rcu, struct batadv_orig_node, rcu);
 
-	batadv_mcast_purge_orig(orig_node);
-
 	batadv_frag_purge_orig(orig_node, NULL);
 
 	if (orig_node->bat_priv->algo_ops->orig.free)
@@ -985,6 +983,8 @@ static void batadv_orig_node_release(struct kref *ref)
 
 	/* Free nc_nodes */
 	batadv_nc_purge_orig(orig_node->bat_priv, orig_node, NULL);
+
+	batadv_mcast_purge_orig(orig_node);
 
 	call_rcu(&orig_node->rcu, batadv_orig_node_free_rcu);
 }

@@ -454,6 +454,7 @@ static int tipc_sk_create(struct net *net, struct socket *sock,
 	tipc_set_sk_state(sk, TIPC_OPEN);
 	if (tipc_sk_insert(tsk)) {
 		sk_free(sk);
+		sock->sk = NULL;
 		pr_warn("Socket create failed; port number exhausted\n");
 		return -EINVAL;
 	}
@@ -1244,6 +1245,9 @@ static void tipc_sk_conn_proto_rcv(struct tipc_sock *tsk, struct sk_buff *skb,
 			__skb_queue_tail(xmitq, skb);
 		return;
 	} else if (mtyp == CONN_ACK) {
+		if (tsk->snt_unacked < msg_conn_ack(hdr))
+			goto exit;
+
 		conn_cong = tsk_conn_cong(tsk);
 		tsk->snt_unacked -= msg_conn_ack(hdr);
 		if (tsk->peer_caps & TIPC_BLOCK_FLOWCTL)
@@ -3212,7 +3216,7 @@ static int __tipc_nl_add_sk_con(struct sk_buff *skb, struct tipc_sock *tsk)
 	peer_node = tsk_peer_node(tsk);
 	peer_port = tsk_peer_port(tsk);
 
-	nest = nla_nest_start(skb, TIPC_NLA_SOCK_CON);
+	nest = nla_nest_start_noflag(skb, TIPC_NLA_SOCK_CON);
 
 	if (nla_put_u32(skb, TIPC_NLA_CON_NODE, peer_node))
 		goto msg_full;
@@ -3269,7 +3273,7 @@ static int __tipc_nl_add_sk(struct sk_buff *skb, struct netlink_callback *cb,
 	if (!hdr)
 		goto msg_cancel;
 
-	attrs = nla_nest_start(skb, TIPC_NLA_SOCK);
+	attrs = nla_nest_start_noflag(skb, TIPC_NLA_SOCK);
 	if (!attrs)
 		goto genlmsg_cancel;
 
@@ -3374,7 +3378,7 @@ int tipc_sk_fill_sock_diag(struct sk_buff *skb, struct netlink_callback *cb,
 	if (!(sk_filter_state & (1 << sk->sk_state)))
 		return 0;
 
-	attrs = nla_nest_start(skb, TIPC_NLA_SOCK);
+	attrs = nla_nest_start_noflag(skb, TIPC_NLA_SOCK);
 	if (!attrs)
 		goto msg_cancel;
 
@@ -3392,7 +3396,7 @@ int tipc_sk_fill_sock_diag(struct sk_buff *skb, struct netlink_callback *cb,
 			      TIPC_NLA_SOCK_PAD))
 		goto attr_msg_cancel;
 
-	stat = nla_nest_start(skb, TIPC_NLA_SOCK_STAT);
+	stat = nla_nest_start_noflag(skb, TIPC_NLA_SOCK_STAT);
 	if (!stat)
 		goto attr_msg_cancel;
 
@@ -3449,7 +3453,7 @@ static int __tipc_nl_add_sk_publ(struct sk_buff *skb,
 	if (!hdr)
 		goto msg_cancel;
 
-	attrs = nla_nest_start(skb, TIPC_NLA_PUBL);
+	attrs = nla_nest_start_noflag(skb, TIPC_NLA_PUBL);
 	if (!attrs)
 		goto genlmsg_cancel;
 

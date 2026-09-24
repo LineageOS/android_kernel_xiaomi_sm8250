@@ -46,7 +46,7 @@ static void set_tcp_default(void)
 
 /*sysctl handler for tcp_ack realted master control */
 int tcp_proc_delayed_ack_control(struct ctl_table *table, int write,
-				 void __user *buffer, size_t *length,
+				 void *buffer, size_t *length,
 				 loff_t *ppos)
 {
 	int ret = proc_dointvec_minmax(table, write, buffer, length, ppos);
@@ -60,7 +60,7 @@ int tcp_proc_delayed_ack_control(struct ctl_table *table, int write,
 
 /*sysctl handler for tcp_ack realted master control */
 int tcp_use_userconfig_sysctl_handler(struct ctl_table *table, int write,
-				      void __user *buffer, size_t *length,
+				      void *buffer, size_t *length,
 				      loff_t *ppos)
 {
 	int ret = proc_dointvec_minmax(table, write, buffer, length, ppos);

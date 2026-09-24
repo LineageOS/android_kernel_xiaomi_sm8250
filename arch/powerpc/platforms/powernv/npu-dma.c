@@ -938,7 +938,7 @@ int pnv_npu2_handle_fault(struct npu_context *context, uintptr_t *ea,
 	if (!firmware_has_feature(FW_FEATURE_OPAL))
 		return -ENODEV;
 
-	WARN_ON(!rwsem_is_locked(&mm->mmap_sem));
+	WARN_ON(!rwsem_is_locked(&mm->mmap_lock));
 
 	for (i = 0; i < count; i++) {
 		is_write = flags[i] & NPU2_WRITE;

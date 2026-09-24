@@ -259,7 +259,7 @@ static int link_shbuf_mmap(struct file *file, struct vm_area_struct *vma)
 	pgprot_t prot;
 
 	/* Our caller should have taken the MM semaphore. */
-	if (WARN_ON(!rwsem_is_locked(&vma->vm_mm->mmap_sem)))
+	if (WARN_ON(!rwsem_is_locked(&vma->vm_mm->mmap_lock)))
 		return -EINVAL;
 
 	/*

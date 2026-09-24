@@ -153,7 +153,7 @@ static int wil_ftm_append_meas_params(struct wil6210_priv *wil,
 {
 	struct nlattr *nl_p;
 
-	nl_p = nla_nest_start(msg, QCA_ATTR_FTM_PEER_RES_MEAS_PARAMS);
+	nl_p = nla_nest_start_noflag(msg, QCA_ATTR_FTM_PEER_RES_MEAS_PARAMS);
 	if (!nl_p)
 		goto out_put_failure;
 	if (nla_put_u8(msg, QCA_ATTR_FTM_PARAM_MEAS_PER_BURST,
@@ -193,11 +193,11 @@ static int wil_ftm_append_peer_meas_res(struct wil6210_priv *wil,
 	if (res->has_params &&
 	    wil_ftm_append_meas_params(wil, msg, &res->params))
 		goto out_put_failure;
-	nl_mres = nla_nest_start(msg, QCA_ATTR_FTM_PEER_RES_MEAS);
+	nl_mres = nla_nest_start_noflag(msg, QCA_ATTR_FTM_PEER_RES_MEAS);
 	if (!nl_mres)
 		goto out_put_failure;
 	for (i = 0; i < res->n_meas; i++) {
-		nl_f = nla_nest_start(msg, i);
+		nl_f = nla_nest_start_noflag(msg, i);
 		if (!nl_f)
 			goto out_put_failure;
 		if (nla_put_u64_64bit(msg, QCA_ATTR_FTM_MEAS_T1,
@@ -251,8 +251,8 @@ static void wil_ftm_send_meas_result(struct wil6210_vif *vif,
 		goto out;
 	}
 
-	nl_res = nla_nest_start(vendor_event,
-				QCA_ATTR_FTM_MEAS_PEER_RESULTS);
+	nl_res = nla_nest_start_noflag(vendor_event,
+				       QCA_ATTR_FTM_MEAS_PEER_RESULTS);
 	if (!nl_res) {
 		rc = -ENOBUFS;
 		goto out;
@@ -730,7 +730,7 @@ int wil_ftm_get_capabilities(struct wiphy *wiphy, struct wireless_dev *wdev,
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, 128);
 	if (!skb)
 		return -ENOMEM;
-	attr = nla_nest_start(skb, QCA_ATTR_LOC_CAPA);
+	attr = nla_nest_start_noflag(skb, QCA_ATTR_LOC_CAPA);
 	if (!attr ||
 	    nla_put_u32(skb, QCA_ATTR_LOC_CAPA_FLAGS,
 			QCA_ATTR_LOC_CAPA_FLAG_FTM_RESPONDER |

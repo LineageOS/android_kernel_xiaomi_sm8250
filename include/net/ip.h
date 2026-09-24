@@ -314,9 +314,9 @@ static inline bool sysctl_dev_name_is_allowed(const char *name)
 	return strcmp(name, "default") != 0  && strcmp(name, "all") != 0;
 }
 
-static inline int inet_prot_sock(struct net *net)
+static inline bool inet_port_requires_bind_service(struct net *net, unsigned short port)
 {
-	return net->ipv4.sysctl_ip_prot_sock;
+	return port < net->ipv4.sysctl_ip_prot_sock;
 }
 
 #else
@@ -325,9 +325,9 @@ static inline int inet_is_local_reserved_port(struct net *net, int port)
 	return 0;
 }
 
-static inline int inet_prot_sock(struct net *net)
+static inline bool inet_port_requires_bind_service(struct net *net, unsigned short port)
 {
-	return PROT_SOCK;
+	return port < PROT_SOCK;
 }
 #endif
 
@@ -437,6 +437,12 @@ static inline unsigned int ip_skb_dst_mtu(struct sock *sk,
 struct dst_metrics *ip_fib_metrics_init(struct net *net, struct nlattr *fc_mx,
 					int fc_mx_len,
 					struct netlink_ext_ack *extack);
+static inline void ip_fib_metrics_put(struct dst_metrics *fib_metrics)
+{
+	if (fib_metrics != &dst_default_metrics &&
+	    refcount_dec_and_test(&fib_metrics->refcnt))
+		kfree(fib_metrics);
+}
 
 /* ipv4 and ipv6 both use refcounted metrics if it is not the default */
 static inline

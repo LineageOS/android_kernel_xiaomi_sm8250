@@ -142,11 +142,13 @@ const struct nla_policy tipc_nl_udp_policy[TIPC_NLA_UDP_MAX + 1] = {
 static const struct genl_ops tipc_genl_v2_ops[] = {
 	{
 		.cmd	= TIPC_NL_BEARER_DISABLE,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_bearer_disable,
 		.policy = tipc_nl_policy,
 	},
 	{
 		.cmd	= TIPC_NL_BEARER_ENABLE,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_bearer_enable,
 		.policy = tipc_nl_policy,
 	},
@@ -158,11 +160,13 @@ static const struct genl_ops tipc_genl_v2_ops[] = {
 	},
 	{
 		.cmd	= TIPC_NL_BEARER_ADD,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_bearer_add,
 		.policy = tipc_nl_policy,
 	},
 	{
 		.cmd	= TIPC_NL_BEARER_SET,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_bearer_set,
 		.policy = tipc_nl_policy,
 	},
@@ -186,11 +190,13 @@ static const struct genl_ops tipc_genl_v2_ops[] = {
 	},
 	{
 		.cmd	= TIPC_NL_LINK_SET,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_node_set_link,
 		.policy = tipc_nl_policy,
 	},
 	{
 		.cmd	= TIPC_NL_LINK_RESET_STATS,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit   = tipc_nl_node_reset_link_stats,
 		.policy = tipc_nl_policy,
 	},
@@ -202,6 +208,7 @@ static const struct genl_ops tipc_genl_v2_ops[] = {
 	},
 	{
 		.cmd	= TIPC_NL_MEDIA_SET,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_media_set,
 		.policy = tipc_nl_policy,
 	},
@@ -217,6 +224,7 @@ static const struct genl_ops tipc_genl_v2_ops[] = {
 	},
 	{
 		.cmd	= TIPC_NL_NET_SET,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_net_set,
 		.policy = tipc_nl_policy,
 	},
@@ -227,6 +235,7 @@ static const struct genl_ops tipc_genl_v2_ops[] = {
 	},
 	{
 		.cmd	= TIPC_NL_MON_SET,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_node_set_monitor,
 		.policy = tipc_nl_policy,
 	},
@@ -243,6 +252,7 @@ static const struct genl_ops tipc_genl_v2_ops[] = {
 	},
 	{
 		.cmd	= TIPC_NL_PEER_REMOVE,
+		.flags	= GENL_UNS_ADMIN_PERM,
 		.doit	= tipc_nl_peer_rm,
 		.policy = tipc_nl_policy,
 	},

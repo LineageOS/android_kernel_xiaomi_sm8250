@@ -918,7 +918,7 @@ out_free:
 				     async_extent->ram_size - 1,
 				     NULL, EXTENT_LOCKED | EXTENT_DELALLOC |
 				     EXTENT_DELALLOC_NEW |
-				     EXTENT_DEFRAG | EXTENT_DO_ACCOUNTING,
+				     EXTENT_DEFRAG | EXTENT_CLEAR_META_RESV,
 				     PAGE_UNLOCK | PAGE_CLEAR_DIRTY |
 				     PAGE_SET_WRITEBACK | PAGE_END_WRITEBACK |
 				     PAGE_SET_ERROR);
@@ -4559,6 +4559,8 @@ static int btrfs_rmdir(struct inode *dir, struct dentry *dentry)
 	err = btrfs_orphan_add(trans, BTRFS_I(inode));
 	if (err)
 		goto out;
+
+	btrfs_record_unlink_dir(trans, BTRFS_I(dir), BTRFS_I(inode), false);
 
 	/* now the directory is empty */
 	err = btrfs_unlink_inode(trans, root, BTRFS_I(dir),

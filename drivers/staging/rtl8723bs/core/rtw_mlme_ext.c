@@ -845,7 +845,8 @@ unsigned int OnBeacon(struct adapter *padapter, union recv_frame *precv_frame)
 				ret = rtw_check_bcn_info(padapter, pframe, len);
 				if (!ret) {
 						DBG_871X_LEVEL(_drv_always_, "ap has changed, disconnect now\n ");
-						receive_disconnect(padapter, pmlmeinfo->network.MacAddress, 0);
+						receive_disconnect(padapter,
+								   pmlmeinfo->network.MacAddress, 0);
 						return _SUCCESS;
 				}
 				/* update WMM, ERP in the beacon */
@@ -3367,7 +3368,11 @@ void issue_assocreq(struct adapter *padapter)
 
 	/* vendor specific IE, such as WPA, WMM, WPS */
 	for (i = sizeof(struct ndis_802_11_fix_ie); i < pmlmeinfo->network.IELength;) {
+		if (i + 2 > pmlmeinfo->network.IELength)
+			break;
 		pIE = (struct ndis_80211_var_ie *)(pmlmeinfo->network.IEs + i);
+		if (i + 2 + pIE->Length > pmlmeinfo->network.IELength)
+			break;
 
 		switch (pIE->ElementID) {
 		case _VENDOR_SPECIFIC_IE_:
@@ -6236,7 +6241,11 @@ u8 join_cmd_hdl(struct adapter *padapter, u8 *pbuf)
 
 	/* sizeof(struct ndis_802_11_fix_ie) */
 	for (i = _FIXED_IE_LENGTH_; i < pnetwork->IELength;) {
+		if (i + 2 > pnetwork->IELength)
+			break;
 		pIE = (struct ndis_80211_var_ie *)(pnetwork->IEs + i);
+		if (i + 2 + pIE->Length > pnetwork->IELength)
+			break;
 
 		switch (pIE->ElementID) {
 		case _VENDOR_SPECIFIC_IE_:/* Get WMM IE. */
