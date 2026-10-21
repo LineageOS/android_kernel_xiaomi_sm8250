@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/module.h>
@@ -2053,8 +2053,16 @@ error:
 static void __cam_req_mgr_free_link(struct cam_req_mgr_core_link *link)
 {
 	ptrdiff_t i;
+
+	/*
+	 * Acquire link->lock to synchronize with cam_req_mgr_cb_add_req()
+	 * and prevent TOCTOU race when freeing in_q
+	 */
+	mutex_lock(&link->lock);
 	kfree(link->req.in_q);
 	link->req.in_q = NULL;
+	mutex_unlock(&link->lock);
+
 	i = link - g_links;
 	CAM_DBG(CAM_CRM, "free link index %d", i);
 	cam_req_mgr_core_link_reset(link);
@@ -2726,6 +2734,16 @@ static int cam_req_mgr_cb_add_req(struct cam_req_mgr_add_request *add_req)
 		add_req->dev_hdl, add_req->req_id);
 
 	mutex_lock(&link->lock);
+
+	/*
+	 * UAF mitigation: Check if in_q was freed
+	 */
+	if (!link->req.in_q) {
+		CAM_ERR(CAM_CRM, "in_q freed for link %x", add_req->link_hdl);
+		mutex_unlock(&link->lock);
+		return -EINVAL;
+	}
+
 	spin_lock_bh(&link->link_state_spin_lock);
 	if (link->state < CAM_CRM_LINK_STATE_READY) {
 		CAM_WARN(CAM_CRM, "invalid link state:%d", link->state);
