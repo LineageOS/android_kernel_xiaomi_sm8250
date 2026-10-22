@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "90a3bd74_f3b0157b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2026-10-22T17:56:17Z",
+      "side": 1,
+      "message": "Please sync it again with the latest changes and send it over. I\u0027ve tested it before too, and everything works fine on my end",
+      "revId": "f5cf6d2b7536d4d9dfd7bde0c93675d76b7009a7",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
