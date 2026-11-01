@@ -44,6 +44,7 @@
 #define FCC_VOTER			"FCC_VOTER"
 #define MAIN_FCC_VOTER			"MAIN_FCC_VOTER"
 #define PD_VOTER			"PD_VOTER"
+#define CHG_BYPASS_VOTER		"CHG_BYPASS_VOTER"
 
 struct pl_data {
 	int			pl_mode;
@@ -54,6 +55,7 @@ struct pl_data {
 	int			main_fcc_ua;
 	int			restricted_current;
 	bool			restricted_charging_enabled;
+	bool			charging_bypass;
 	struct votable		*fcc_votable;
 	struct votable		*fv_votable;
 	struct votable		*pl_disable_votable;
@@ -65,6 +67,7 @@ struct pl_data {
 	struct votable		*cp_disable_votable;
 	struct votable		*fcc_main_votable;
 	struct votable		*cp_slave_disable_votable;
+	struct votable		*chg_disable_votable;
 	struct delayed_work	status_change_work;
 	struct work_struct	pl_disable_forever_work;
 	struct work_struct	pl_taper_work;
@@ -136,6 +139,7 @@ enum {
 	RESTRICT_CHG_ENABLE,
 	RESTRICT_CHG_CURRENT,
 	FCC_STEPPING_IN_PROGRESS,
+	CHARGING_BYPASS,
 };
 
 enum {
@@ -593,6 +597,59 @@ static ssize_t fcc_stepping_in_progress_show(struct class *c,
 }
 static CLASS_ATTR_RO(fcc_stepping_in_progress);
 
+/*******************
+ * CHARGING BYPASS *
+ *******************/
+/*
+ * Run the device from the charger without charging the battery.
+ *
+ * battery_charging_enabled cannot be used for this on these devices: the PD
+ * charge-pump policy uses it to suspend the main charger's input, so writing
+ * 0 there leaves the battery supplying the load. charging_bypass instead
+ * disables charging in the PMIC while USB input keeps powering the system,
+ * and votes FCC to 0 and the parallel path off so that a charge-pump session
+ * cannot start either.
+ */
+static ssize_t charging_bypass_show(struct class *c,
+				struct class_attribute *attr, char *ubuf)
+{
+	struct pl_data *chip = container_of(c, struct pl_data,
+			qcom_batt_class);
+
+	return snprintf(ubuf, PAGE_SIZE, "%d\n", chip->charging_bypass);
+}
+
+static ssize_t charging_bypass_store(struct class *c,
+			struct class_attribute *attr, const char *ubuf,
+			size_t count)
+{
+	struct pl_data *chip = container_of(c, struct pl_data,
+			qcom_batt_class);
+	bool enable;
+
+	if (kstrtobool(ubuf, &enable))
+		return -EINVAL;
+
+	if (!chip->chg_disable_votable)
+		chip->chg_disable_votable = find_votable("CHG_DISABLE");
+	if (!chip->chg_disable_votable)
+		return -EAGAIN;
+
+	chip->charging_bypass = enable;
+
+	if (enable)
+		vote(chip->chg_disable_votable, CHG_BYPASS_VOTER, true, 0);
+
+	vote(chip->pl_disable_votable, CHG_BYPASS_VOTER, enable, 0);
+	vote(chip->fcc_votable, CHG_BYPASS_VOTER, enable, 0);
+
+	if (!enable)
+		vote(chip->chg_disable_votable, CHG_BYPASS_VOTER, false, 0);
+
+	return count;
+}
+static CLASS_ATTR_RW(charging_bypass);
+
 static struct attribute *batt_class_attrs[] = {
 	[VER]			= &class_attr_version.attr,
 	[SLAVE_PCT]		= &class_attr_slave_pct.attr,
@@ -600,6 +657,7 @@ static struct attribute *batt_class_attrs[] = {
 	[RESTRICT_CHG_CURRENT]	= &class_attr_restrict_cur.attr,
 	[FCC_STEPPING_IN_PROGRESS]
 				= &class_attr_fcc_stepping_in_progress.attr,
+	[CHARGING_BYPASS]	= &class_attr_charging_bypass.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(batt_class);
