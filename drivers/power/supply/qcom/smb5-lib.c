@@ -6312,6 +6312,58 @@ int smblib_get_prop_input_current_max(struct smb_charger *chg,
 		return 0;
 	}
 
+	/*
+	 * With a charge pump, pd_policy_manager parks the main charger at
+	 * MAIN_ICL_MIN and icl_stat reads ~100mA, and for the first seconds
+	 * after plug-in it reads the plain USB default. healthd multiplies
+	 * usb/current_max by usb/voltage_max to get the "max charging power",
+	 * so SystemUI shows "slow charging" on PD and QC3 fast chargers.
+	 * Report the negotiated maximum instead: the PD contract current, or
+	 * the QC3 class A limit used together with the charge pump. Never
+	 * report less than what the main charger reads. If nothing is
+	 * negotiated, fall back to the charge pump's measured input current.
+	 */
+	{
+		int main_ua = 0, neg_ua = 0;
+		bool cp_active = get_client_vote(chg->usb_icl_votable,
+				MAIN_ICL_MIN_VOTER) == MAIN_ICL_MIN;
+
+		if (chg->pd_active)
+			neg_ua = get_client_vote(chg->usb_icl_votable,
+								PD_VOTER);
+		else if (cp_active && chg->is_qc_class_a && chg->use_bq_pump &&
+			 (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3 ||
+			  chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5))
+			neg_ua = HVDCP_CLASS_A_FOR_CP_UA;
+
+		if (neg_ua > 0 &&
+		    !smblib_get_charge_param(chg, &chg->param.icl_stat,
+								&main_ua)) {
+			val->intval = max(neg_ua, main_ua);
+			return 0;
+		}
+
+		if (cp_active) {
+			struct power_supply *cp_psy = power_supply_get_by_name(
+							"bq2597x-standalone");
+			union power_supply_propval pval = { 0, };
+
+			if (cp_psy) {
+				rc = power_supply_get_property(cp_psy,
+					POWER_SUPPLY_PROP_TI_BUS_CURRENT,
+					&pval);
+				power_supply_put(cp_psy);
+				if (!rc && pval.intval > 0 &&
+				    !smblib_get_charge_param(chg,
+					&chg->param.icl_stat, &main_ua)) {
+					val->intval = main_ua +
+							pval.intval * 1000;
+					return 0;
+				}
+			}
+		}
+	}
+
 	return smblib_get_charge_param(chg, &chg->param.icl_stat, &val->intval);
 }
 
