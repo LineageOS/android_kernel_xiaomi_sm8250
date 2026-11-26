@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dcfdb0b9_43e116b5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 22176
+      },
+      "writtenOn": "2026-11-26T12:22:00Z",
+      "side": 1,
+      "message": "send it to LineageOS/android_kernel_qcom_sm8250 plese",
+      "revId": "bcaea9f68d40f1edb8fa9096564ebbe2fafdd7df",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
