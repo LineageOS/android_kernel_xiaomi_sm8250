@@ -39,6 +39,42 @@ char gVers803x[21] = { 0 };
 char gVers176x[21] = { 0 };
 
 short gHallStatus = 0;
+
+/* Last connection bit reported to userspace; -1 means nothing reported yet. */
+static int s_last_notified_connected = -1;
+static DEFINE_MUTEX(s_keyboard_notify_lock);
+
+/**
+ * Ask the keypad MCU for its current hall/keyboard status.
+ *
+ * Kept as a helper so that sysfs-triggered bootstrap queries and any future
+ * hardware event source use the same command construction.
+ */
+void Nanosic_i2c_request_keyboard_status(void)
+{
+	struct nano_i2c_client *i2c_client = gI2c_client;
+	unsigned char cmd[I2C_DATA_LENGTH_WRITE] = {
+		0x32, 0x00, 0x4E, 0x31, FIELD_HOST,
+		FIELD_176X, 0xA1, 0x01, 0x01, 0x00
+	};
+	int i;
+
+	if (IS_ERR_OR_NULL(i2c_client))
+		return;
+
+	for (i = 2; i < 9; i++)
+		cmd[9] += cmd[i];
+
+	Nanosic_i2c_write(i2c_client, cmd, sizeof(cmd));
+}
+
+void Nanosic_i2c_reset_keyboard_notify_state(void)
+{
+	mutex_lock(&s_keyboard_notify_lock);
+	s_last_notified_connected = -1;
+	mutex_unlock(&s_keyboard_notify_lock);
+}
+
 /** **************************************************************************
  * @brief
  *   
@@ -48,6 +84,8 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 	char source;
 	char object;
 	char command;
+	u8 hall_status;
+	int connected;
 
 	if (!data)
 		return false;
@@ -72,7 +110,21 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 	} else if (command == 0xA2 && source == FIELD_176X &&
 		   object == FIELD_HOST) {
 		data += 4;
-		STREAM_TO_UINT8(gHallStatus, data);
+		STREAM_TO_UINT8(hall_status, data);
+		connected = (hall_status & 0x1) ? 1 : 0;
+
+		/* Keep the cached status and the notification state in the same
+		 * critical section so that two concurrent parses cannot publish
+		 * the events out of order. Only remember a state after the
+		 * notification succeeded, otherwise a transient failure would
+		 * suppress the event forever.
+		 */
+		mutex_lock(&s_keyboard_notify_lock);
+		gHallStatus = hall_status;
+		if (connected != s_last_notified_connected &&
+		    Nanosic_chardev_notify_keyboard_status(connected != 0) == 0)
+			s_last_notified_connected = connected;
+		mutex_unlock(&s_keyboard_notify_lock);
 	}
 
 	return false;
@@ -407,6 +459,12 @@ irqreturn_t Nanosic_i2c_irq(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
+	/* The GPIO 83 interrupt is the hardware event source: the MCU pulls it
+	 * when it has a status/data packet ready, including keyboard attachment
+	 * changes. The workqueue reads the packet and the 0xA2 parser emits the
+	 * uevent. Do not issue a query from here: the query response would raise
+	 * another interrupt and create an endless IRQ loop.
+	 */
 	Nanosic_workQueue_schedule(i2c_client->worker);
 
 	return IRQ_HANDLED;

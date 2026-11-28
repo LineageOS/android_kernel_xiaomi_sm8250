@@ -59,6 +59,7 @@ typedef struct nano_client_s {
 static bool initial = false;
 static struct cdev chrdev;
 static struct device *d;
+static DEFINE_MUTEX(nanosic_chardev_lock);
 
 static struct class *nanosic_cdev_class;
 static dev_t nanosic_cdev_basedev;
@@ -519,6 +520,7 @@ static int Nanosic_chardev_claim(void)
 {
 	//struct file* filp;
 	//struct inode* inode;
+	struct device *dev;
 
 	cdev_init(&chrdev, &nanosic_cdev_fops);
 
@@ -527,11 +529,11 @@ static int Nanosic_chardev_claim(void)
 		return -1;
 	}
 
-	d = device_create(nanosic_cdev_class, /* Owning class */
-			  NULL, nanosic_cdev_basedev + 0, /* dev_t */
-			  (void *)NULL, /* drvdata for callbacks */
-			  "%s%d", DRV_TOKEN, 0); /* devname */
-	if (IS_ERR(d)) {
+	dev = device_create(nanosic_cdev_class, /* Owning class */
+			    NULL, nanosic_cdev_basedev + 0, /* dev_t */
+			    (void *)NULL, /* drvdata for callbacks */
+			    "%s%d", DRV_TOKEN, 0); /* devname */
+	if (IS_ERR(dev)) {
 		dbgprint(ERROR_LEVEL, "Cannot create nanosic device.\n");
 		goto _alcli_claim_fail_1;
 	}
@@ -546,7 +548,11 @@ static int Nanosic_chardev_claim(void)
 #endif
 
 	/*initializa sysfs node */
-	Nanosic_sysfs_create(d);
+	Nanosic_sysfs_create(dev);
+
+	mutex_lock(&nanosic_chardev_lock);
+	d = dev;
+	mutex_unlock(&nanosic_chardev_lock);
 
 	return 0;
 
@@ -554,6 +560,43 @@ static int Nanosic_chardev_claim(void)
 _alcli_claim_fail_1:
 	cdev_del(&chrdev);
 	return -1;
+}
+
+/**
+ * Notify userspace about a keyboard connection state change.
+ *
+ * The status attributes are created on the chardev class device, not on the
+ * i2c client device, so the notification has to be emitted here where that
+ * device is available. A device reference is taken so that a concurrent
+ * device_destroy() cannot free the kobject underneath us.
+ */
+int Nanosic_chardev_notify_keyboard_status(bool connected)
+{
+	char buf[32];
+	char *envp[2];
+	struct device *dev;
+	int ret;
+
+	envp[0] = buf;
+	envp[1] = NULL;
+
+	mutex_lock(&nanosic_chardev_lock);
+	dev = d;
+	if (initial && !IS_ERR_OR_NULL(dev))
+		get_device(dev);
+	else
+		dev = NULL;
+	mutex_unlock(&nanosic_chardev_lock);
+
+	if (!dev)
+		return -ENODEV;
+
+	snprintf(buf, sizeof(buf), "KEYBOARD_CONNECTED=%d", connected ? 1 : 0);
+	sysfs_notify(&dev->kobj, NULL, "_version176x");
+	ret = kobject_uevent_env(&dev->kobj, KOBJ_CHANGE, envp);
+	put_device(dev);
+
+	return ret;
 }
 
 /** ************************************************************************/ /**
@@ -587,7 +630,9 @@ int Nanosic_chardev_register(void)
 	if (ret < 0)
 		return -1;
 
+	mutex_lock(&nanosic_chardev_lock);
 	initial = true;
+	mutex_unlock(&nanosic_chardev_lock);
 
 	dbgprint(ALERT_LEVEL, "chardev create ok!\n");
 
@@ -602,10 +647,22 @@ int Nanosic_chardev_register(void)
  */
 void Nanosic_chardev_release(void)
 {
+	struct device *dev;
+
 	dbgprint(ALERT_LEVEL, "chardev release begin!\n");
 
-	if (initial == false)
+	/* Stop new notifications from touching the device before it is
+	 * destroyed. Callers already in flight hold their own reference.
+	 */
+	mutex_lock(&nanosic_chardev_lock);
+	if (!initial) {
+		mutex_unlock(&nanosic_chardev_lock);
 		return;
+	}
+	dev = d;
+	initial = false;
+	d = NULL;
+	mutex_unlock(&nanosic_chardev_lock);
 
 	/*通知nanoapp尝试close handle*/
 	//Nanosic_chardev_client_notify_close();
@@ -613,9 +670,9 @@ void Nanosic_chardev_release(void)
 	/*延时500ms*/
 	//mdelay(500);
 
-	if (!IS_ERR(d)) {
+	if (!IS_ERR(dev)) {
 		/*release sysfs node */
-		Nanosic_sysfs_release(d);
+		Nanosic_sysfs_release(dev);
 	}
 
 	/* Step 1: Tear down our char device */
@@ -626,8 +683,6 @@ void Nanosic_chardev_release(void)
 	class_destroy(nanosic_cdev_class);
 	nanosic_cdev_class = NULL;
 	unregister_chrdev_region(nanosic_cdev_basedev, CHARDEV_MAX_DEVICES);
-
-	initial = false;
 
 	dbgprint(ALERT_LEVEL, "chardev release ok!\n");
 }

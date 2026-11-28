@@ -119,6 +119,9 @@ static int nanosic_803_probe(struct i2c_client *client,
 	gI2c_client = I2client;
 	gI2c_client->dev = &(client->dev);
 
+	/* Replay the current state after a re-probe. */
+	Nanosic_i2c_reset_keyboard_notify_state();
+
 	xiaomi_keyboard_init(I2client);
 	/*initialize timer for test*/
 
@@ -134,6 +137,7 @@ static int nanosic_803_probe(struct i2c_client *client,
 	return 0;
 
 _err4:
+	Nanosic_i2c_reset_keyboard_notify_state();
 	Nanosic_cache_release();
 _err3:
 	Nanosic_input_release();
@@ -152,6 +156,11 @@ static int nanosic_803_remove(struct i2c_client *client)
 		return 0;
 
 	I2client = i2c_get_clientdata(client);
+
+	/* Invalidate the notification cache before the chardev (and therefore
+	 * the notification target) is gone, so a later probe replays state.
+	 */
+	Nanosic_i2c_reset_keyboard_notify_state();
 
 	/*release chardev module*/
 	Nanosic_chardev_release();
