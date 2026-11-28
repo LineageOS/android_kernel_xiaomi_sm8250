@@ -23,6 +23,7 @@
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
+#include <linux/jiffies.h>
 //#include <linux/sys_config.h>
 
 #include "nano_macro.h"
@@ -39,6 +40,36 @@ char gVers803x[21] = { 0 };
 char gVers176x[21] = { 0 };
 
 short gHallStatus = 0;
+
+/* Rate-limit status queries raised by GPIO 83 interrupts. */
+#define KEYBOARD_STATUS_QUERY_INTERVAL_MS 100
+static unsigned long s_last_keyboard_query;
+
+/**
+ * Ask the keypad MCU for its current hall/keyboard status.
+ *
+ * Used by the sysfs bootstrap path and by the workqueue when a GPIO 83
+ * interrupt did not already carry a 0xA2 status packet.
+ */
+void Nanosic_i2c_request_keyboard_status(void)
+{
+	struct nano_i2c_client *i2c_client = gI2c_client;
+	unsigned char cmd[I2C_DATA_LENGTH_WRITE] = {
+		0x32, 0x00, 0x4E, 0x31, FIELD_HOST,
+		FIELD_176X, 0xA1, 0x01, 0x01, 0x00
+	};
+	int i;
+
+	if (IS_ERR_OR_NULL(i2c_client))
+		return;
+
+	for (i = 2; i < 9; i++)
+		cmd[9] += cmd[i];
+
+	s_last_keyboard_query = jiffies;
+	Nanosic_i2c_write(i2c_client, cmd, sizeof(cmd));
+}
+
 /** **************************************************************************
  * @brief
  *   
@@ -48,6 +79,8 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 	char source;
 	char object;
 	char command;
+	u8 hall_status;
+	int connected;
 
 	if (!data)
 		return false;
@@ -59,7 +92,7 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 	if (command == 0x1 && source == FIELD_803X && object == FIELD_HOST) {
 		/*803->host 上传803版本号*/
 		memcpy(gVers803x, data + 2, 20);
-		return true;
+		return false;
 	} else if (command == 0x1 && source == FIELD_176X &&
 		   object == FIELD_HOST) {
 		/*keypad->host 上传keypad版本号*/
@@ -68,11 +101,20 @@ static bool Nanosic_i2c_specified_packets_detect(char *data)
 		STREAM_TO_UINT8(len, data);
 		STREAM_TO_UINT16(version, data);
 		snprintf(gVers176x, sizeof(gVers176x), "%x", version);
-		return true;
+		return false;
 	} else if (command == 0xA2 && source == FIELD_176X &&
 		   object == FIELD_HOST) {
 		data += 4;
-		STREAM_TO_UINT8(gHallStatus, data);
+		STREAM_TO_UINT8(hall_status, data);
+		connected = (hall_status & 0x1) ? 1 : 0;
+
+		/* Every 0xA2 is a fresh status sample. Do not deduplicate here:
+		 * the kernel cache can be reset by a bootstrap sysfs query, and
+		 * userspace already filters repeated states.
+		 */
+		gHallStatus = hall_status;
+		Nanosic_chardev_notify_keyboard_status(connected != 0);
+		return true;
 	}
 
 	return false;
@@ -243,7 +285,7 @@ int Nanosic_i2c_write(struct nano_i2c_client *i2c_client, void *buf, size_t len)
  *   
  ** */
 
-int Nanosic_i2c_parse(char *data, size_t datalen)
+bool Nanosic_i2c_parse(char *data, size_t datalen)
 {
 	char *p = data;
 	char left;
@@ -253,10 +295,11 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 	unsigned char
 		fourth_byte; /*fixed data 0x2: mouse  0x5: keyboard 0x19: touch*/
 	unsigned short seq = 0;
+	bool got_a2 = false;
 
 	if (datalen < 0) {
 		dbgprint(ERROR_LEVEL, "invalid data length\n");
-		return -1;
+		return false;
 	}
 
 	left = datalen;
@@ -267,7 +310,7 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 	left--;
 	if (first_byte != 0x57) {
 		dbgprint(DEBUG_LEVEL, "first_byte error\n");
-		return -1;
+		return false;
 	}
 
 	STREAM_TO_UINT8(second_byte, p);
@@ -278,14 +321,14 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 
 	if (third_byte == 0) { /*null packet*/
 		//dbgprint(DEBUG_LEVEL , "third_byte is null\n");
-		return -1;
+		return false;
 	}
 
 	if (third_byte != 0x39 && third_byte != 0x4A && third_byte != 0x5B &&
 	    third_byte != 0x6C) {
 		/*no packets include*/
 		dbgprint(DEBUG_LEVEL, "third_byte error\n");
-		return -1;
+		return false;
 	}
 
 	rawdata_show("_rawdata_", data, datalen);
@@ -333,7 +376,7 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 			left -= 21;
 			break;
 		case 0x22:
-			Nanosic_i2c_specified_packets_detect(p + 2);
+			got_a2 |= Nanosic_i2c_specified_packets_detect(p + 2);
 			Nanosic_chardev_client_write(
 				p,
 				16); /* upstreams data via /dev/nanodev0 to userspace*/
@@ -341,7 +384,7 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 			left -= 16;
 			break;
 		case 0x23:
-			Nanosic_i2c_specified_packets_detect(p + 2);
+			got_a2 |= Nanosic_i2c_specified_packets_detect(p + 2);
 			Nanosic_chardev_client_write(p, 32);
 			Nanosic_input_write(EM_PACKET_VENDOR, p, 32);
 			p += 32;
@@ -351,11 +394,11 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 		case 0x24:
 			//case 0x23:
 			{
-				Nanosic_i2c_specified_packets_detect(p + 2);
+				got_a2 |= Nanosic_i2c_specified_packets_detect(p + 2);
 				Nanosic_chardev_client_write(
 					p,
 					left); /* upstreams data via /dev/nanodev0 to userspace*/
-				return 0;
+				return got_a2;
 			}
 
 		default:
@@ -364,7 +407,7 @@ int Nanosic_i2c_parse(char *data, size_t datalen)
 		}
 	}
 
-	return 0;
+	return got_a2;
 }
 
 /** ************************************************************************/ /**
@@ -377,6 +420,7 @@ int Nanosic_i2c_read_handler(void *data)
 
 	char buf[I2C_DATA_LENGTH_READ] = { 0 };
 	int datalen;
+	bool got_a2 = false;
 
 	if (IS_ERR_OR_NULL(i2c_client)) {
 		dbgprint(ALERT_LEVEL, "Nanosic_i2c_read_handler, null\n");
@@ -384,12 +428,22 @@ int Nanosic_i2c_read_handler(void *data)
 	}
 
 	datalen = Nanosic_i2c_read(i2c_client, buf, sizeof(buf));
-	if (datalen > 0) {
-		Nanosic_i2c_parse(buf, datalen);
-	} else {
+	if (datalen > 0)
+		got_a2 = Nanosic_i2c_parse(buf, datalen);
+	else
 		atomic_inc(&i2c_client->i2c_error_count);
-	}
 	atomic_inc(&i2c_client->i2c_read_count);
+
+	/* The MCU answers the 0xA1 status query with a 0xA2 packet but does not
+	 * push that packet on every GPIO 83 interrupt. If this run saw no 0xA2,
+	 * ask for one. The reply asserts GPIO 83 again and the next workqueue
+	 * run sees the 0xA2, so the chain terminates without a polling timer.
+	 * Rate-limit the query so ordinary key traffic cannot cause a storm.
+	 */
+	if (!got_a2 &&
+	    time_after(jiffies, s_last_keyboard_query +
+		       msecs_to_jiffies(KEYBOARD_STATUS_QUERY_INTERVAL_MS)))
+		Nanosic_i2c_request_keyboard_status();
 
 	return 0;
 }
@@ -407,6 +461,11 @@ irqreturn_t Nanosic_i2c_irq(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
+	/* GPIO 83 signals that the MCU has data ready. Schedule the bottom half,
+	 * which reads the packet and issues a 0xA1 status query when the packet
+	 * did not already carry 0xA2. Never query from interrupt context: the
+	 * response re-asserts this line and would loop forever.
+	 */
 	Nanosic_workQueue_schedule(i2c_client->worker);
 
 	return IRQ_HANDLED;

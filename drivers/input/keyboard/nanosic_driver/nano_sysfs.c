@@ -219,23 +219,13 @@ static ssize_t version_176x_store(struct device *dev,
 	if (i2c_client) {
 		int i = 0;
 
-		char read_keypad_status[I2C_DATA_LENGTH_WRITE] = {
-			0x32,	    0x00, 0x4E, 0x31, FIELD_HOST,
-			FIELD_176X, 0xA1, 0x01, 0x01, 0x00
-		};
 		char read_keypad_vers_cmd[I2C_DATA_LENGTH_WRITE] = {
 			0x32,	    0x00,	0x4F, 0x30,
 			FIELD_HOST, FIELD_176X, 0x01, 0x00
 		};
-		gHallStatus = 0;
 
-		for (i = 2; i < 9; i++)
-			read_keypad_status[9] +=
-				read_keypad_status[i]; /*cal sum*/
-		rawdata_show("request keypad hall status", read_keypad_status,
-			     sizeof(read_keypad_status));
-		Nanosic_i2c_write(i2c_client, read_keypad_status,
-				  sizeof(read_keypad_status));
+		gHallStatus = 0;
+		Nanosic_i2c_request_keyboard_status();
 
 		msleep(10);
 

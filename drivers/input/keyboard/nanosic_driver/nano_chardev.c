@@ -59,6 +59,7 @@ typedef struct nano_client_s {
 static bool initial = false;
 static struct cdev chrdev;
 static struct device *d;
+static DEFINE_MUTEX(nanosic_chardev_lock);
 
 static struct class *nanosic_cdev_class;
 static dev_t nanosic_cdev_basedev;
@@ -519,6 +520,7 @@ static int Nanosic_chardev_claim(void)
 {
 	//struct file* filp;
 	//struct inode* inode;
+	struct device *dev;
 
 	cdev_init(&chrdev, &nanosic_cdev_fops);
 
@@ -527,11 +529,11 @@ static int Nanosic_chardev_claim(void)
 		return -1;
 	}
 
-	d = device_create(nanosic_cdev_class, /* Owning class */
-			  NULL, nanosic_cdev_basedev + 0, /* dev_t */
-			  (void *)NULL, /* drvdata for callbacks */
-			  "%s%d", DRV_TOKEN, 0); /* devname */
-	if (IS_ERR(d)) {
+	dev = device_create(nanosic_cdev_class, /* Owning class */
+			    NULL, nanosic_cdev_basedev + 0, /* dev_t */
+			    (void *)NULL, /* drvdata for callbacks */
+			    "%s%d", DRV_TOKEN, 0); /* devname */
+	if (IS_ERR(dev)) {
 		dbgprint(ERROR_LEVEL, "Cannot create nanosic device.\n");
 		goto _alcli_claim_fail_1;
 	}
@@ -546,7 +548,11 @@ static int Nanosic_chardev_claim(void)
 #endif
 
 	/*initializa sysfs node */
-	Nanosic_sysfs_create(d);
+	Nanosic_sysfs_create(dev);
+
+	mutex_lock(&nanosic_chardev_lock);
+	d = dev;
+	mutex_unlock(&nanosic_chardev_lock);
 
 	return 0;
 
@@ -554,6 +560,41 @@ static int Nanosic_chardev_claim(void)
 _alcli_claim_fail_1:
 	cdev_del(&chrdev);
 	return -1;
+}
+
+/**
+ * Notify userspace about a keyboard connection state change.
+ *
+ * The status attributes are created on the chardev class device, not on the
+ * i2c client device, so the notification has to be emitted here where that
+ * device is available. The whole operation runs under nanosic_chardev_lock:
+ * a device reference alone would not pin the class kset used by
+ * kobject_uevent_env(), so teardown and notification must be mutually
+ * exclusive.
+ */
+int Nanosic_chardev_notify_keyboard_status(bool connected)
+{
+	char buf[32];
+	char *envp[2];
+	struct device *dev;
+	int ret;
+
+	envp[0] = buf;
+	envp[1] = NULL;
+
+	mutex_lock(&nanosic_chardev_lock);
+	if (!initial || IS_ERR_OR_NULL(d)) {
+		mutex_unlock(&nanosic_chardev_lock);
+		return -ENODEV;
+	}
+	dev = d;
+
+	snprintf(buf, sizeof(buf), "KEYBOARD_CONNECTED=%d", connected ? 1 : 0);
+	sysfs_notify(&dev->kobj, NULL, "_version176x");
+	ret = kobject_uevent_env(&dev->kobj, KOBJ_CHANGE, envp);
+	mutex_unlock(&nanosic_chardev_lock);
+
+	return ret;
 }
 
 /** ************************************************************************/ /**
@@ -587,7 +628,9 @@ int Nanosic_chardev_register(void)
 	if (ret < 0)
 		return -1;
 
+	mutex_lock(&nanosic_chardev_lock);
 	initial = true;
+	mutex_unlock(&nanosic_chardev_lock);
 
 	dbgprint(ALERT_LEVEL, "chardev create ok!\n");
 
@@ -602,10 +645,22 @@ int Nanosic_chardev_register(void)
  */
 void Nanosic_chardev_release(void)
 {
+	struct device *dev;
+
 	dbgprint(ALERT_LEVEL, "chardev release begin!\n");
 
-	if (initial == false)
+	/* Serialize with notifications: the whole teardown runs under the same
+	 * lock, so an in-flight notification finishes before the device and its
+	 * class kset are destroyed.
+	 */
+	mutex_lock(&nanosic_chardev_lock);
+	if (!initial) {
+		mutex_unlock(&nanosic_chardev_lock);
 		return;
+	}
+	initial = false;
+	dev = d;
+	d = NULL;
 
 	/*通知nanoapp尝试close handle*/
 	//Nanosic_chardev_client_notify_close();
@@ -613,9 +668,9 @@ void Nanosic_chardev_release(void)
 	/*延时500ms*/
 	//mdelay(500);
 
-	if (!IS_ERR(d)) {
+	if (!IS_ERR_OR_NULL(dev)) {
 		/*release sysfs node */
-		Nanosic_sysfs_release(d);
+		Nanosic_sysfs_release(dev);
 	}
 
 	/* Step 1: Tear down our char device */
@@ -626,8 +681,7 @@ void Nanosic_chardev_release(void)
 	class_destroy(nanosic_cdev_class);
 	nanosic_cdev_class = NULL;
 	unregister_chrdev_region(nanosic_cdev_basedev, CHARDEV_MAX_DEVICES);
-
-	initial = false;
+	mutex_unlock(&nanosic_chardev_lock);
 
 	dbgprint(ALERT_LEVEL, "chardev release ok!\n");
 }

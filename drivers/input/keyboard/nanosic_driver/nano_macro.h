@@ -237,6 +237,7 @@ extern int Nanosic_chardev_register(void);
 extern void Nanosic_chardev_release(void);
 extern int Nanosic_chardev_client_write(char *data, size_t datalen);
 extern int Nanosic_chardev_client_notify_close(void);
+extern int Nanosic_chardev_notify_keyboard_status(bool connected);
 extern void Nanosic_timer_register(struct nano_i2c_client *i2c_client);
 extern void Nanosic_timer_release(void);
 extern void Nanosic_sysfs_create(struct device *dev);
@@ -250,8 +251,9 @@ extern int Nanosic_i2c_read(struct nano_i2c_client *i2c_client, void *buf,
 			    size_t len);
 extern int Nanosic_i2c_write(struct nano_i2c_client *i2c_client, void *buf,
 			     size_t len);
-extern int Nanosic_i2c_parse(char *data, size_t datalen);
+extern bool Nanosic_i2c_parse(char *data, size_t datalen);
 extern int Nanosic_i2c_read_handler(void *data);
+extern void Nanosic_i2c_request_keyboard_status(void);
 extern struct nano_i2c_client *Nanosic_i2c_register(int irqno, u32 irq_flags,
 						    int i2c_bus_id,
 						    int i2c_slave_addr);
